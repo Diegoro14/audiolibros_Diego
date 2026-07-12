@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>VozAlquimia Premium - Creador de Audiolibros</title>
+    
+    <!-- Meta etiquetas para App en iPhone (PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VozAlquimia">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        iosGray: '#1c1c1e',
+                        iosDarkGray: '#0a0a0c',
+                        iosAccent: '#0a84ff',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts para tipografía ultra legible -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome para íconos interactivos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Soporte EPUB & PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <style>
+        :root {
+            --font-scale: 1.0;
+            --bg-color: #050508;
+            --text-color: #ffffff;
+            --text-secondary: #a1a1aa;
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --glass-bg-darker: rgba(10, 10, 12, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --accent-color: #0a84ff;
+            --accent-glow: rgba(10, 132, 255, 0.3);
+            --card-hover: rgba(255, 255, 255, 0.12);
+            --blob-op: 0.25;
+        }
+
+        .light-theme {
+            --bg-color: #f2f2f7;
+            --text-color: #1c1c1e;
+            --text-secondary: #636366;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-bg-darker: rgba(242, 242, 247, 0.85);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --accent-color: #007aff;
+            --accent-glow: rgba(0, 122, 255, 0.15);
+            --card-hover: rgba(0, 0, 0, 0.05);
+            --blob-op: 0.12;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: calc(1rem * var(--font-scale));
+            -webkit-overflow-scrolling: touch;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease, color 0.4s ease, font-size 0.2s ease;
+        }
+
+        /* Efecto Liquid Glass */
+        .liquid-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(190%);
+            -webkit-backdrop-filter: blur(25px) saturate(190%);
+            border: 1px solid var(--glass-border);
+            transition: background 0.3s, border 0.3s;
+        }
+
+        .liquid-glass-dark {
+            background: var(--glass-bg-darker);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border-top: 1px solid var(--glass-border);
+        }
+
+        /* Margen de seguridad dinámico para iPhone (Notch y barras nativas del sistema) */
+        .safe-padding-top {
+            padding-top: max(0.75rem, env(safe-area-inset-top));
+        }
+        .safe-padding-bottom {
+            padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+        }
+
+        /* Transiciones suaves */
+        .view-transition {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+        }
+
+        /* Animación de lectura activa sincronizada al compás del audio */
+        .word-active {
+            background-color: var(--accent-glow);
+            color: var(--accent-color);
+            border-radius: 6px;
+            padding: 4px 8px;
+            transform: scale(1.04);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Simulador de teléfono premium simplificado sin notch por software */
+        .phone-frame {
+            width: 393px;
+            height: 852px;
+            border: 12px solid #222;
+            border-radius: 48px;
+            position: relative;
+            box-shadow: 0 25px 60px -15px rgba(0,0,0,0.6);
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+
+        /* Scrollbar Premium iOS */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+    </style>
+</head>
+<body class="h-full overflow-hidden select-none">
+
+    <!-- Fondo líquido abstracto autogestionado -->
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
+        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[130px] animate-pulse transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
+        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-blue-600/15 blur-[140px] animate-pulse transition-opacity duration-700" style="animation-duration: 8s; opacity: var(--blob-op);"></div>
+    </div>
+
+    <!-- PANEL SUPERIOR GLOBAL (Herramientas del Sistema con adaptación nativa al notch de iOS) -->
+    <div class="w-full bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 flex justify-between items-center z-50 relative text-xs safe-padding-top">
+        <div class="flex items-center gap-3">
+            <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>VOZALQUIMIA</span>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <!-- Botón Cambiar Letra (Agrandar/Encoger) -->
+            <button id="btn-font-dec" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Reducir Letra">A-</button>
+            <button id="btn-font-inc" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Aumentar Letra">A+</button>
+            
+            <div class="h-4 w-[1px] bg-white/20 mx-1"></div>
+
+            <!-- Botón Modo Claro/Oscuro -->
+            <button id="btn-toggle-theme" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
+                <i class="fa-solid fa-moon" id="theme-icon"></i>
+            </button>
+
+            <!-- Botón Cambiar Interfaz (PC / Móvil) -->
+            <button id="btn-toggle-device" class="px-3 h-8 rounded-lg bg-iosAccent text-white text-[11px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span id="device-btn-text">Ver Móvil</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR DE CONTROL DE DISPOSITIVO (Centra el móvil o lo expande a PC) -->
+    <div id="app-workspace" class="flex items-center justify-center h-[calc(100vh-45px)] w-full p-2 md:p-6 transition-all duration-500">
+        
+        <!-- ESTE CONTENEDOR SE PUEDE TRANSFORMAR EN UN IPHONE O EN UNA INTERFAZ DE ESCRITORIO PC -->
+        <div id="device-wrapper" class="w-full h-full flex flex-col md:flex-row gap-6 max-w-7xl">
+            
+            <!-- CONTENEDOR PRINCIPAL DE LA APP -->
+            <div id="app-phone-container" class="flex-1 flex flex-col h-full bg-transparent overflow-hidden relative">
+
+                <!-- Notificaciones Flotantes -->
+                <div id="toast" class="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-full text-xs font-medium transition-all duration-300 opacity-0 pointer-events-none liquid-glass text-white shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info" id="toast-icon"></i>
+                    <span id="toast-text">Notificación</span>
+                </div>
+
+                <!-- ================= MAIN VIEW (Biblioteca & Carga) ================= -->
+                <div id="view-library" class="view-transition flex flex-col flex-1 overflow-hidden px-4">
+                    
+                    <header class="flex justify-between items-center py-4">
+                        <div>
+                            <span class="text-xs font-semibold opacity-60 uppercase tracking-wider">Tu Colección</span>
+                            <h1 class="text-3xl font-bold tracking-tight">Audiolibros</h1>
+                        </div>
+                        <button id="btn-select-dir" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
+                            <i class="fa-solid fa-folder-open text-base text-iosAccent"></i>
+                        </button>
+                    </header>
+
+                    <!-- Zona de Carga de Archivos -->
+                    <div id="drop-zone" class="relative group mt-1 mb-4 p-5 rounded-2xl border-2 border-dashed border-white/20 hover:border-iosAccent/50 transition-all flex flex-col items-center justify-center bg-white/5 cursor-pointer text-center">
+                        <input type="file" id="file-input" accept=".epub,.pdf" class="hidden">
+                        <div class="w-10 h-10 rounded-full bg-iosAccent/10 flex items-center justify-center text-iosAccent mb-2 transition-transform group-hover:scale-110">
+                            <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+                        </div>
+                        <h3 class="font-semibold text-xs">Arrastra o importa un libro</h3>
+                        <p class="text-[10px] opacity-60 mt-0.5">Soporta formatos EPUB y PDF</p>
+                    </div>
+
+                    <!-- BUSCADOR AVANZADO DE BIBLIOTECA -->
+                    <div class="relative mb-4">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="library-search" class="w-full py-2.5 pl-9 pr-4 rounded-xl liquid-glass text-xs outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
+                    </div>
+
+                    <!-- Listado con Scrolls Suaves -->
+                    <div class="flex-1 overflow-y-auto pb-24">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-base font-bold tracking-tight">Mis Libros</h2>
+                            <span id="library-count" class="text-[10px] opacity-70 bg-white/5 px-2.5 py-1 rounded-full font-semibold">0 libros</span>
+                        </div>
+
+                        <div id="books-grid" class="grid grid-cols-2 gap-3 pb-6">
+                            <div id="no-books-msg" class="col-span-2 text-center py-12 opacity-60">
+                                <i class="fa-solid fa-book-open text-3xl mb-3"></i>
+                                <p class="text-xs">Aún no has importado ningún libro.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= PLAYER VIEW (Reproductor iOS) ================= -->
+                <div id="view-player" class="view-transition hidden absolute inset-0 z-40 bg-zinc-950/90 flex flex-col overflow-hidden">
+                    
+                    <header class="flex justify-between items-center px-6 py-4 safe-padding-top">
+                        <!-- Botón volver (Swipe o clic) -->
+                        <button id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
+                            <i class="fa-solid fa-chevron-left text-sm"></i>
+                        </button>
+                        <div class="text-center flex-1 mx-3 overflow-hidden">
+                            <span class="text-[10px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
+                            <h2 id="player-title" class="text-xs font-bold truncate">Título de Ejemplo</h2>
+                        </div>
+                        <button id="btn-export" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-emerald-400" title="Guardar Audio en PC">
+                            <i class="fa-solid fa-file-export text-sm"></i>
+                        </button>
+                    </header>
+
+                    <!-- Cuerpo del Reproductor (Letra / Cover) -->
+                    <div class="flex-1 flex flex-col px-6 overflow-hidden">
+                        
+                        <!-- Toggle Cover/Lyrics -->
+                        <div class="flex justify-center mb-4">
+                            <div class="p-1 rounded-full bg-white/5 flex gap-1 liquid-glass">
+                                <button id="toggle-cover" class="px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all">Portada</button>
+                                <button id="toggle-text" class="px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all">Texto Sincrónico</button>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor Portada -->
+                        <div id="wrapper-cover" class="flex-1 flex flex-col items-center justify-center transition-all duration-300">
+                            <div class="relative w-44 h-60 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.6)] overflow-hidden border border-white/10 group mb-4">
+                                <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
+                            </div>
+                            <div class="text-center max-w-xs">
+                                <h3 id="player-book-title" class="text-lg font-bold tracking-tight line-clamp-1">Título del Libro</h3>
+                                <p id="player-book-author" class="text-xs opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
+                                <p id="player-book-saga" class="text-[10px] text-iosAccent font-semibold mt-1 uppercase tracking-wide"></p>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor Texto Sincronizado (Letra Legible al compás de la reproducción) -->
+                        <div id="wrapper-text" class="hidden flex-1 flex flex-col overflow-hidden mb-3">
+                            <div id="lyrics-container" class="flex-1 overflow-y-auto px-1 py-4 space-y-4 text-center text-base md:text-lg font-medium leading-relaxed select-none">
+                                <div class="opacity-40 py-12 text-sm">Carga un libro para iniciar la lectura sincronizada.</div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Navegación de Capítulos con Buscador -->
+                        <div class="mt-2 mb-3">
+                            <div class="flex justify-between items-center text-[10px] opacity-60 mb-1.5">
+                                <span class="font-bold"><i class="fa-solid fa-list-ul mr-1"></i> Buscar Capítulo</span>
+                                <span id="chapter-indicator">1 / 1</span>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <input type="text" id="chapter-search" class="flex-1 py-2 px-3 rounded-lg liquid-glass text-xs outline-none bg-white/5 placeholder-zinc-400" placeholder="Buscar capítulo por nombre...">
+                                <select id="select-chapters" class="max-w-[150px] py-2 px-2 rounded-lg liquid-glass text-xs outline-none cursor-pointer">
+                                    <!-- Capítulos dinámicos -->
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Barra inferior de Mandos de Reproducción -->
+                    <div class="liquid-glass-dark px-6 pt-5 pb-8 space-y-4 rounded-t-[32px] shadow-2xl relative z-50">
+                        
+                        <!-- Barra de Progreso Deslizable (Timeline) -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[10px] opacity-60 px-1 font-bold">
+                                <span id="time-current">0:00</span>
+                                <span id="time-total">0:00</span>
+                            </div>
+                            <div class="relative group py-2 cursor-pointer" id="progress-container">
+                                <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
+                                    <div id="progress-bar" class="h-full bg-iosAccent w-0 rounded-full transition-all duration-100"></div>
+                                </div>
+                                <div id="progress-handle" class="absolute top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white shadow-md border border-gray-300 scale-0 group-hover:scale-100 transition-all" style="left: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Selector de Voces Neuronales en Español Latino y Ajustes -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex flex-col">
+                                <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Voz Latino Realista</label>
+                                <select id="select-voices" class="py-2 px-2.5 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none">
+                                    <!-- Las voces se auto-poblarán -->
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-col">
+                                    <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Velocidad</label>
+                                    <select id="select-rate" class="py-2 px-2 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none">
+                                        <option value="0.8">0.8x</option>
+                                        <option value="1.0" selected>1.0x (Normal)</option>
+                                        <option value="1.2">1.2x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="1.8">1.8x</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Apagado</label>
+                                    <button id="btn-timer" class="py-2 px-1 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none flex items-center justify-center gap-1">
+                                        <i class="fa-regular fa-clock"></i>
+                                        <span id="timer-label">Off</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mandos Físicos -->
+                        <div class="flex justify-between items-center px-4 py-1">
+                            <!-- Marcador de Frases/Páginas -->
+                            <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Añadir Marcador">
+                                <i class="fa-regular fa-bookmark text-lg"></i>
+                            </button>
+
+                            <!-- Retroceder 15 Segundos -->
+                            <button id="btn-rewind" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
+                                <span class="relative">
+                                    <i class="fa-solid fa-arrow-rotate-left text-base"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
+                                </span>
+                            </button>
+
+                            <!-- PLAY / PAUSA PRINCIPAL -->
+                            <button id="btn-play-pause" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 transition-all hover:bg-zinc-100">
+                                <i id="play-icon" class="fa-solid fa-play text-xl ml-0.5"></i>
+                            </button>
+
+                            <!-- Adelantar 15 Segundos -->
+                            <button id="btn-forward" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
+                                <span class="relative">
+                                    <i class="fa-solid fa-arrow-rotate-right text-base"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
+                                </span>
+                            </button>
+
+                            <!-- Marcadores Guardados -->
+                            <button id="btn-list-bookmarks" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Ver Marcadores">
+                                <i class="fa-solid fa-star text-base"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ================= MODAL MARCADORES ================= -->
+    <div id="modal-bookmarks" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Marcadores Guardados</h3>
+                <button id="close-modal-bookmarks" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="bookmarks-list" class="max-h-64 overflow-y-auto px-5 py-3 space-y-2">
+                <!-- Inyectado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL SLEEP TIMER ================= -->
+    <div id="modal-timer" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-regular fa-clock mr-2"></i>Temporizador de Apagado</h3>
+                <button id="close-modal-timer" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 grid grid-cols-2 gap-3 text-center text-xs">
+                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="10">10 Minutos</button>
+                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="20">20 Minutos</button>
+                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="30">30 Minutos</button>
+                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="60">1 Hora</button>
+                <button id="btn-cancel-timer" class="col-span-2 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white active:scale-95 transition-all font-semibold">Desactivar Temporizador</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ESTADO GLOBAL DE LA APLICACIÓN ---
+        let currentBooks = [];
+        let activeBookIndex = null;
+        let activeChapterIndex = 0;
+        let activeUtterance = null;
+        let isPlaying = false;
+        let synthesisVoices = [];
+        let localDirectoryHandle = null; 
+        
+        let textSentences = [];
+        let currentSentenceIndex = 0;
+        let playbackTimer = null;
+        let timerCountdown = null;
+        let remainingTimerSeconds = 0;
+
+        // Variables de UI y Gesto Swipe
+        let isPcLayout = false;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        window.onload = function() {
+            initApp();
+            initSpeechSynthesis();
+            registerMediaSession();
+        };
+
+        function initApp() {
+            loadLibraryFromStorage();
+
+            // Drag & Drop
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-iosAccent', 'bg-white/10');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-iosAccent', 'bg-white/10');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-iosAccent', 'bg-white/10');
+                if (e.dataTransfer.files.length > 0) {
+                    processUploadedFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processUploadedFile(e.target.files[0]);
+                }
+            });
+
+            // Buscador de Biblioteca
+            document.getElementById('library-search').addEventListener('input', () => {
+                renderLibrary();
+            });
+
+            // Buscador de Capítulos
+            document.getElementById('chapter-search').addEventListener('input', (e) => {
+                filterChapters(e.target.value);
+            });
+
+            // Botón Volver
+            document.getElementById('btn-back').addEventListener('click', () => {
+                pauseAudio();
+                switchView('library');
+            });
+
+            // Control de tamaño de fuente
+            document.getElementById('btn-font-inc').addEventListener('click', () => adjustGlobalFont(0.05));
+            document.getElementById('btn-font-dec').addEventListener('click', () => adjustGlobalFont(-0.05));
+
+            // Control de tema (Claro / Oscuro)
+            document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
+
+            // Control de dispositivo (PC / Móvil)
+            document.getElementById('btn-toggle-device').addEventListener('click', toggleDeviceView);
+
+            // Gestores del Reproductor
+            document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
+            document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
+            document.getElementById('btn-forward').addEventListener('click', () => skipSeconds(15));
+            
+            // Toggle Cover / Text
+            const toggleCover = document.getElementById('toggle-cover');
+            const toggleText = document.getElementById('toggle-text');
+            const wrapperCover = document.getElementById('wrapper-cover');
+            const wrapperText = document.getElementById('wrapper-text');
+
+            toggleCover.addEventListener('click', () => {
+                toggleCover.classList.add('bg-white/15', 'text-white');
+                toggleCover.classList.remove('text-zinc-400');
+                toggleText.classList.remove('bg-white/15', 'text-white');
+                toggleText.classList.add('text-zinc-400');
+                wrapperCover.classList.remove('hidden');
+                wrapperText.classList.add('hidden');
+            });
+
+            toggleText.addEventListener('click', () => {
+                toggleText.classList.add('bg-white/15', 'text-white');
+                toggleText.classList.remove('text-zinc-400');
+                toggleCover.classList.remove('bg-white/15', 'text-white');
+                toggleCover.classList.add('text-zinc-400');
+                wrapperText.classList.remove('hidden');
+                wrapperCover.classList.add('hidden');
+                scrollToActiveSentence();
+            });
+
+            // Selectores
+            document.getElementById('select-chapters').addEventListener('change', (e) => {
+                changeChapter(parseInt(e.target.value));
+            });
+
+            document.getElementById('btn-select-dir').addEventListener('click', requestDirectoryAccess);
+            document.getElementById('btn-export').addEventListener('click', exportAudiobookToFolder);
+
+            // Temporizador
+            document.getElementById('btn-timer').addEventListener('click', () => {
+                document.getElementById('modal-timer').classList.remove('hidden');
+            });
+            document.getElementById('close-modal-timer').addEventListener('click', () => {
+                document.getElementById('modal-timer').classList.add('hidden');
+            });
+            document.querySelectorAll('.btn-set-timer').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    setSleepTimer(parseInt(e.target.dataset.minutes));
+                    document.getElementById('modal-timer').classList.add('hidden');
+                });
+            });
+            document.getElementById('btn-cancel-timer').addEventListener('click', () => {
+                clearSleepTimer();
+                document.getElementById('modal-timer').classList.add('hidden');
+            });
+
+            // Marcadores
+            document.getElementById('btn-bookmark').addEventListener('click', addBookmark);
+            document.getElementById('btn-list-bookmarks').addEventListener('click', openBookmarksModal);
+            document.getElementById('close-modal-bookmarks').addEventListener('click', () => {
+                document.getElementById('modal-bookmarks').classList.add('hidden');
+            });
+
+            // Progreso deslizable
+            const progressContainer = document.getElementById('progress-container');
+            progressContainer.addEventListener('click', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const clickPos = (e.clientX - rect.left) / rect.width;
+                seekToPosition(clickPos);
+            });
+
+            // Configurar gestos táctiles para deslizar (Swipe) y volver atrás
+            const playerView = document.getElementById('view-player');
+            playerView.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            playerView.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipeGesture();
+            }, { passive: true });
+        }
+
+        // Control de tamaño de fuente
+        function adjustGlobalFont(delta) {
+            let currentScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale') || 1);
+            currentScale += delta;
+            if (currentScale < 0.75) currentScale = 0.75;
+            if (currentScale > 1.45) currentScale = 1.45;
+            document.documentElement.style.setProperty('--font-scale', currentScale);
+            showToast(`Texto escalado al: ${Math.round(currentScale * 100)}%`);
+        }
+
+        // Alternar Modo Claro / Oscuro
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            body.classList.toggle('light-theme');
+            
+            if (body.classList.contains('light-theme')) {
+                icon.className = "fa-solid fa-sun";
+            } else {
+                icon.className = "fa-solid fa-moon";
+            }
+        }
+
+        // Alternar vista de dispositivo PC vs Móvil (Silencioso, sin notificación Toast)
+        function toggleDeviceView() {
+            const workspace = document.getElementById('app-workspace');
+            const wrapper = document.getElementById('device-wrapper');
+            const phoneContainer = document.getElementById('app-phone-container');
+            const btnText = document.getElementById('device-btn-text');
+            
+            isPcLayout = !isPcLayout;
+
+            if (isPcLayout) {
+                // Modo PC: Se remueve el marco de móvil, se adaptan márgenes gigantes
+                wrapper.className = "w-full h-full flex flex-row gap-6 max-w-none";
+                phoneContainer.classList.remove('phone-frame');
+                phoneContainer.style.width = '100%';
+                phoneContainer.style.height = '100%';
+                btnText.textContent = "Ver Móvil";
+            } else {
+                // Modo Móvil: Se encapsula dentro del simulador físico de iPhone limpio
+                wrapper.className = "flex items-center justify-center w-full h-full";
+                phoneContainer.className = "phone-frame flex flex-col h-full overflow-hidden relative";
+                phoneContainer.style.width = '393px';
+                phoneContainer.style.height = '852px';
+                btnText.textContent = "Ver PC";
+            }
+        }
+
+        // Detectar gesto de volver
+        function handleSwipeGesture() {
+            const swipeDistance = touchEndX - touchStartX;
+            // Si desliza hacia la derecha más de 120px, vuelve
+            if (swipeDistance > 120) {
+                pauseAudio();
+                switchView('library');
+                showToast("Volviendo a Biblioteca", "fa-arrow-left");
+            }
+        }
+
+        function initSpeechSynthesis() {
+            if (!('speechSynthesis' in window)) {
+                showToast("Su navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
+                return;
+            }
+
+            function loadVoices() {
+                synthesisVoices = window.speechSynthesis.getVoices();
+                const select = document.getElementById('select-voices');
+                select.innerHTML = '';
+
+                // Filtrar voces en español (priorizando latinoamericanas)
+                const spanishVoices = synthesisVoices.filter(voice => 
+                    voice.lang.includes('es-') || voice.lang.startsWith('es')
+                );
+
+                // Ordenar por calidad sugerida de sistemas
+                spanishVoices.sort((a, b) => {
+                    const aLower = a.name.toLowerCase();
+                    const bLower = b.name.toLowerCase();
+                    if (aLower.includes('natural') || aLower.includes('siri') || aLower.includes('neural')) return -1;
+                    if (bLower.includes('natural') || bLower.includes('siri') || bLower.includes('neural')) return 1;
+                    return 0;
+                });
+
+                if (spanishVoices.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.textContent = "Español Estándar";
+                    opt.value = "default";
+                    select.appendChild(opt);
+                } else {
+                    spanishVoices.forEach((voice, index) => {
+                        const opt = document.createElement('option');
+                        let name = voice.name.replace("Microsoft", "MS").replace("Google", "Google").trim();
+                        if (voice.name.includes('Sabina') || voice.name.includes('Dalia') || voice.name.includes('Elena')) {
+                            name += " (Mujer)";
+                        } else if (voice.name.includes('Raul') || voice.name.includes('Julio') || voice.name.includes('Pablo')) {
+                            name += " (Hombre)";
+                        }
+                        opt.textContent = `${name} [${voice.lang}]`;
+                        opt.value = index;
+                        select.appendChild(opt);
+                    });
+                }
+            }
+
+            loadVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        function showToast(message, iconClass = "fa-circle-info") {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastText = document.getElementById('toast-text');
+            
+            toastIcon.className = `fa-solid ${iconClass}`;
+            toastText.textContent = message;
+            
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function processUploadedFile(file) {
+            showToast("Procesando Archivo...", "fa-spinner fa-spin");
+            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (ext === '.epub') {
+                parseEPUBFile(file);
+            } else if (ext === '.pdf') {
+                parsePDFFile(file);
+            } else {
+                showToast("Formato no compatible.", "fa-triangle-exclamation");
+            }
+        }
+
+        function parseEPUBFile(file) {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const zip = await JSZip.loadAsync(e.target.result);
+                    let containerXml = await zip.file("META-INF/container.xml").async("text");
+                    let parser = new DOMParser();
+                    let containerDoc = parser.parseFromString(containerXml, "text/xml");
+                    let opfPath = containerDoc.querySelector("rootfile").getAttribute("full-path");
+                    
+                    let opfContent = await zip.file(opfPath).async("text");
+                    let opfDoc = parser.parseFromString(opfContent, "text/xml");
+                    
+                    let title = opfDoc.querySelector("title")?.textContent || file.name.replace('.epub', '');
+                    let author = opfDoc.querySelector("creator")?.textContent || "Autor Desconocido";
+                    
+                    // Extraer Saga si existe en metadatos
+                    let saga = "";
+                    const metaSaga = opfDoc.querySelector("meta[name='calibre:series']");
+                    if (metaSaga) saga = metaSaga.getAttribute("content");
+
+                    let manifestItems = {};
+                    let manifestElements = opfDoc.querySelectorAll("manifest > item");
+                    manifestElements.forEach(item => {
+                        manifestItems[item.getAttribute("id")] = item.getAttribute("href");
+                    });
+                    
+                    let spineItems = opfDoc.querySelectorAll("spine > itemref");
+                    let chapters = [];
+                    let opfFolder = opfPath.substring(0, opfPath.lastIndexOf('/') + 1);
+
+                    for (let i = 0; i < spineItems.length; i++) {
+                        let idref = spineItems[i].getAttribute("idref");
+                        let relativePath = manifestItems[idref];
+                        let fullPath = opfFolder + relativePath;
+                        
+                        let chapterFile = zip.file(fullPath) || zip.file(relativePath);
+                        if (chapterFile) {
+                            let chapterHtml = await chapterFile.async("text");
+                            let chapterDoc = parser.parseFromString(chapterHtml, "text/html");
+                            
+                            let textContent = chapterDoc.body.innerText || chapterDoc.body.textContent;
+                            textContent = textContent.replace(/\s+/g, ' ').trim();
+                            
+                            let chapTitle = chapterDoc.querySelector('h1, h2, h3, title')?.textContent || `Capítulo ${chapters.length + 1}`;
+                            if (textContent.length > 80) {
+                                chapters.push({
+                                    title: chapTitle.trim(),
+                                    text: textContent
+                                });
+                            }
+                        }
+                    }
+
+                    const coverUrl = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
+
+                    const newBook = {
+                        id: Date.now().toString(),
+                        title: title,
+                        author: author,
+                        saga: saga || "Saga Única",
+                        cover: coverUrl,
+                        chapters: chapters,
+                        bookmarks: [],
+                        progressChapter: 0,
+                        progressSentence: 0
+                    };
+
+                    addBookToLibrary(newBook);
+
+                } catch (error) {
+                    console.error(error);
+                    showToast("No se pudo leer el EPUB", "fa-circle-exclamation");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parsePDFFile(file) {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const typedarray = new Uint8Array(e.target.result);
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    
+                    let totalPages = pdf.numPages;
+                    let chapters = [];
+                    let currentChapText = "";
+                    let limit = 5; 
+                    let currentIdx = 1;
+
+                    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                        let page = await pdf.getPage(pageNum);
+                        let textContent = await page.getTextContent();
+                        let pageText = textContent.items.map(item => item.str).join(" ");
+                        currentChapText += pageText + "\n\n";
+
+                        if (pageNum % limit === 0 || pageNum === totalPages) {
+                            chapters.push({
+                                title: `Parte ${currentIdx} (Pág. ${pageNum - limit + 1} - ${pageNum})`,
+                                text: currentChapText.trim()
+                            });
+                            currentChapText = "";
+                            currentIdx++;
+                        }
+                    }
+
+                    const newBook = {
+                        id: Date.now().toString(),
+                        title: file.name.replace('.pdf', ''),
+                        author: "Documento Local PDF",
+                        saga: "Independiente",
+                        cover: "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF",
+                        chapters: chapters,
+                        bookmarks: [],
+                        progressChapter: 0,
+                        progressSentence: 0
+                    };
+
+                    addBookToLibrary(newBook);
+
+                } catch (error) {
+                    console.error(error);
+                    showToast("No se pudo leer el PDF", "fa-circle-exclamation");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function addBookToLibrary(book) {
+            currentBooks.push(book);
+            saveLibraryToStorage();
+            renderLibrary();
+            showToast("¡Libro cargado con éxito!", "fa-circle-check");
+        }
+
+        function loadLibraryFromStorage() {
+            const stored = localStorage.getItem('voz_alquimia_library');
+            if (stored) {
+                try {
+                    currentBooks = JSON.parse(stored);
+                } catch (e) {
+                    currentBooks = [];
+                }
+            }
+            renderLibrary();
+        }
+
+        function saveLibraryToStorage() {
+            localStorage.setItem('voz_alquimia_library', JSON.stringify(currentBooks));
+        }
+
+        function renderLibrary() {
+            const grid = document.getElementById('books-grid');
+            const counter = document.getElementById('library-count');
+            const noBooksMsg = document.getElementById('no-books-msg');
+            const searchQuery = document.getElementById('library-search').value.toLowerCase();
+
+            const existingCards = grid.querySelectorAll('.book-card');
+            existingCards.forEach(card => card.remove());
+
+            // Filtrar según el Buscador (Nombre, Autor o Saga)
+            const filteredBooks = currentBooks.filter(book => {
+                return (book.title.toLowerCase().includes(searchQuery) ||
+                        book.author.toLowerCase().includes(searchQuery) ||
+                        (book.saga && book.saga.toLowerCase().includes(searchQuery)));
+            });
+
+            counter.textContent = `${filteredBooks.length} libros`;
+
+            if (filteredBooks.length === 0) {
+                noBooksMsg.classList.remove('hidden');
+                return;
+            }
+
+            noBooksMsg.classList.add('hidden');
+
+            filteredBooks.forEach((book, index) => {
+                const card = document.createElement('div');
+                card.className = "book-card relative rounded-2xl liquid-glass p-3 flex flex-col justify-between overflow-hidden cursor-pointer hover:bg-white/10 active:scale-95 transition-all";
+                card.dataset.index = index;
+                
+                card.innerHTML = `
+                    <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md mb-2 bg-zinc-900 flex items-center justify-center">
+                        <img src="${book.cover}" alt="Portada" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
+                        <button class="absolute top-2 right-2 w-7 h-7 bg-red-600/80 rounded-full flex items-center justify-center text-white active:bg-red-800 transition-all shadow" onclick="deleteBook(event, ${index})">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-xs truncate">${book.title}</h4>
+                        <p class="text-[10px] opacity-60 truncate mt-0.5">${book.author}</p>
+                        ${book.saga ? `<p class="text-[9px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
+                    </div>
+                `;
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    loadAudiobookPlayer(index);
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        function deleteBook(event, index) {
+            event.stopPropagation();
+            if (confirm(`¿Eliminar "${currentBooks[index].title}"?`)) {
+                currentBooks.splice(index, 1);
+                saveLibraryToStorage();
+                renderLibrary();
+                showToast("Libro eliminado de la biblioteca");
+            }
+        }
+
+        function switchView(viewName) {
+            const libraryView = document.getElementById('view-library');
+            const playerView = document.getElementById('view-player');
+
+            if (viewName === 'library') {
+                playerView.classList.add('hidden');
+                libraryView.classList.remove('hidden');
+            } else if (viewName === 'player') {
+                libraryView.classList.add('hidden');
+                playerView.classList.remove('hidden');
+            }
+        }
+
+        function loadAudiobookPlayer(index) {
+            activeBookIndex = index;
+            const book = currentBooks[index];
+            activeChapterIndex = book.progressChapter || 0;
+            currentSentenceIndex = book.progressSentence || 0;
+
+            document.getElementById('player-title').textContent = book.title;
+            document.getElementById('player-book-title').textContent = book.title;
+            document.getElementById('player-book-author').textContent = book.author;
+            document.getElementById('player-cover-img').src = book.cover;
+
+            const sagaEl = document.getElementById('player-book-saga');
+            if (book.saga) {
+                sagaEl.textContent = book.saga;
+                sagaEl.classList.remove('hidden');
+            } else {
+                sagaEl.classList.add('hidden');
+            }
+
+            // Cargar selector de capítulos
+            buildChapterSelect(book.chapters);
+
+            // Cargar capítulo
+            setupChapterMedia(activeChapterIndex);
+
+            switchView('player');
+        }
+
+        function buildChapterSelect(chapters) {
+            const select = document.getElementById('select-chapters');
+            select.innerHTML = '';
+            chapters.forEach((chapter, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = chapter.title;
+                if (index === activeChapterIndex) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // Buscador interno de capítulos
+        function filterChapters(query) {
+            const book = currentBooks[activeBookIndex];
+            const select = document.getElementById('select-chapters');
+            select.innerHTML = '';
+
+            book.chapters.forEach((chapter, index) => {
+                if (chapter.title.toLowerCase().includes(query.toLowerCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = index;
+                    opt.textContent = chapter.title;
+                    if (index === activeChapterIndex) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function changeChapter(chapterIdx) {
+            pauseAudio();
+            activeChapterIndex = chapterIdx;
+            currentSentenceIndex = 0;
+            
+            currentBooks[activeBookIndex].progressChapter = activeChapterIndex;
+            currentBooks[activeBookIndex].progressSentence = 0;
+            saveLibraryToStorage();
+
+            setupChapterMedia(activeChapterIndex);
+        }
+
+        function setupChapterMedia(chapterIdx) {
+            const book = currentBooks[activeBookIndex];
+            const chapter = book.chapters[chapterIdx];
+            
+            document.getElementById('chapter-indicator').textContent = `${chapterIdx + 1} de ${book.chapters.length}`;
+
+            // Particionar el texto en oraciones fluidas
+            const text = chapter.text;
+            textSentences = text.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑa-záéíóúñ])/);
+            
+            const lyricsContainer = document.getElementById('lyrics-container');
+            lyricsContainer.innerHTML = '';
+
+            textSentences.forEach((sentence, idx) => {
+                if (sentence.trim() === '') return;
+                const sentenceNode = document.createElement('p');
+                sentenceNode.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 opacity-60 hover:opacity-100";
+                sentenceNode.id = `sentence-${idx}`;
+                sentenceNode.textContent = sentence.trim();
+                
+                sentenceNode.addEventListener('click', () => {
+                    jumpToSentence(idx);
+                });
+
+                lyricsContainer.appendChild(sentenceNode);
+            });
+
+            updatePlaybackProgressUI();
+            highlightCurrentSentence();
+        }
+
+        function togglePlayPause() {
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
+        }
+
+        let dummyAudioContext = null;
+        let dummyAudioNode = null;
+
+        function startSilentAudioHack() {
+            if (!dummyAudioContext) {
+                dummyAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const buffer = dummyAudioContext.createBuffer(1, 1, 22050);
+                dummyAudioNode = dummyAudioContext.createBufferSource();
+                dummyAudioNode.buffer = buffer;
+                dummyAudioNode.loop = true;
+                dummyAudioNode.connect(dummyAudioContext.destination);
+                dummyAudioNode.start(0);
+            }
+            if (dummyAudioContext.state === 'suspended') {
+                dummyAudioContext.resume();
+            }
+        }
+
+        function playAudio() {
+            if (textSentences.length === 0) return;
+            startSilentAudioHack();
+
+            isPlaying = true;
+            document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
+            
+            speakSentence(currentSentenceIndex);
+            startProgressTicker();
+            updateMediaSessionState("playing");
+        }
+
+        function pauseAudio() {
+            isPlaying = false;
+            document.getElementById('play-icon').className = "fa-solid fa-play text-xl ml-0.5";
+            
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            stopProgressTicker();
+            updateMediaSessionState("paused");
+        }
+
+        function speakSentence(index) {
+            if (!isPlaying) return;
+            if (index >= textSentences.length) {
+                // Siguiente Capítulo
+                if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
+                    showToast("Pasando al siguiente capítulo...");
+                    changeChapter(activeChapterIndex + 1);
+                    playAudio();
+                } else {
+                    pauseAudio();
+                    showToast("¡Felicidades, terminaste el libro!", "fa-trophy text-yellow-400");
+                }
+                return;
+            }
+
+            currentSentenceIndex = index;
+            highlightCurrentSentence();
+            scrollToActiveSentence();
+
+            currentBooks[activeBookIndex].progressChapter = activeChapterIndex;
+            currentBooks[activeBookIndex].progressSentence = currentSentenceIndex;
+            saveLibraryToStorage();
+
+            window.speechSynthesis.cancel(); 
+
+            const sentenceText = textSentences[index];
+            activeUtterance = new SpeechSynthesisUtterance(sentenceText);
+            
+            const voiceSelect = document.getElementById('select-voices');
+            if (voiceSelect.value !== "default" && synthesisVoices[voiceSelect.value]) {
+                activeUtterance.voice = synthesisVoices[voiceSelect.value];
+            }
+
+            const rateSelect = document.getElementById('select-rate');
+            activeUtterance.rate = parseFloat(rateSelect.value);
+
+            activeUtterance.onend = function() {
+                if (isPlaying) {
+                    speakSentence(currentSentenceIndex + 1);
+                }
+            };
+
+            activeUtterance.onerror = function(event) {
+                if (isPlaying && event.error !== 'interrupted') {
+                    speakSentence(currentSentenceIndex + 1);
+                }
+            };
+
+            window.speechSynthesis.speak(activeUtterance);
+        }
+
+        function jumpToSentence(idx) {
+            currentSentenceIndex = idx;
+            if (isPlaying) {
+                speakSentence(idx);
+            } else {
+                highlightCurrentSentence();
+                scrollToActiveSentence();
+            }
+            updatePlaybackProgressUI();
+        }
+
+        function skipSeconds(seconds) {
+            let steps = Math.round(seconds / 4.5);
+            let targetIdx = currentSentenceIndex + steps;
+            
+            if (targetIdx < 0) targetIdx = 0;
+            if (targetIdx >= textSentences.length) targetIdx = textSentences.length - 1;
+            
+            jumpToSentence(targetIdx);
+        }
+
+        function seekToPosition(ratio) {
+            if (textSentences.length === 0) return;
+            const targetIdx = Math.floor(ratio * textSentences.length);
+            jumpToSentence(targetIdx);
+        }
+
+        function highlightCurrentSentence() {
+            const paragraphs = document.querySelectorAll('#lyrics-container p');
+            paragraphs.forEach(el => {
+                el.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 opacity-60";
+            });
+
+            const currentEl = document.getElementById(`sentence-${currentSentenceIndex}`);
+            if (currentEl) {
+                currentEl.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 word-active";
+            }
+        }
+
+        function scrollToActiveSentence() {
+            const container = document.getElementById('lyrics-container');
+            const currentEl = document.getElementById(`sentence-${currentSentenceIndex}`);
+            const wrapperText = document.getElementById('wrapper-text');
+
+            if (currentEl && !wrapperText.classList.contains('hidden')) {
+                const containerHeight = container.clientHeight;
+                const elementTop = currentEl.offsetTop;
+                const elementHeight = currentEl.clientHeight;
+
+                container.scrollTo({
+                    top: elementTop - (containerHeight / 2) + (elementHeight / 2),
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        function startProgressTicker() {
+            stopProgressTicker();
+            playbackTimer = setInterval(() => {
+                updatePlaybackProgressUI();
+            }, 1000);
+        }
+
+        function stopProgressTicker() {
+            if (playbackTimer) {
+                clearInterval(playbackTimer);
+                playbackTimer = null;
+            }
+        }
+
+        function updatePlaybackProgressUI() {
+            if (textSentences.length === 0) return;
+            
+            const progress = currentSentenceIndex / textSentences.length;
+            const progressBar = document.getElementById('progress-bar');
+            const progressHandle = document.getElementById('progress-handle');
+
+            progressBar.style.width = `${progress * 100}%`;
+            progressHandle.style.left = `${progress * 100}%`;
+
+            const secsPerSentence = 4.5;
+            const currentSecs = Math.round(currentSentenceIndex * secsPerSentence);
+            const totalSecs = Math.round(textSentences.length * secsPerSentence);
+
+            document.getElementById('time-current').textContent = formatTime(currentSecs);
+            document.getElementById('time-total').textContent = formatTime(totalSecs);
+        }
+
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function addBookmark() {
+            if (activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+            const bookmarkName = `${book.chapters[activeChapterIndex].title} - Marcador ${currentSentenceIndex + 1}`;
+            
+            const exists = book.bookmarks.some(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
+            
+            if (!exists) {
+                book.bookmarks.push({
+                    name: bookmarkName,
+                    chapter: activeChapterIndex,
+                    sentence: currentSentenceIndex,
+                    timestamp: Date.now()
+                });
+                saveLibraryToStorage();
+                showToast("Marcador Guardado", "fa-star text-yellow-400");
+            } else {
+                showToast("Ya existe un marcador aquí");
+            }
+        }
+
+        function openBookmarksModal() {
+            if (activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+            const list = document.getElementById('bookmarks-list');
+            list.innerHTML = '';
+
+            if (book.bookmarks.length === 0) {
+                list.innerHTML = `<p class="text-zinc-400 text-xs text-center py-4">Sin marcadores.</p>`;
+            } else {
+                book.bookmarks.forEach((b, idx) => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-iosAccent/30 active:scale-95 transition-all cursor-pointer text-xs";
+                    item.innerHTML = `
+                        <div class="flex-1 min-w-0 pr-3">
+                            <p class="font-bold text-white truncate">${b.name}</p>
+                            <p class="text-[10px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
+                        </div>
+                        <button class="text-red-400 hover:text-red-500 p-1" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
+                    `;
+                    item.addEventListener('click', (e) => {
+                        if (e.target.closest('button')) return;
+                        document.getElementById('modal-bookmarks').classList.add('hidden');
+                        activeChapterIndex = b.chapter;
+                        document.getElementById('select-chapters').value = b.chapter;
+                        setupChapterMedia(b.chapter);
+                        jumpToSentence(b.sentence);
+                    });
+                    list.appendChild(item);
+                });
+            }
+
+            document.getElementById('modal-bookmarks').classList.remove('hidden');
+        }
+
+        function deleteBookmark(event, idx) {
+            event.stopPropagation();
+            const book = currentBooks[activeBookIndex];
+            book.bookmarks.splice(idx, 1);
+            saveLibraryToStorage();
+            openBookmarksModal();
+            showToast("Marcador eliminado");
+        }
+
+        function setSleepTimer(minutes) {
+            clearSleepTimer();
+            remainingTimerSeconds = minutes * 60;
+            
+            document.getElementById('timer-label').textContent = `${minutes} min`;
+            showToast(`Temporizador programado para ${minutes}m`, "fa-clock");
+
+            timerCountdown = setInterval(() => {
+                remainingTimerSeconds--;
+                if (remainingTimerSeconds <= 0) {
+                    pauseAudio();
+                    clearSleepTimer();
+                    showToast("Apagado automático ejecutado.", "fa-bed");
+                } else {
+                    const currentMinutes = Math.ceil(remainingTimerSeconds / 60);
+                    document.getElementById('timer-label').textContent = `${currentMinutes}m`;
+                }
+            }, 1000);
+        }
+
+        function clearSleepTimer() {
+            if (timerCountdown) {
+                clearInterval(timerCountdown);
+                timerCountdown = null;
+            }
+            document.getElementById('timer-label').textContent = "Off";
+        }
+
+        function registerMediaSession() {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.setActionHandler('play', () => playAudio());
+                navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
+                navigator.mediaSession.setActionHandler('seekbackward', () => skipSeconds(-15));
+                navigator.mediaSession.setActionHandler('seekforward', () => skipSeconds(15));
+            }
+        }
+
+        function updateMediaSessionState(state) {
+            if ('mediaSession' in navigator && activeBookIndex !== null) {
+                const book = currentBooks[activeBookIndex];
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: book.title,
+                    artist: book.author,
+                    album: book.chapters[activeChapterIndex].title,
+                    artwork: [{ src: book.cover, sizes: '512x512', type: 'image/png' }]
+                });
+                navigator.mediaSession.playbackState = state;
+            }
+        }
+
+        // File System Access para almacenamiento local en PC
+        async function requestDirectoryAccess() {
+            if ('showDirectoryPicker' in window) {
+                try {
+                    localDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    showToast("Carpeta local vinculada con éxito en tu PC", "fa-folder-check text-green-400");
+                    document.getElementById('btn-select-dir').classList.remove('text-zinc-300');
+                    document.getElementById('btn-select-dir').classList.add('text-iosAccent');
+                } catch (err) {
+                    console.error(err);
+                    showToast("Acceso a carpetas denegado", "fa-xmark-circle text-red-400");
+                }
+            } else {
+                showToast("Tu navegador no soporta el guardado directo de carpetas PC.", "fa-circle-question");
+            }
+        }
+
+        async function exportAudiobookToFolder() {
+            if (activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+
+            if (!localDirectoryHandle) {
+                showToast("Vincula primero una carpeta de tu PC usando el ícono superior.", "fa-folder-open");
+                return;
+            }
+
+            showToast("Generando y Guardando capítulos en MP3...", "fa-gear fa-spin");
+
+            try {
+                for (let i = 0; i < book.chapters.length; i++) {
+                    const chapter = book.chapters[i];
+                    
+                    // Segmentar el texto del capítulo en bloques menores de 200 caracteres para evitar bloqueos
+                    const rawSentences = chapter.text.split(/(?<=[.!?])\s+/);
+                    const chunks = [];
+                    let currentChunk = "";
+
+                    for (let sentence of rawSentences) {
+                        if ((currentChunk + " " + sentence).length < 200) {
+                            currentChunk += (currentChunk ? " " : "") + sentence;
+                        } else {
+                            if (currentChunk) chunks.push(currentChunk);
+                            currentChunk = sentence;
+                        }
+                    }
+                    if (currentChunk) chunks.push(currentChunk);
+
+                    const audioBlobs = [];
+                    
+                    // Descargar fragmentos de audio de alta fidelidad de forma secuencial
+                    for (let j = 0; j < chunks.length; j++) {
+                        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-us&client=tw-ob&q=${encodeURIComponent(chunks[j])}`;
+                        try {
+                            const res = await fetch(ttsUrl);
+                            if (res.ok) {
+                                const buffer = await res.arrayBuffer();
+                                audioBlobs.push(buffer);
+                            }
+                        } catch (e) {
+                            console.warn("Fallo al descargar segmento de audio, reintentando...", e);
+                        }
+                    }
+
+                    // Concatenar estructuralmente los ArrayBuffers en un único archivo MP3 unificado
+                    if (audioBlobs.length > 0) {
+                        const finalBlob = new Blob(audioBlobs, { type: 'audio/mp3' });
+                        const fileName = `${book.title}_Cap_${i + 1}_${chapter.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
+                        
+                        const fileHandle = await localDirectoryHandle.getFileHandle(fileName, { create: true });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(finalBlob);
+                        await writable.close();
+                    }
+                }
+                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa-circle-check");
+            } catch (error) {
+                console.error(error);
+                showToast("Error guardando audiolibros en PC", "fa-triangle-exclamation");
+            }
+        }
+    </script>
+</body>
+</html>
