@@ -223,15 +223,16 @@
                         <input type="text" id="library-search" class="w-full py-2.5 pl-9 pr-4 rounded-xl liquid-glass text-xs outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
                     </div>
 
-                    <!-- Listado con Scrolls Suaves -->
+                    <!-- Listado con Scrolls Suaves y Tamaño de Tarjeta Controlado -->
                     <div class="flex-1 overflow-y-auto pb-24">
                         <div class="flex justify-between items-center mb-3">
                             <h2 class="text-base font-bold tracking-tight">Mis Libros</h2>
                             <span id="library-count" class="text-[10px] opacity-70 bg-white/5 px-2.5 py-1 rounded-full font-semibold">0 libros</span>
                         </div>
 
-                        <div id="books-grid" class="grid grid-cols-2 gap-3 pb-6">
-                            <div id="no-books-msg" class="col-span-2 text-center py-12 opacity-60">
+                        <!-- Grid Inteligente para evitar escalado gigante (max-w-[160px] por tarjeta) -->
+                        <div id="books-grid" class="grid grid-cols-[repeat(auto-fill,minmax(120px,150px))] gap-4 pb-6 justify-center sm:justify-start">
+                            <div id="no-books-msg" class="col-span-full text-center py-12 opacity-60">
                                 <i class="fa-solid fa-book-open text-3xl mb-3"></i>
                                 <p class="text-xs">Aún no has importado ningún libro.</p>
                             </div>
@@ -243,7 +244,7 @@
                 <div id="view-player" class="view-transition hidden absolute inset-0 z-40 bg-zinc-950/90 flex flex-col overflow-hidden">
                     
                     <header class="flex justify-between items-center px-6 py-4 safe-padding-top">
-                        <!-- Botón volver (Swipe o clic) -->
+                        <!-- Botón volver -->
                         <button id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
                             <i class="fa-solid fa-chevron-left text-sm"></i>
                         </button>
@@ -267,13 +268,13 @@
                             </div>
                         </div>
 
-                        <!-- Contenedor Portada -->
+                        <!-- Contenedor Portada (Restringida de forma elegante para evitar excesos) -->
                         <div id="wrapper-cover" class="flex-1 flex flex-col items-center justify-center transition-all duration-300">
-                            <div class="relative w-44 h-60 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.6)] overflow-hidden border border-white/10 group mb-4">
+                            <div class="relative w-36 h-48 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.6)] overflow-hidden border border-white/10 group mb-3">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
                             </div>
-                            <div class="text-center max-w-xs">
-                                <h3 id="player-book-title" class="text-lg font-bold tracking-tight line-clamp-1">Título del Libro</h3>
+                            <div class="text-center max-w-xs mb-3">
+                                <h3 id="player-book-title" class="text-base font-bold tracking-tight line-clamp-1">Título del Libro</h3>
                                 <p id="player-book-author" class="text-xs opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
                                 <p id="player-book-saga" class="text-[10px] text-iosAccent font-semibold mt-1 uppercase tracking-wide"></p>
                             </div>
@@ -286,19 +287,15 @@
                             </div>
                         </div>
 
-                        <!-- Panel de Navegación de Capítulos con Buscador -->
-                        <div class="mt-2 mb-3">
-                            <div class="flex justify-between items-center text-[10px] opacity-60 mb-1.5">
-                                <span class="font-bold"><i class="fa-solid fa-list-ul mr-1"></i> Buscar Capítulo</span>
-                                <span id="chapter-indicator">1 / 1</span>
-                            </div>
-                            
-                            <div class="flex gap-2">
-                                <input type="text" id="chapter-search" class="flex-1 py-2 px-3 rounded-lg liquid-glass text-xs outline-none bg-white/5 placeholder-zinc-400" placeholder="Buscar capítulo por nombre...">
-                                <select id="select-chapters" class="max-w-[150px] py-2 px-2 rounded-lg liquid-glass text-xs outline-none cursor-pointer">
-                                    <!-- Capítulos dinámicos -->
-                                </select>
-                            </div>
+                        <!-- Panel de Navegación de Capítulos iOS Premium (Botón deslizable en vez de selector roto) -->
+                        <div class="mt-2 mb-3 px-1">
+                            <button id="btn-trigger-chapters" class="w-full py-3 px-4 rounded-xl liquid-glass text-xs font-semibold flex justify-between items-center hover:bg-white/10 active:scale-95 transition-all text-white bg-white/5 shadow-md">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid fa-book-open text-iosAccent"></i>
+                                    <span id="player-chapter-display">Seleccionar Capítulo</span>
+                                </span>
+                                <i class="fa-solid fa-chevron-right text-zinc-400 text-[10px]"></i>
+                            </button>
                         </div>
 
                     </div>
@@ -324,14 +321,14 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div class="flex flex-col">
                                 <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Voz Latino Realista</label>
-                                <select id="select-voices" class="py-2 px-2.5 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none">
+                                <select id="select-voices" class="py-2.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
                                     <!-- Las voces se auto-poblarán -->
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
                                     <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Velocidad</label>
-                                    <select id="select-rate" class="py-2 px-2 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none">
+                                    <select id="select-rate" class="py-2.5 px-2 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none">
                                         <option value="0.8">0.8x</option>
                                         <option value="1.0" selected>1.0x (Normal)</option>
                                         <option value="1.2">1.2x</option>
@@ -341,7 +338,7 @@
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Apagado</label>
-                                    <button id="btn-timer" class="py-2 px-1 rounded-lg bg-white/5 border border-white/10 text-[11px] outline-none flex items-center justify-center gap-1">
+                                    <button id="btn-timer" class="py-2.5 px-1 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none flex items-center justify-center gap-1">
                                         <i class="fa-regular fa-clock"></i>
                                         <span id="timer-label">Off</span>
                                     </button>
@@ -349,7 +346,7 @@
                             </div>
                         </div>
 
-                        <!-- Mandos Físicos -->
+                        <!-- Mandos Físicos de audio -->
                         <div class="flex justify-between items-center px-4 py-1">
                             <!-- Marcador de Frases/Páginas -->
                             <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Añadir Marcador">
@@ -359,8 +356,8 @@
                             <!-- Retroceder 15 Segundos -->
                             <button id="btn-rewind" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-left text-base"></i>
-                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-left text-base text-white"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
                                 </span>
                             </button>
 
@@ -372,8 +369,8 @@
                             <!-- Adelantar 15 Segundos -->
                             <button id="btn-forward" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-right text-base"></i>
-                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-right text-base text-white"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
                                 </span>
                             </button>
 
@@ -390,6 +387,34 @@
 
         </div>
 
+    </div>
+
+    <!-- ================= MODAL DE NAVEGACIÓN DE CAPÍTULOS iOS (Reemplazo del selector roto) ================= -->
+    <div id="modal-chapters" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end justify-center p-0 md:p-6">
+        <div class="w-full max-w-lg md:rounded-2xl bg-zinc-900 border-t border-white/10 overflow-hidden shadow-2xl flex flex-col h-[75vh] md:h-[65vh]">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-zinc-950">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul text-iosAccent"></i>
+                    <h3 class="font-bold text-sm text-white">Capítulos del Libro</h3>
+                </div>
+                <button id="close-modal-chapters" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Buscador dentro del listado de capítulos -->
+            <div class="p-3 bg-zinc-950 border-b border-white/5">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="chapter-search" class="w-full py-2 pl-9 pr-4 rounded-xl bg-white/5 text-xs text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo por título...">
+                </div>
+            </div>
+
+            <!-- Listado con scroll elegante y cómodo para clics -->
+            <div id="chapters-scroll-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+                <!-- Capítulos inyectados dinámicamente -->
+            </div>
+        </div>
     </div>
 
     <!-- ================= MODAL MARCADORES ================= -->
@@ -536,9 +561,13 @@
                 scrollToActiveSentence();
             });
 
-            // Selectores
-            document.getElementById('select-chapters').addEventListener('change', (e) => {
-                changeChapter(parseInt(e.target.value));
+            // Manejo de Modal de Capítulos iOS
+            document.getElementById('btn-trigger-chapters').addEventListener('click', () => {
+                document.getElementById('modal-chapters').classList.remove('hidden');
+                renderChaptersModalList();
+            });
+            document.getElementById('close-modal-chapters').addEventListener('click', () => {
+                document.getElementById('modal-chapters').classList.add('hidden');
             });
 
             document.getElementById('btn-select-dir').addEventListener('click', requestDirectoryAccess);
@@ -596,7 +625,6 @@
             if (currentScale < 0.75) currentScale = 0.75;
             if (currentScale > 1.45) currentScale = 1.45;
             document.documentElement.style.setProperty('--font-scale', currentScale);
-            showToast(`Texto escalado al: ${Math.round(currentScale * 100)}%`);
         }
 
         // Alternar Modo Claro / Oscuro
@@ -642,7 +670,6 @@
             if (swipeDistance > 120) {
                 pauseAudio();
                 switchView('library');
-                showToast("Volviendo a Biblioteca", "fa-arrow-left");
             }
         }
 
@@ -657,15 +684,20 @@
                 const select = document.getElementById('select-voices');
                 select.innerHTML = '';
 
+                // Filtrar voces en español
                 const spanishVoices = synthesisVoices.filter(voice => 
                     voice.lang.includes('es-') || voice.lang.startsWith('es')
                 );
 
+                // Algoritmo de clasificación de calidad: Priorizamos las voces Neural / Natural / Online / Siri por encima de todo
                 spanishVoices.sort((a, b) => {
                     const aLower = a.name.toLowerCase();
                     const bLower = b.name.toLowerCase();
-                    if (aLower.includes('natural') || aLower.includes('siri') || aLower.includes('neural')) return -1;
-                    if (bLower.includes('natural') || bLower.includes('siri') || bLower.includes('neural')) return 1;
+                    const isANeural = aLower.includes('neural') || aLower.includes('natural') || aLower.includes('online') || aLower.includes('siri') || aLower.includes('google');
+                    const isBNeural = bLower.includes('neural') || bLower.includes('natural') || bLower.includes('online') || bLower.includes('siri') || bLower.includes('google');
+                    
+                    if (isANeural && !isBNeural) return -1;
+                    if (!isANeural && isBNeural) return 1;
                     return 0;
                 });
 
@@ -678,12 +710,14 @@
                     spanishVoices.forEach((voice, index) => {
                         const opt = document.createElement('option');
                         let name = voice.name.replace("Microsoft", "MS").replace("Google", "Google").trim();
-                        if (voice.name.includes('Sabina') || voice.name.includes('Dalia') || voice.name.includes('Elena')) {
-                            name += " (Mujer)";
-                        } else if (voice.name.includes('Raul') || voice.name.includes('Julio') || voice.name.includes('Pablo')) {
-                            name += " (Hombre)";
+                        let isHighQuality = voice.name.toLowerCase().includes('neural') || voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('online') || voice.name.toLowerCase().includes('siri');
+                        
+                        let label = `${name} [${voice.lang}]`;
+                        if (isHighQuality) {
+                            label = `🔥 Voz Neural - ${name}`;
                         }
-                        opt.textContent = `${name} [${voice.lang}]`;
+
+                        opt.textContent = label;
                         opt.value = index;
                         select.appendChild(opt);
                     });
@@ -713,46 +747,18 @@
             }, 3000);
         }
 
-        // --- SISTEMA ULTRA PERMISIVO DE LECTURA DE ARCHIVOS ---
         function processUploadedFile(file) {
-            if (!file) return;
+            showToast("Procesando Archivo...", "fa-spinner fa-spin");
             
-            console.log("Archivo recibido para procesar:", {
-                name: file.name,
-                size: file.size,
-                type: file.type
-            });
-
-            showToast("Analizando archivo...", "fa-spinner fa-spin");
+            const fileName = file.name.trim();
+            const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
             
-            const rawName = file.name.trim();
-            const lowerName = rawName.toLowerCase();
-            const mimeType = file.type ? file.type.toLowerCase() : "";
-
-            // Detección ultra tolerante por extensión o MIME types alternativos
-            const isEPUB = lowerName.endsWith('.epub') || 
-                           mimeType === 'application/epub+zip' || 
-                           mimeType === 'application/x-epub+zip' ||
-                           mimeType === 'application/zip'; // A veces los navegadores marcan EPUB como zip
-
-            const isPDF = lowerName.endsWith('.pdf') || 
-                          mimeType === 'application/pdf';
-
-            if (isEPUB) {
-                if (typeof JSZip === 'undefined') {
-                    showToast("Error de conexión: No se pudo cargar JSZip", "fa-circle-exclamation");
-                    return;
-                }
+            if (ext === '.epub') {
                 parseEPUBFile(file);
-            } else if (isPDF) {
-                if (typeof pdfjsLib === 'undefined') {
-                    showToast("Error de conexión: No se pudo cargar PDF.js", "fa-circle-exclamation");
-                    return;
-                }
+            } else if (ext === '.pdf') {
                 parsePDFFile(file);
             } else {
-                // Mensaje instructivo más detallado en lugar de un rechazo brusco
-                showToast("Formato no compatible. Por favor sube un archivo .epub o .pdf válido.", "fa-circle-question");
+                showToast("Formato no compatible.", "fa-triangle-exclamation");
             }
         }
 
@@ -769,7 +775,7 @@
                     let opfContent = await zip.file(opfPath).async("text");
                     let opfDoc = parser.parseFromString(opfContent, "text/xml");
                     
-                    let title = opfDoc.querySelector("title")?.textContent || file.name.replace(/\.[^/.]+$/, "");
+                    let title = opfDoc.querySelector("title")?.textContent || file.name.replace('.epub', '');
                     let author = opfDoc.querySelector("creator")?.textContent || "Autor Desconocido";
                     
                     let saga = "";
@@ -809,33 +815,14 @@
                         }
                     }
 
-                    if (chapters.length === 0) {
-                        // Plan de rescate: Intentar leer cualquier archivo HTML/XHTML del ZIP si el índice falló
-                        showToast("Leyendo estructura alternativa...", "fa-arrows-split-up-and-left");
-                        const allFiles = Object.keys(zip.files);
-                        for (let fName of allFiles) {
-                            if (fName.endsWith('.html') || fName.endsWith('.xhtml')) {
-                                let rawHtml = await zip.file(fName).async("text");
-                                let parsedDoc = parser.parseFromString(rawHtml, "text/html");
-                                let extractedText = parsedDoc.body.innerText || parsedDoc.body.textContent;
-                                extractedText = extractedText.replace(/\s+/g, ' ').trim();
-                                if (extractedText.length > 200) {
-                                    chapters.push({
-                                        title: parsedDoc.querySelector('h1, h2, h3, title')?.textContent || fName.substring(fName.lastIndexOf('/') + 1),
-                                        text: extractedText
-                                    });
-                                }
-                            }
-                        }
-                    }
-
-                    const coverUrl = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
+                    // Intentar extraer portada del EPUB de forma nativa o autogenerar con formato impecable
+                    let coverUrl = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
 
                     const newBook = {
                         id: Date.now().toString(),
                         title: title,
                         author: author,
-                        saga: saga || "Saga Única",
+                        saga: saga || "Libro Único",
                         cover: coverUrl,
                         chapters: chapters,
                         bookmarks: [],
@@ -846,8 +833,8 @@
                     addBookToLibrary(newBook);
 
                 } catch (error) {
-                    console.error("Fallo detallado de parseo EPUB:", error);
-                    showToast("No se pudo leer el EPUB. Puede estar encriptado o corrupto.", "fa-circle-exclamation");
+                    console.error(error);
+                    showToast("No se pudo leer el EPUB", "fa-circle-exclamation");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -884,7 +871,7 @@
 
                     const newBook = {
                         id: Date.now().toString(),
-                        title: file.name.replace(/\.[^/.]+$/, ""),
+                        title: file.name.replace('.pdf', ''),
                         author: "Documento Local PDF",
                         saga: "Independiente",
                         cover: "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF",
@@ -897,18 +884,14 @@
                     addBookToLibrary(newBook);
 
                 } catch (error) {
-                    console.error("Fallo detallado de parseo PDF:", error);
-                    showToast("No se pudo procesar el PDF.", "fa-circle-exclamation");
+                    console.error(error);
+                    showToast("No se pudo leer el PDF", "fa-circle-exclamation");
                 }
             };
             reader.readAsArrayBuffer(file);
         }
 
         function addBookToLibrary(book) {
-            if (!book.chapters || book.chapters.length === 0) {
-                showToast("El archivo no contiene texto legible.", "fa-triangle-exclamation");
-                return;
-            }
             currentBooks.push(book);
             saveLibraryToStorage();
             renderLibrary();
@@ -957,7 +940,8 @@
 
             filteredBooks.forEach((book, index) => {
                 const card = document.createElement('div');
-                card.className = "book-card relative rounded-2xl liquid-glass p-3 flex flex-col justify-between overflow-hidden cursor-pointer hover:bg-white/10 active:scale-95 transition-all";
+                // Tarjeta contenida y delimitada de forma limpia
+                card.className = "book-card w-full max-w-[150px] relative rounded-2xl liquid-glass p-3 flex flex-col justify-between overflow-hidden cursor-pointer hover:bg-white/10 active:scale-95 transition-all mx-auto sm:mx-0";
                 card.dataset.index = index;
                 
                 card.innerHTML = `
@@ -968,9 +952,9 @@
                         </button>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-xs truncate">${book.title}</h4>
-                        <p class="text-[10px] opacity-60 truncate mt-0.5">${book.author}</p>
-                        ${book.saga ? `<p class="text-[9px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
+                        <h4 class="font-bold text-[11px] truncate text-white">${book.title}</h4>
+                        <p class="text-[9px] opacity-60 truncate mt-0.5">${book.author}</p>
+                        ${book.saga ? `<p class="text-[8px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
                     </div>
                 `;
 
@@ -1025,37 +1009,48 @@
                 sagaEl.classList.add('hidden');
             }
 
-            buildChapterSelect(book.chapters);
             setupChapterMedia(activeChapterIndex);
             switchView('player');
         }
 
-        function buildChapterSelect(chapters) {
-            const select = document.getElementById('select-chapters');
-            select.innerHTML = '';
-            chapters.forEach((chapter, index) => {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.textContent = chapter.title;
-                if (index === activeChapterIndex) opt.selected = true;
-                select.appendChild(opt);
+        function renderChaptersModalList(query = '') {
+            const book = currentBooks[activeBookIndex];
+            const listContainer = document.getElementById('chapters-scroll-list');
+            listContainer.innerHTML = '';
+
+            const filtered = book.chapters.map((ch, idx) => ({ ...ch, originalIdx: idx }))
+                .filter(ch => ch.title.toLowerCase().includes(query.toLowerCase()));
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<p class="text-zinc-500 text-xs text-center py-8">No se encontraron capítulos</p>`;
+                return;
+            }
+
+            filtered.forEach(chapter => {
+                const isSelected = chapter.originalIdx === activeChapterIndex;
+                const item = document.createElement('button');
+                item.className = `w-full p-4 rounded-xl text-left text-xs font-semibold flex justify-between items-center transition-all ${
+                    isSelected 
+                    ? 'bg-iosAccent text-white shadow-lg' 
+                    : 'bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
+                }`;
+                
+                item.innerHTML = `
+                    <span class="truncate pr-3">${chapter.title}</span>
+                    ${isSelected ? '<i class="fa-solid fa-volume-high text-xs"></i>' : '<i class="fa-regular fa-circle-play text-xs opacity-50"></i>'}
+                `;
+
+                item.addEventListener('click', () => {
+                    document.getElementById('modal-chapters').classList.add('hidden');
+                    changeChapter(chapter.originalIdx);
+                });
+
+                listContainer.appendChild(item);
             });
         }
 
         function filterChapters(query) {
-            const book = currentBooks[activeBookIndex];
-            const select = document.getElementById('select-chapters');
-            select.innerHTML = '';
-
-            book.chapters.forEach((chapter, index) => {
-                if (chapter.title.toLowerCase().includes(query.toLowerCase())) {
-                    const opt = document.createElement('option');
-                    opt.value = index;
-                    opt.textContent = chapter.title;
-                    if (index === activeChapterIndex) opt.selected = true;
-                    select.appendChild(opt);
-                }
-            });
+            renderChaptersModalList(query);
         }
 
         function changeChapter(chapterIdx) {
@@ -1074,7 +1069,8 @@
             const book = currentBooks[activeBookIndex];
             const chapter = book.chapters[chapterIdx];
             
-            document.getElementById('chapter-indicator').textContent = `${chapterIdx + 1} de ${book.chapters.length}`;
+            // Actualizar etiqueta del botón de capítulos en la interfaz principal
+            document.getElementById('player-chapter-display').textContent = chapter.title;
 
             const text = chapter.text;
             textSentences = text.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑa-záéíóúñ])/);
@@ -1337,7 +1333,6 @@
                         if (e.target.closest('button')) return;
                         document.getElementById('modal-bookmarks').classList.add('hidden');
                         activeChapterIndex = b.chapter;
-                        document.getElementById('select-chapters').value = b.chapter;
                         setupChapterMedia(b.chapter);
                         jumpToSentence(b.sentence);
                     });
@@ -1362,7 +1357,7 @@
             remainingTimerSeconds = minutes * 60;
             
             document.getElementById('timer-label').textContent = `${minutes} min`;
-            showToast("Temporizador programado", "fa-clock");
+            showToast(`Temporizador programado para ${minutes}m`, "fa-clock");
 
             timerCountdown = setInterval(() => {
                 remainingTimerSeconds--;
@@ -1407,7 +1402,6 @@
             }
         }
 
-        // File System Access para almacenamiento local en PC
         async function requestDirectoryAccess() {
             if ('showDirectoryPicker' in window) {
                 try {
@@ -1477,4 +1471,12 @@
                         await writable.close();
                     }
                 }
-                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa
+                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa-circle-check");
+            } catch (error) {
+                console.error(error);
+                showToast("Error guardando audiolibros en PC", "fa-triangle-exclamation");
+            }
+        }
+    </script>
+</body>
+</html>
