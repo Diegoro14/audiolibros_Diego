@@ -612,7 +612,7 @@
             }
         }
 
-        // Alternar vista de dispositivo PC vs Móvil (Silencioso, sin notificación Toast)
+        // Alternar vista de dispositivo PC vs Móvil
         function toggleDeviceView() {
             const workspace = document.getElementById('app-workspace');
             const wrapper = document.getElementById('device-wrapper');
@@ -622,14 +622,12 @@
             isPcLayout = !isPcLayout;
 
             if (isPcLayout) {
-                // Modo PC: Se remueve el marco de móvil, se adaptan márgenes gigantes
                 wrapper.className = "w-full h-full flex flex-row gap-6 max-w-none";
                 phoneContainer.classList.remove('phone-frame');
                 phoneContainer.style.width = '100%';
                 phoneContainer.style.height = '100%';
                 btnText.textContent = "Ver Móvil";
             } else {
-                // Modo Móvil: Se encapsula dentro del simulador físico de iPhone limpio
                 wrapper.className = "flex items-center justify-center w-full h-full";
                 phoneContainer.className = "phone-frame flex flex-col h-full overflow-hidden relative";
                 phoneContainer.style.width = '393px';
@@ -641,7 +639,6 @@
         // Detectar gesto de volver
         function handleSwipeGesture() {
             const swipeDistance = touchEndX - touchStartX;
-            // Si desliza hacia la derecha más de 120px, vuelve
             if (swipeDistance > 120) {
                 pauseAudio();
                 switchView('library');
@@ -660,12 +657,10 @@
                 const select = document.getElementById('select-voices');
                 select.innerHTML = '';
 
-                // Filtrar voces en español (priorizando latinoamericanas)
                 const spanishVoices = synthesisVoices.filter(voice => 
                     voice.lang.includes('es-') || voice.lang.startsWith('es')
                 );
 
-                // Ordenar por calidad sugerida de sistemas
                 spanishVoices.sort((a, b) => {
                     const aLower = a.name.toLowerCase();
                     const bLower = b.name.toLowerCase();
@@ -718,15 +713,46 @@
             }, 3000);
         }
 
+        // --- SISTEMA ULTRA PERMISIVO DE LECTURA DE ARCHIVOS ---
         function processUploadedFile(file) {
-            showToast("Procesando Archivo...", "fa-spinner fa-spin");
-            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-            if (ext === '.epub') {
+            if (!file) return;
+            
+            console.log("Archivo recibido para procesar:", {
+                name: file.name,
+                size: file.size,
+                type: file.type
+            });
+
+            showToast("Analizando archivo...", "fa-spinner fa-spin");
+            
+            const rawName = file.name.trim();
+            const lowerName = rawName.toLowerCase();
+            const mimeType = file.type ? file.type.toLowerCase() : "";
+
+            // Detección ultra tolerante por extensión o MIME types alternativos
+            const isEPUB = lowerName.endsWith('.epub') || 
+                           mimeType === 'application/epub+zip' || 
+                           mimeType === 'application/x-epub+zip' ||
+                           mimeType === 'application/zip'; // A veces los navegadores marcan EPUB como zip
+
+            const isPDF = lowerName.endsWith('.pdf') || 
+                          mimeType === 'application/pdf';
+
+            if (isEPUB) {
+                if (typeof JSZip === 'undefined') {
+                    showToast("Error de conexión: No se pudo cargar JSZip", "fa-circle-exclamation");
+                    return;
+                }
                 parseEPUBFile(file);
-            } else if (ext === '.pdf') {
+            } else if (isPDF) {
+                if (typeof pdfjsLib === 'undefined') {
+                    showToast("Error de conexión: No se pudo cargar PDF.js", "fa-circle-exclamation");
+                    return;
+                }
                 parsePDFFile(file);
             } else {
-                showToast("Formato no compatible.", "fa-triangle-exclamation");
+                // Mensaje instructivo más detallado en lugar de un rechazo brusco
+                showToast("Formato no compatible. Por favor sube un archivo .epub o .pdf válido.", "fa-circle-question");
             }
         }
 
@@ -743,10 +769,9 @@
                     let opfContent = await zip.file(opfPath).async("text");
                     let opfDoc = parser.parseFromString(opfContent, "text/xml");
                     
-                    let title = opfDoc.querySelector("title")?.textContent || file.name.replace('.epub', '');
+                    let title = opfDoc.querySelector("title")?.textContent || file.name.replace(/\.[^/.]+$/, "");
                     let author = opfDoc.querySelector("creator")?.textContent || "Autor Desconocido";
                     
-                    // Extraer Saga si existe en metadatos
                     let saga = "";
                     const metaSaga = opfDoc.querySelector("meta[name='calibre:series']");
                     if (metaSaga) saga = metaSaga.getAttribute("content");
@@ -784,6 +809,26 @@
                         }
                     }
 
+                    if (chapters.length === 0) {
+                        // Plan de rescate: Intentar leer cualquier archivo HTML/XHTML del ZIP si el índice falló
+                        showToast("Leyendo estructura alternativa...", "fa-arrows-split-up-and-left");
+                        const allFiles = Object.keys(zip.files);
+                        for (let fName of allFiles) {
+                            if (fName.endsWith('.html') || fName.endsWith('.xhtml')) {
+                                let rawHtml = await zip.file(fName).async("text");
+                                let parsedDoc = parser.parseFromString(rawHtml, "text/html");
+                                let extractedText = parsedDoc.body.innerText || parsedDoc.body.textContent;
+                                extractedText = extractedText.replace(/\s+/g, ' ').trim();
+                                if (extractedText.length > 200) {
+                                    chapters.push({
+                                        title: parsedDoc.querySelector('h1, h2, h3, title')?.textContent || fName.substring(fName.lastIndexOf('/') + 1),
+                                        text: extractedText
+                                    });
+                                }
+                            }
+                        }
+                    }
+
                     const coverUrl = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
 
                     const newBook = {
@@ -801,8 +846,8 @@
                     addBookToLibrary(newBook);
 
                 } catch (error) {
-                    console.error(error);
-                    showToast("No se pudo leer el EPUB", "fa-circle-exclamation");
+                    console.error("Fallo detallado de parseo EPUB:", error);
+                    showToast("No se pudo leer el EPUB. Puede estar encriptado o corrupto.", "fa-circle-exclamation");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -839,7 +884,7 @@
 
                     const newBook = {
                         id: Date.now().toString(),
-                        title: file.name.replace('.pdf', ''),
+                        title: file.name.replace(/\.[^/.]+$/, ""),
                         author: "Documento Local PDF",
                         saga: "Independiente",
                         cover: "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF",
@@ -852,14 +897,18 @@
                     addBookToLibrary(newBook);
 
                 } catch (error) {
-                    console.error(error);
-                    showToast("No se pudo leer el PDF", "fa-circle-exclamation");
+                    console.error("Fallo detallado de parseo PDF:", error);
+                    showToast("No se pudo procesar el PDF.", "fa-circle-exclamation");
                 }
             };
             reader.readAsArrayBuffer(file);
         }
 
         function addBookToLibrary(book) {
+            if (!book.chapters || book.chapters.length === 0) {
+                showToast("El archivo no contiene texto legible.", "fa-triangle-exclamation");
+                return;
+            }
             currentBooks.push(book);
             saveLibraryToStorage();
             renderLibrary();
@@ -891,7 +940,6 @@
             const existingCards = grid.querySelectorAll('.book-card');
             existingCards.forEach(card => card.remove());
 
-            // Filtrar según el Buscador (Nombre, Autor o Saga)
             const filteredBooks = currentBooks.filter(book => {
                 return (book.title.toLowerCase().includes(searchQuery) ||
                         book.author.toLowerCase().includes(searchQuery) ||
@@ -977,12 +1025,8 @@
                 sagaEl.classList.add('hidden');
             }
 
-            // Cargar selector de capítulos
             buildChapterSelect(book.chapters);
-
-            // Cargar capítulo
             setupChapterMedia(activeChapterIndex);
-
             switchView('player');
         }
 
@@ -998,7 +1042,6 @@
             });
         }
 
-        // Buscador interno de capítulos
         function filterChapters(query) {
             const book = currentBooks[activeBookIndex];
             const select = document.getElementById('select-chapters');
@@ -1033,7 +1076,6 @@
             
             document.getElementById('chapter-indicator').textContent = `${chapterIdx + 1} de ${book.chapters.length}`;
 
-            // Particionar el texto en oraciones fluidas
             const text = chapter.text;
             textSentences = text.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑa-záéíóúñ])/);
             
@@ -1110,7 +1152,6 @@
         function speakSentence(index) {
             if (!isPlaying) return;
             if (index >= textSentences.length) {
-                // Siguiente Capítulo
                 if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
                     showToast("Pasando al siguiente capítulo...");
                     changeChapter(activeChapterIndex + 1);
@@ -1321,7 +1362,7 @@
             remainingTimerSeconds = minutes * 60;
             
             document.getElementById('timer-label').textContent = `${minutes} min`;
-            showToast(`Temporizador programado para ${minutes}m`, "fa-clock");
+            showToast("Temporizador programado", "fa-clock");
 
             timerCountdown = setInterval(() => {
                 remainingTimerSeconds--;
@@ -1397,8 +1438,6 @@
             try {
                 for (let i = 0; i < book.chapters.length; i++) {
                     const chapter = book.chapters[i];
-                    
-                    // Segmentar el texto del capítulo en bloques menores de 200 caracteres para evitar bloqueos
                     const rawSentences = chapter.text.split(/(?<=[.!?])\s+/);
                     const chunks = [];
                     let currentChunk = "";
@@ -1415,7 +1454,6 @@
 
                     const audioBlobs = [];
                     
-                    // Descargar fragmentos de audio de alta fidelidad de forma secuencial
                     for (let j = 0; j < chunks.length; j++) {
                         const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-us&client=tw-ob&q=${encodeURIComponent(chunks[j])}`;
                         try {
@@ -1429,7 +1467,6 @@
                         }
                     }
 
-                    // Concatenar estructuralmente los ArrayBuffers en un único archivo MP3 unificado
                     if (audioBlobs.length > 0) {
                         const finalBlob = new Blob(audioBlobs, { type: 'audio/mp3' });
                         const fileName = `${book.title}_Cap_${i + 1}_${chapter.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
@@ -1440,12 +1477,4 @@
                         await writable.close();
                     }
                 }
-                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa-circle-check");
-            } catch (error) {
-                console.error(error);
-                showToast("Error guardando audiolibros en PC", "fa-triangle-exclamation");
-            }
-        }
-    </script>
-</body>
-</html>
+                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa
