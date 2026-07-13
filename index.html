@@ -308,22 +308,22 @@
                     <div class="flex-1 flex flex-col px-6 overflow-hidden">
                         
                         <!-- Toggle Cover/Lyrics -->
-                        <div class="flex justify-center mb-4">
+                        <div class="flex justify-center mb-2">
                             <div class="p-1 rounded-full bg-white/5 flex gap-1 liquid-glass">
                                 <button id="toggle-cover" class="px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all">Portada</button>
                                 <button id="toggle-text" class="px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all">Texto Sincrónico</button>
                             </div>
                         </div>
 
-                        <!-- Contenedor Portada (Restringida de forma elegante para evitar excesos) -->
-                        <div id="wrapper-cover" class="flex-1 flex flex-col items-center justify-center transition-all duration-300">
-                            <div class="relative w-full max-w-[280px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-4 mx-auto">
+                        <!-- Contenedor Portada (Tamaño controlado para no desplazar el selector de capítulos) -->
+                        <div id="wrapper-cover" class="shrink-0 flex flex-col items-center justify-center transition-all duration-300 max-h-[42vh] md:max-h-[38vh] lg:max-h-[35vh]">
+                            <div class="relative w-full max-w-[180px] md:max-w-[200px] lg:max-w-[220px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-2 mx-auto">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
                             </div>
-                            <div class="text-center max-w-xs mb-3">
-                                <h3 id="player-book-title" class="text-base font-bold tracking-tight line-clamp-1">Título del Libro</h3>
-                                <p id="player-book-author" class="text-xs opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
-                                <p id="player-book-saga" class="text-[10px] text-iosAccent font-semibold mt-1 uppercase tracking-wide"></p>
+                            <div class="text-center max-w-xs mb-1">
+                                <h3 id="player-book-title" class="text-sm font-bold tracking-tight line-clamp-1">Título del Libro</h3>
+                                <p id="player-book-author" class="text-[11px] opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
+                                <p id="player-book-saga" class="text-[10px] text-iosAccent font-semibold mt-0.5 uppercase tracking-wide"></p>
                             </div>
                         </div>
 
@@ -335,8 +335,8 @@
                         </div>
 
                         <!-- Panel de Navegación de Capítulos iOS Premium (Botón deslizable en vez de selector roto) -->
-                        <div class="mt-2 mb-3 px-1">
-                            <button id="btn-trigger-chapters" class="w-full py-3 px-4 rounded-xl liquid-glass text-xs font-semibold flex justify-between items-center hover:bg-white/10 active:scale-95 transition-all text-white bg-white/5 shadow-md">
+                        <div class="mt-1 mb-1 px-1 shrink-0">
+                            <button id="btn-trigger-chapters" class="w-full py-2.5 px-4 rounded-xl liquid-glass text-xs font-semibold flex justify-between items-center hover:bg-white/10 active:scale-95 transition-all text-white bg-white/5 shadow-md">
                                 <span class="flex items-center gap-2">
                                     <i class="fa-solid fa-book-open text-iosAccent"></i>
                                     <span id="player-chapter-display">Seleccionar Capítulo</span>
@@ -348,7 +348,7 @@
                     </div>
 
                     <!-- Barra inferior de Mandos de Reproducción -->
-                    <div class="liquid-glass-dark px-6 pt-5 pb-8 space-y-4 rounded-t-[32px] shadow-2xl relative z-50">
+                    <div class="liquid-glass-dark px-6 pt-4 pb-4 md:pt-3 md:pb-3 md:space-y-2.5 space-y-3 rounded-t-[32px] shadow-2xl relative z-50">
                         
                         <!-- Barra de Progreso Deslizable (Timeline) -->
                         <div class="space-y-1">
@@ -356,7 +356,7 @@
                                 <span id="time-current">0:00</span>
                                 <span id="time-total">0:00</span>
                             </div>
-                            <div class="relative group py-2 cursor-pointer" id="progress-container">
+                            <div class="relative group py-1.5 md:py-1 cursor-pointer" id="progress-container">
                                 <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
                                     <div id="progress-bar" class="h-full bg-iosAccent w-0 rounded-full transition-all duration-100"></div>
                                 </div>
@@ -365,20 +365,20 @@
                         </div>
 
                         <!-- Selector de Voces Neuronales en Español Latino y Ajustes -->
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-2 md:gap-3">
                             <div class="flex flex-col">
                                 <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1 flex items-center gap-1">
                                     Voz
                                     <button id="btn-voice-info" type="button" class="w-3.5 h-3.5 rounded-full bg-white/10 flex items-center justify-center text-[8px] leading-none" title="Cómo obtener mejores voces">i</button>
                                 </label>
-                                <select id="select-voices" class="py-2.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
+                                <select id="select-voices" class="py-2 md:py-1.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
                                     <!-- Las voces se auto-poblarán -->
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
                                     <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Velocidad</label>
-                                    <select id="select-rate" class="py-2.5 px-2 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none">
+                                    <select id="select-rate" class="py-2 md:py-1.5 px-2 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none">
                                         <option value="0.8">0.8x</option>
                                         <option value="1.0" selected>1.0x (Normal)</option>
                                         <option value="1.2">1.2x</option>
@@ -388,7 +388,7 @@
                                 </div>
                                 <div class="flex flex-col">
                                     <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Apagado</label>
-                                    <button id="btn-timer" class="py-2.5 px-1 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none flex items-center justify-center gap-1">
+                                    <button id="btn-timer" class="py-2 md:py-1.5 px-1 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none flex items-center justify-center gap-1">
                                         <i class="fa-regular fa-clock"></i>
                                         <span id="timer-label">Off</span>
                                     </button>
@@ -397,7 +397,7 @@
                         </div>
 
                         <!-- Mandos Físicos de audio -->
-                        <div class="flex justify-between items-center px-4 py-1 safe-padding-bottom">
+                        <div class="flex justify-between items-center px-4 py-0.5 md:py-0 safe-padding-bottom">
                             <!-- Marcador de Frases/Páginas -->
                             <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Añadir Marcador">
                                 <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-lg"></i>
