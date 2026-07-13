@@ -775,61 +775,125 @@
     <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
 
     <script>
-        // --- STREAMING_CHUNK: Gestión IndexedDB de almacenamiento local robusto... ---
-        // Esto elimina por completo el límite de memoria del localStorage que impedía cargar más de 3 libros.
+        // --- STREAMING_CHUNK: Base de Datos de Almacenamiento Seguro Multi-Capa (IndexedDB + LocalStorage) ... ---
         const DB_NAME = "AudiolibrosDiegoDB";
         const DB_VERSION = 1;
         const STORE_NAME = "library";
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onerror = () => reject("Error al abrir IndexedDB");
-                request.onsuccess = (event) => resolve(event.target.result);
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-                    }
-                };
-            });
-        }
-
-        function saveBookToDB(book) {
-            return initDB().then(db => {
-                return new Promise((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], "readwrite");
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.put(book);
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject("Error al guardar libro");
-                });
-            });
-        }
-
-        function deleteBookFromDB(id) {
-            return initDB().then(db => {
-                return new Promise((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], "readwrite");
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.delete(id);
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject("Error al borrar libro");
-                });
-            });
-        }
-
-        function getAllBooksFromDB() {
-            return initDB().then(db => {
-                return new Promise((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], "readonly");
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.getAll();
+                if (typeof indexedDB === 'undefined') {
+                    reject("IndexedDB no soportado en este navegador");
+                    return;
+                }
+                try {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onerror = () => reject("Acceso denegado a IndexedDB (Sandbox)");
                     request.onsuccess = (event) => resolve(event.target.result);
-                    request.onerror = () => reject("Error al obtener libros");
-                });
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: "id" });
+                        }
+                    };
+                } catch (err) {
+                    reject(err);
+                }
             });
         }
+
+        // Adaptador de almacenamiento súper seguro con conmutación automática
+        const storageAdapter = {
+            async getAll() {
+                // Intento 1: IndexedDB
+                if (typeof indexedDB !== 'undefined') {
+                    try {
+                        const db = await initDB();
+                        return await new Promise((resolve, reject) => {
+                            const transaction = db.transaction([STORE_NAME], "readonly");
+                            const store = transaction.objectStore(STORE_NAME);
+                            const request = store.getAll();
+                            request.onsuccess = (e) => resolve(e.target.result);
+                            request.onerror = () => reject();
+                        });
+                    } catch (e) {
+                        console.warn("IndexedDB bloqueado. Conmutando a LocalStorage...");
+                    }
+                }
+                // Intento 2: LocalStorage Fallback
+                try {
+                    const raw = localStorage.getItem('audiolibros_diego_fallback_db');
+                    return raw ? JSON.parse(raw) : [];
+                } catch (e) {
+                    console.warn("LocalStorage bloqueado. Conmutando a Memoria Volátil...");
+                    return window.tempMemoryBooks || [];
+                }
+            },
+
+            async save(book) {
+                let saved = false;
+                // Intento 1: IndexedDB
+                if (typeof indexedDB !== 'undefined') {
+                    try {
+                        const db = await initDB();
+                        await new Promise((resolve, reject) => {
+                            const transaction = db.transaction([STORE_NAME], "readwrite");
+                            const store = transaction.objectStore(STORE_NAME);
+                            const request = store.put(book);
+                            request.onsuccess = () => resolve();
+                            request.onerror = () => reject();
+                        });
+                        saved = true;
+                    } catch (e) {
+                        console.warn("No se pudo guardar en IndexedDB.");
+                    }
+                }
+                // Intento 2: LocalStorage Fallback
+                try {
+                    const books = await this.getAll();
+                    const idx = books.findIndex(b => b.id === book.id);
+                    if (idx !== -1) books[idx] = book;
+                    else books.push(book);
+                    localStorage.setItem('audiolibros_diego_fallback_db', JSON.stringify(books));
+                    saved = true;
+                } catch (e) {
+                    console.warn("No se pudo guardar en LocalStorage.");
+                }
+
+                if (!saved) {
+                    if (!window.tempMemoryBooks) window.tempMemoryBooks = [];
+                    const idx = window.tempMemoryBooks.findIndex(b => b.id === book.id);
+                    if (idx !== -1) window.tempMemoryBooks[idx] = book;
+                    else window.tempMemoryBooks.push(book);
+                }
+            },
+
+            async delete(id) {
+                // Intento 1: IndexedDB
+                if (typeof indexedDB !== 'undefined') {
+                    try {
+                        const db = await initDB();
+                        await new Promise((resolve, reject) => {
+                            const transaction = db.transaction([STORE_NAME], "readwrite");
+                            const store = transaction.objectStore(STORE_NAME);
+                            const request = store.delete(id);
+                            request.onsuccess = () => resolve();
+                            request.onerror = () => reject();
+                        });
+                    } catch (e) {}
+                }
+                // Intento 2: LocalStorage Fallback
+                try {
+                    const books = await this.getAll();
+                    const filtered = books.filter(b => b.id !== id);
+                    localStorage.setItem('audiolibros_diego_fallback_db', JSON.stringify(filtered));
+                } catch (e) {
+                    if (window.tempMemoryBooks) {
+                        window.tempMemoryBooks = window.tempMemoryBooks.filter(b => b.id !== id);
+                    }
+                }
+            }
+        };
 
         // --- ESTADO GLOBAL DE LA APLICACIÓN ---
         let currentBooks = [];
@@ -861,9 +925,55 @@
         let touchEndX = 0;
         let confirmActionCallback = null;
 
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        // Configuración segura de PDFJS para evitar cuelgues si no carga la CDN
+        try {
+            if (typeof pdfjsLib !== 'undefined') {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            }
+        } catch (err) {
+            console.warn("PDF.js worker setup fallido/omitido.");
+        }
 
         let wasPlayingBeforeHidden = false;
+
+        // --- STREAMING_CHUNK: Inicialización segura de la app al cargar ventana... ---
+        window.onload = function() {
+            restoreTheme();
+            restoreFontScale();
+            initApp();
+            initSpeechSynthesis();
+            
+            if (window.innerWidth <= 768) {
+                isPcLayout = false;
+                const wrapper = document.getElementById('device-wrapper');
+                const phoneContainer = document.getElementById('app-phone-container');
+                if (wrapper && phoneContainer) {
+                    wrapper.className = "flex items-center justify-center w-full h-full";
+                    phoneContainer.className = "flex flex-col h-full overflow-hidden relative w-full h-[100dvh]";
+                }
+            }
+        };
+
+        // --- FUNCIÓN CRÍTICA: Desbloqueo de motores de Audio y Voz para iOS/Safari/PWA ---
+        function unlockiOSMedia() {
+            const ttsAudioEl = document.getElementById('tts-audio-player');
+            const silentKeepalive = document.getElementById('silent-keepalive');
+            
+            if (ttsAudioEl) {
+                ttsAudioEl.play().then(() => {
+                    ttsAudioEl.pause(); 
+                }).catch(() => {});
+            }
+            if (silentKeepalive) {
+                silentKeepalive.play().catch(() => {});
+            }
+
+            if ('speechSynthesis' in window) {
+                const dummyUtterance = new SpeechSynthesisUtterance("");
+                dummyUtterance.volume = 0; 
+                window.speechSynthesis.speak(dummyUtterance);
+            }
+        }
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
@@ -877,7 +987,7 @@
                             updateMediaSessionState("playing");
                             if (!isOnlineVoiceSelected()) {
                                 const silentKeepalive = document.getElementById('silent-keepalive');
-                                silentKeepalive.play().catch(() => {});
+                                if (silentKeepalive) silentKeepalive.play().catch(() => {});
                             }
                             showToast("Reanudando...", "fa-play text-green-400");
                         }
@@ -890,21 +1000,6 @@
                 }
             }
         });
-
-        window.onload = function() {
-            restoreTheme();
-            restoreFontScale();
-            initApp();
-            initSpeechSynthesis();
-            
-            if (window.innerWidth <= 768) {
-                isPcLayout = false;
-                const wrapper = document.getElementById('device-wrapper');
-                const phoneContainer = document.getElementById('app-phone-container');
-                wrapper.className = "flex items-center justify-center w-full h-full";
-                phoneContainer.className = "flex flex-col h-full overflow-hidden relative w-full h-[100dvh]";
-            }
-        };
 
         function restoreTheme() {
             const savedTheme = localStorage.getItem('audiolibros_diego_theme');
@@ -930,7 +1025,7 @@
             document.getElementById('modal-confirm').classList.remove('hidden');
         }
 
-        // --- STREAMING_CHUNK: Vinculación de eventos e inicialización de App... ---
+        // --- STREAMING_CHUNK: Vinculando eventos del DOM de forma robusta... ---
         function initApp() {
             migrateAndLoadLibrary();
 
@@ -938,93 +1033,98 @@
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
 
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('border-iosAccent', 'bg-white/10');
-            });
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('border-iosAccent', 'bg-white/10');
-            });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-iosAccent', 'bg-white/10');
-                if (e.dataTransfer.files.length > 0) {
-                    processUploadedFile(e.dataTransfer.files[0]);
-                }
-            });
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('click', () => fileInput.click());
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-iosAccent', 'bg-white/10');
+                });
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('border-iosAccent', 'bg-white/10');
+                });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-iosAccent', 'bg-white/10');
+                    if (e.dataTransfer.files.length > 0) {
+                        processUploadedFile(e.dataTransfer.files[0]);
+                    }
+                });
 
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    processUploadedFile(e.target.files[0]);
-                }
-            });
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        processUploadedFile(e.target.files[0]);
+                    }
+                });
+            }
 
             // Lógica para desplegar el menú de velocidad y tono
             const btnSpeedTrigger = document.getElementById('btn-speed-trigger');
             const speedFlyout = document.getElementById('speed-flyout');
 
-            btnSpeedTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllFlyouts(speedFlyout);
-                speedFlyout.classList.toggle('hidden');
-            });
-
-            speedFlyout.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+            if (btnSpeedTrigger && speedFlyout) {
+                btnSpeedTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAllFlyouts(speedFlyout);
+                    speedFlyout.classList.toggle('hidden');
+                });
+                speedFlyout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
 
             // Lógica para desplegar el menú de VOCES
             const btnVoiceTrigger = document.getElementById('btn-voice-trigger');
             const voiceFlyout = document.getElementById('voice-flyout');
 
-            btnVoiceTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllFlyouts(voiceFlyout);
-                voiceFlyout.classList.toggle('hidden');
-            });
-
-            voiceFlyout.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+            if (btnVoiceTrigger && voiceFlyout) {
+                btnVoiceTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAllFlyouts(voiceFlyout);
+                    voiceFlyout.classList.toggle('hidden');
+                });
+                voiceFlyout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
 
             // Lógica para desplegar el menú de CAPÍTULOS
             const btnTriggerChapters = document.getElementById('btn-trigger-chapters');
             const chaptersFlyout = document.getElementById('chapters-flyout');
 
-            btnTriggerChapters.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllFlyouts(chaptersFlyout);
-                chaptersFlyout.classList.toggle('hidden');
-                if (!chaptersFlyout.classList.contains('hidden')) {
-                    renderChaptersFlyoutList(document.getElementById('chapter-search').value);
-                }
-            });
-
-            chaptersFlyout.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+            if (btnTriggerChapters && chaptersFlyout) {
+                btnTriggerChapters.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAllFlyouts(chaptersFlyout);
+                    chaptersFlyout.classList.toggle('hidden');
+                    if (!chaptersFlyout.classList.contains('hidden')) {
+                        renderChaptersFlyoutList(document.getElementById('chapter-search').value);
+                    }
+                });
+                chaptersFlyout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
 
             // Lógica para desplegar el menú de TEMPORIZADOR (Apagado)
             const btnTimer = document.getElementById('btn-timer');
             const timerFlyout = document.getElementById('timer-flyout');
 
-            btnTimer.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllFlyouts(timerFlyout);
-                timerFlyout.classList.toggle('hidden');
-            });
-
-            timerFlyout.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+            if (btnTimer && timerFlyout) {
+                btnTimer.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAllFlyouts(timerFlyout);
+                    timerFlyout.classList.toggle('hidden');
+                });
+                timerFlyout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
 
             // Cerrar todos los flyouts al hacer clic fuera
             document.addEventListener('click', () => {
                 closeAllFlyouts();
             });
 
-            // Configurar checks lineales minimalistas en listados de velocidad
             document.querySelectorAll('.speed-opt-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const clickedBtn = e.currentTarget;
@@ -1040,7 +1140,7 @@
                     document.getElementById('speed-display-value').textContent = `${activeSpeedRate.toFixed(1)}x`;
 
                     const ttsAudioEl = document.getElementById('tts-audio-player');
-                    if (!ttsAudioEl.paused) ttsAudioEl.playbackRate = activeSpeedRate;
+                    if (ttsAudioEl && !ttsAudioEl.paused) ttsAudioEl.playbackRate = activeSpeedRate;
                     if (activeUtterance) activeUtterance.rate = activeSpeedRate;
                     
                     recalculateDurationsAndOffsets();
@@ -1049,17 +1149,20 @@
             });
 
             // Slider de Modulación de Tono (Pitch)
-            document.getElementById('slider-pitch').addEventListener('input', (e) => {
-                activePitch = parseFloat(e.target.value);
-                let label = "Normal";
-                if (activePitch < 0.9) label = "Grave";
-                else if (activePitch > 1.1) label = "Agudo";
-                document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
-                
-                if (activeUtterance) {
-                    activeUtterance.pitch = activePitch;
-                }
-            });
+            const sliderPitch = document.getElementById('slider-pitch');
+            if (sliderPitch) {
+                sliderPitch.addEventListener('input', (e) => {
+                    activePitch = parseFloat(e.target.value);
+                    let label = "Normal";
+                    if (activePitch < 0.9) label = "Grave";
+                    else if (activePitch > 1.1) label = "Agudo";
+                    document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
+                    
+                    if (activeUtterance) {
+                        activeUtterance.pitch = activePitch;
+                    }
+                });
+            }
 
             // Buscadores
             document.getElementById('library-search').addEventListener('input', () => renderLibrary());
@@ -1106,25 +1209,29 @@
             const wrapperCover = document.getElementById('wrapper-cover');
             const wrapperText = document.getElementById('wrapper-text');
 
-            toggleCover.addEventListener('click', () => {
-                toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
-                wrapperText.classList.add('hidden');
-            });
+            if (toggleCover && toggleText && wrapperCover && wrapperText) {
+                toggleCover.addEventListener('click', () => {
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                    wrapperText.classList.add('hidden');
+                });
 
-            toggleText.addEventListener('click', () => {
-                toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
-                const bookTitleEl = document.getElementById('player-book-title');
-                document.getElementById('text-view-title').textContent = bookTitleEl ? bookTitleEl.textContent : 'Lectura';
-                wrapperText.classList.remove('hidden');
-                scrollToActiveSentence();
-            });
+                toggleText.addEventListener('click', () => {
+                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                    const bookTitleEl = document.getElementById('player-book-title');
+                    document.getElementById('text-view-title').textContent = bookTitleEl ? bookTitleEl.textContent : 'Lectura';
+                    wrapperText.classList.remove('hidden');
+                    scrollToActiveSentence();
+                });
+            }
 
             document.getElementById('btn-close-text').addEventListener('click', () => {
-                wrapperText.classList.add('hidden');
-                toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                if (wrapperText && toggleCover && toggleText) {
+                    wrapperText.classList.add('hidden');
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                }
             });
 
             document.getElementById('btn-select-dir').addEventListener('click', requestDirectoryAccess);
@@ -1137,7 +1244,6 @@
             });
             document.getElementById('backup-import-input').addEventListener('change', handleBackupImport);
 
-            // Temporizador de Apagado con Check Minimalista y opción Off integrada
             document.querySelectorAll('.timer-opt-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const minutes = parseInt(e.currentTarget.dataset.minutes);
@@ -1166,22 +1272,26 @@
 
             // Barra de Progreso Deslizable
             const progressContainer = document.getElementById('progress-container');
-            progressContainer.addEventListener('click', (e) => {
-                const rect = progressContainer.getBoundingClientRect();
-                const clickPos = (e.clientX - rect.left) / rect.width;
-                seekToPosition(clickPos);
-            });
+            if (progressContainer) {
+                progressContainer.addEventListener('click', (e) => {
+                    const rect = progressContainer.getBoundingClientRect();
+                    const clickPos = (e.clientX - rect.left) / rect.width;
+                    seekToPosition(clickPos);
+                });
+            }
 
             // Eventos Táctiles para iOS Swipe Back
             const playerView = document.getElementById('view-player');
-            playerView.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-            }, { passive: true });
+            if (playerView) {
+                playerView.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].screenX;
+                }, { passive: true });
 
-            playerView.addEventListener('touchend', (e) => {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipeGesture();
-            }, { passive: true });
+                playerView.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    handleSwipeGesture();
+                }, { passive: true });
+            }
         }
 
         function closeAllFlyouts(except) {
@@ -1192,6 +1302,7 @@
             });
         }
 
+        // --- STREAMING_CHUNK: Utilidades de imagen y compresión canvas... ---
         function compressCoverImage(dataUrl) {
             return new Promise((resolve) => {
                 try {
@@ -1254,17 +1365,21 @@
             isPcLayout = !isPcLayout;
 
             if (isPcLayout) {
-                wrapper.className = "w-full h-full flex flex-row gap-6 max-w-none";
-                phoneContainer.classList.remove('phone-frame');
-                phoneContainer.style.width = '100%';
-                phoneContainer.style.height = '100%';
+                if (wrapper && phoneContainer) {
+                    wrapper.className = "w-full h-full flex flex-row gap-6 max-w-none";
+                    phoneContainer.classList.remove('phone-frame');
+                    phoneContainer.style.width = '100%';
+                    phoneContainer.style.height = '100%';
+                }
                 document.querySelectorAll('.device-btn-text').forEach(t => t.textContent = "Ver Móvil");
                 showToast("Vista de PC activada", "fa-desktop text-iosAccent");
             } else {
-                wrapper.className = "flex items-center justify-center w-full h-full";
-                phoneContainer.className = "phone-frame flex flex-col h-full overflow-hidden relative";
-                phoneContainer.style.width = '430px'; 
-                phoneContainer.style.height = '932px';
+                if (wrapper && phoneContainer) {
+                    wrapper.className = "flex items-center justify-center w-full h-full";
+                    phoneContainer.className = "phone-frame flex flex-col h-full overflow-hidden relative";
+                    phoneContainer.style.width = '430px'; 
+                    phoneContainer.style.height = '932px';
+                }
                 document.querySelectorAll('.device-btn-text').forEach(t => t.textContent = "Ver PC");
                 showToast("Vista de Móvil activada", "fa-mobile-screen-button text-iosAccent");
             }
@@ -1277,7 +1392,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Carga de voces del sintetizador de voz... ---
+        // --- STREAMING_CHUNK: Cargando voces sintéticas del sistema de voz (Siri/iOS)... ---
         function initSpeechSynthesis() {
             if (!('speechSynthesis' in window)) {
                 showToast("Navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
@@ -1295,6 +1410,7 @@
             function loadVoices() {
                 synthesisVoices = window.speechSynthesis.getVoices();
                 const flyout = document.getElementById('voice-flyout');
+                if (!flyout) return;
                 
                 const header = flyout.querySelector('.text-\\[9px\\]');
                 flyout.innerHTML = '';
@@ -1399,6 +1515,7 @@
             const toast = document.getElementById('toast');
             const toastIcon = document.getElementById('toast-icon');
             const toastText = document.getElementById('toast-text');
+            if (!toast || !toastIcon || !toastText) return;
             
             toastIcon.className = `fa-solid ${iconClass}`;
             toastText.textContent = message;
@@ -1412,6 +1529,7 @@
             }, 2500);
         }
 
+        // --- STREAMING_CHUNK: Procesando archivos EPUB y PDF subidos... ---
         function processUploadedFile(file) {
             showToast("Procesando Archivo...", "fa-spinner fa-spin");
             const fileName = file.name.trim();
@@ -1503,7 +1621,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- STREAMING_CHUNK: Procesamiento de portadas y layouts... ---
         async function extractEpubCover(zip, opfDoc, manifestItems, opfFolder, title) {
             const fallback = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
             try {
@@ -1547,12 +1664,18 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Procesando documentos locales PDF... ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
                     const typedarray = new Uint8Array(e.target.result);
-                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    let pdf = null;
+                    if (typeof pdfjsLib !== 'undefined') {
+                        pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    } else {
+                        throw new Error("Librería PDFJS no cargada.");
+                    }
                     
                     let totalPages = pdf.numPages;
                     let chapters = [];
@@ -1621,7 +1744,7 @@
 
         async function addBookToLibrary(book) {
             try {
-                await saveBookToDB(book);
+                await storageAdapter.save(book);
                 currentBooks.push(book);
                 renderLibrary();
                 showToast("¡Libro cargado con éxito!", "fa-circle-check text-green-400");
@@ -1633,33 +1756,37 @@
 
         async function migrateAndLoadLibrary() {
             try {
-                let books = await getAllBooksFromDB();
+                let books = await storageAdapter.getAll();
                 if (books.length === 0) {
                     const old = localStorage.getItem('audiolibros_diego_library');
                     if (old) {
                         const parsed = JSON.parse(old);
                         for (let b of parsed) {
                             if (!b.id) b.id = Date.now().toString() + "_" + Math.floor(Math.random()*1000);
-                            await saveBookToDB(b);
+                            await storageAdapter.save(b);
                         }
-                        books = await getAllBooksFromDB();
+                        books = await storageAdapter.getAll();
                         localStorage.removeItem('audiolibros_diego_library');
                     }
                 }
                 currentBooks = books;
                 renderLibrary();
             } catch (e) {
-                console.error("IndexedDB load error:", e);
+                console.error("Storage load error:", e);
                 currentBooks = [];
+                renderLibrary();
             }
         }
 
-        // --- STREAMING_CHUNK: Renderizado de biblioteca y catálogo... ---
+        // --- STREAMING_CHUNK: Renderizando la biblioteca en el dashboard principal... ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             const counter = document.getElementById('library-count');
             const noBooksMsg = document.getElementById('no-books-msg');
-            const searchQuery = document.getElementById('library-search').value.toLowerCase();
+            const searchInput = document.getElementById('library-search');
+            if (!grid || !counter || !noBooksMsg) return;
+
+            const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
 
             const existingCards = grid.querySelectorAll('.book-card');
             existingCards.forEach(card => card.remove());
@@ -1702,7 +1829,7 @@
                             <span class="text-[9px] opacity-50 shrink-0">${book.chapters.length} caps</span>
                         </div>
                     </div>
-                    <button class="w-9 h-9 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all" onclick="deleteBook(event, ${book.originalIndex})">
+                    <button class="w-9 h-9 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all shadow-none border-none outline-none" onclick="deleteBook(event, ${book.originalIndex})">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 `;
@@ -1725,7 +1852,7 @@
                 `¿Estás seguro de que deseas eliminar "${book.title}" de tu biblioteca?`,
                 async () => {
                     try {
-                        await deleteBookFromDB(book.id);
+                        await storageAdapter.delete(book.id);
                         currentBooks.splice(originalIndex, 1);
                         renderLibrary();
                         showToast("Libro eliminado de la biblioteca");
@@ -1739,6 +1866,7 @@
         function switchView(viewName) {
             const libraryView = document.getElementById('view-library');
             const playerView = document.getElementById('view-player');
+            if (!libraryView || !playerView) return;
 
             if (viewName === 'library') {
                 playerView.classList.add('hidden');
@@ -1749,7 +1877,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Control e inicialización de audio de reproducción... ---
+        // --- STREAMING_CHUNK: Inicializando reproductor e hilos de audio... ---
         function loadAudiobookPlayer(index) {
             clearTTSAudioCache();
             activeBookIndex = index;
@@ -1762,16 +1890,19 @@
             document.getElementById('player-book-author').textContent = book.author;
             
             const playerCover = document.getElementById('player-cover-img');
-            playerCover.src = book.cover;
+            if (playerCover) playerCover.src = book.cover;
             
-            document.getElementById('player-bg-blur').style.backgroundImage = `url(${book.cover})`;
+            const bgBlur = document.getElementById('player-bg-blur');
+            if (bgBlur) bgBlur.style.backgroundImage = `url(${book.cover})`;
 
             const sagaEl = document.getElementById('player-book-saga');
-            if (book.saga) {
-                sagaEl.textContent = book.saga;
-                sagaEl.classList.remove('hidden');
-            } else {
-                sagaEl.classList.add('hidden');
+            if (sagaEl) {
+                if (book.saga) {
+                    sagaEl.textContent = book.saga;
+                    sagaEl.classList.remove('hidden');
+                } else {
+                    sagaEl.classList.add('hidden');
+                }
             }
 
             setupChapterMedia(activeChapterIndex);
@@ -1782,6 +1913,7 @@
             const book = currentBooks[activeBookIndex];
             if (!book) return;
             const listContainer = document.getElementById('chapters-scroll-list');
+            if (!listContainer) return;
             listContainer.innerHTML = '';
 
             const filtered = book.chapters.map((ch, idx) => ({ ...ch, originalIdx: idx }))
@@ -1795,7 +1927,7 @@
             filtered.forEach(chapter => {
                 const isSelected = chapter.originalIdx === activeChapterIndex;
                 const item = document.createElement('button');
-                item.className = `chapter-opt-btn flyout-option w-full text-[11px] font-semibold flex items-center justify-between ${isSelected ? 'active-opt' : ''}`;
+                item.className = `chapter-opt-btn flyout-option w-full text-[11px] font-semibold ${isSelected ? 'active-opt' : ''}`;
                 
                 item.innerHTML = `
                     <span class="truncate pr-2 flex-1 text-left">${chapter.title}</span>
@@ -1804,7 +1936,8 @@
 
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    document.getElementById('chapters-flyout').classList.add('hidden');
+                    const flyout = document.getElementById('chapters-flyout');
+                    if (flyout) flyout.classList.add('hidden');
                     changeChapter(chapter.originalIdx);
                 });
 
@@ -1825,7 +1958,7 @@
             const book = currentBooks[activeBookIndex];
             book.progressChapter = activeChapterIndex;
             book.progressSentence = 0;
-            await saveBookToDB(book);
+            await storageAdapter.save(book);
 
             setupChapterMedia(activeChapterIndex);
         }
@@ -1840,21 +1973,23 @@
             textSentences = text.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑa-záéíóúñ])/);
             
             const lyricsContainer = document.getElementById('lyrics-container');
-            lyricsContainer.innerHTML = '';
+            if (lyricsContainer) {
+                lyricsContainer.innerHTML = '';
 
-            textSentences.forEach((sentence, idx) => {
-                if (sentence.trim() === '') return;
-                const sentenceNode = document.createElement('p');
-                sentenceNode.className = "py-2 cursor-pointer transition-colors duration-300 px-2 opacity-50";
-                sentenceNode.id = `sentence-${idx}`;
-                sentenceNode.textContent = sentence.trim();
-                
-                sentenceNode.addEventListener('click', () => {
-                    jumpToSentence(idx);
+                textSentences.forEach((sentence, idx) => {
+                    if (sentence.trim() === '') return;
+                    const sentenceNode = document.createElement('p');
+                    sentenceNode.className = "py-2 cursor-pointer transition-colors duration-300 px-2 opacity-50";
+                    sentenceNode.id = `sentence-${idx}`;
+                    sentenceNode.textContent = sentence.trim();
+                    
+                    sentenceNode.addEventListener('click', () => {
+                        jumpToSentence(idx);
+                    });
+
+                    lyricsContainer.appendChild(sentenceNode);
                 });
-
-                lyricsContainer.appendChild(sentenceNode);
-            });
+            }
 
             recalculateDurationsAndOffsets();
             updateSmoothProgress();
@@ -1878,6 +2013,8 @@
         }
 
         function togglePlayPause() {
+            unlockiOSMedia();
+
             if (isPlaying) {
                 pauseAudio();
             } else {
@@ -1887,16 +2024,22 @@
 
         const SILENT_WAV_DATA = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
         const silentKeepalive = document.getElementById('silent-keepalive');
-        silentKeepalive.src = SILENT_WAV_DATA;
-        silentKeepalive.volume = 0.01;
+        if (silentKeepalive) {
+            silentKeepalive.src = SILENT_WAV_DATA;
+            silentKeepalive.volume = 0.01;
+        }
 
         function startSilentAudioHack() {
-            silentKeepalive.play().catch(() => {});
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
         }
 
         function stopSilentAudioHack() {
-            silentKeepalive.pause();
-            silentKeepalive.currentTime = 0;
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) {
+                sk.pause();
+                sk.currentTime = 0;
+            }
         }
 
         const ttsAudioEl = document.getElementById('tts-audio-player');
@@ -1938,13 +2081,14 @@
             return selectedVoiceValue === "online";
         }
 
-        // --- STREAMING_CHUNK: Control inteligente de sesión multimedia... ---
+        // --- STREAMING_CHUNK: Control e interpolación del tiempo de audio... ---
         function playAudio() {
             if (textSentences.length === 0) return;
             registerMediaSession();
 
             isPlaying = true;
-            document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
+            const icon = document.getElementById('play-icon');
+            if (icon) icon.className = "fa-solid fa-pause text-xl";
             
             startSilentAudioHack();
             updateMediaSessionState("playing");
@@ -1955,12 +2099,13 @@
 
         function pauseAudio() {
             isPlaying = false;
-            document.getElementById('play-icon').className = "fa-solid fa-play text-xl ml-0.5";
+            const icon = document.getElementById('play-icon');
+            if (icon) icon.className = "fa-solid fa-play text-xl ml-0.5";
             
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
             }
-            ttsAudioEl.pause();
+            if (ttsAudioEl) ttsAudioEl.pause();
             stopSilentAudioHack();
             stopSmoothProgressLoop();
             updateMediaSessionState("paused");
@@ -1988,7 +2133,7 @@
             const book = currentBooks[activeBookIndex];
             book.progressChapter = activeChapterIndex;
             book.progressSentence = currentSentenceIndex;
-            await saveBookToDB(book);
+            await storageAdapter.save(book);
 
             if (isOnlineVoiceSelected()) {
                 speakSentenceOnline(index);
@@ -1999,7 +2144,7 @@
 
         function speakSentenceSystem(index) {
             window.speechSynthesis.cancel();
-            ttsAudioEl.pause();
+            if (ttsAudioEl) ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
             activeUtterance = new SpeechSynthesisUtterance(sentenceText);
@@ -2018,12 +2163,13 @@
             };
 
             activeUtterance.onerror = function(event) {
-                if (isPlaying && event.error !== 'interrupted') {
+                if (isPlaying && event.error !== 'interrupted' && event.error !== 'canceled') {
                     speakSentence(currentSentenceIndex + 1);
                 }
             };
 
-            silentKeepalive.play().catch(() => {});
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
             window.speechSynthesis.speak(activeUtterance);
         }
 
@@ -2034,18 +2180,21 @@
             try {
                 const directUrl = getOnlineTTSUrlDirect(sentenceText);
                 
-                ttsAudioEl.src = directUrl;
-                ttsAudioEl.playbackRate = activeSpeedRate;
-                ttsAudioEl.play().catch(() => {});
+                if (ttsAudioEl) {
+                    ttsAudioEl.src = directUrl;
+                    ttsAudioEl.load(); 
+                    ttsAudioEl.playbackRate = activeSpeedRate;
+                    ttsAudioEl.play().catch(() => {});
 
-                prefetchNextSentence(activeChapterIndex, index + 1);
+                    prefetchNextSentence(activeChapterIndex, index + 1);
 
-                ttsAudioEl.onended = () => {
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
-                ttsAudioEl.onerror = () => {
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
+                    ttsAudioEl.onended = () => {
+                        if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                    };
+                    ttsAudioEl.onerror = () => {
+                        if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                    };
+                }
             } catch (err) {
                 console.warn(err);
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
@@ -2098,7 +2247,7 @@
             const currentEl = document.getElementById(`sentence-${currentSentenceIndex}`);
             const wrapperText = document.getElementById('wrapper-text');
 
-            if (currentEl && !wrapperText.classList.contains('hidden')) {
+            if (currentEl && container && wrapperText && !wrapperText.classList.contains('hidden')) {
                 const containerHeight = container.clientHeight;
                 const elementTop = currentEl.offsetTop;
                 const elementHeight = currentEl.clientHeight;
@@ -2110,7 +2259,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Renderizado del progreso y loop fluido... ---
+        // --- STREAMING_CHUNK: Invocando loops de progreso de UI suaves (60 FPS)... ---
         function startSmoothProgressLoop() {
             stopSmoothProgressLoop();
             currentSentenceStartTime = performance.now();
@@ -2135,7 +2284,7 @@
 
             let chapterTime = 0;
 
-            if (isOnlineVoiceSelected()) {
+            if (isOnlineVoiceSelected() && ttsAudioEl) {
                 let sentenceTime = ttsAudioEl.currentTime || 0;
                 chapterTime = (sentenceOffsets[currentSentenceIndex] || 0) + sentenceTime;
             } else {
@@ -2152,11 +2301,13 @@
             const progressBar = document.getElementById('progress-bar');
             const progressHandle = document.getElementById('progress-handle');
 
-            progressBar.style.width = `${progressRatio * 100}%`;
-            progressHandle.style.left = `${progressRatio * 100}%`;
+            if (progressBar) progressBar.style.width = `${progressRatio * 100}%`;
+            if (progressHandle) progressHandle.style.left = `${progressRatio * 100}%`;
 
-            document.getElementById('time-current').textContent = formatTime(chapterTime);
-            document.getElementById('time-total').textContent = formatTime(totalChapterDuration);
+            const curTimeEl = document.getElementById('time-current');
+            const totTimeEl = document.getElementById('time-total');
+            if (curTimeEl) curTimeEl.textContent = formatTime(chapterTime);
+            if (totTimeEl) totTimeEl.textContent = formatTime(totalChapterDuration);
         }
 
         function formatTime(secs) {
@@ -2168,7 +2319,7 @@
         function updateBookmarkButtonState() {
             const btn = document.getElementById('btn-bookmark');
             const icon = document.getElementById('btn-bookmark-icon');
-            if (activeBookIndex === null) return;
+            if (activeBookIndex === null || !btn || !icon) return;
             const book = currentBooks[activeBookIndex];
             const isBookmarked = book.bookmarks.some(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
 
@@ -2192,7 +2343,7 @@
 
             if (existingIdx !== -1) {
                 book.bookmarks.splice(existingIdx, 1);
-                await saveBookToDB(book);
+                await storageAdapter.save(book);
                 updateBookmarkButtonState();
                 showToast("Marcador quitado");
                 return;
@@ -2204,7 +2355,7 @@
                 sentence: currentSentenceIndex,
                 timestamp: Date.now()
             });
-            await saveBookToDB(book);
+            await storageAdapter.save(book);
             updateBookmarkButtonState();
             showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
@@ -2213,6 +2364,7 @@
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
             const list = document.getElementById('bookmarks-list');
+            if (!list) return;
             list.innerHTML = '';
 
             if (book.bookmarks.length === 0) {
@@ -2226,11 +2378,12 @@
                             <p class="font-bold text-white truncate">${b.name}</p>
                             <p class="text-[10px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
                         </div>
-                        <button class="text-red-400 hover:text-red-500 p-1" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
+                        <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
                     `;
                     item.addEventListener('click', (e) => {
                         if (e.target.closest('button')) return;
-                        document.getElementById('modal-bookmarks').classList.add('hidden');
+                        const modal = document.getElementById('modal-bookmarks');
+                        if (modal) modal.classList.add('hidden');
                         activeChapterIndex = b.chapter;
                         setupChapterMedia(b.chapter);
                         jumpToSentence(b.sentence);
@@ -2239,14 +2392,15 @@
                 });
             }
 
-            document.getElementById('modal-bookmarks').classList.remove('hidden');
+            const modal = document.getElementById('modal-bookmarks');
+            if (modal) modal.classList.remove('hidden');
         }
 
         async function deleteBookmark(event, idx) {
             event.stopPropagation();
             const book = currentBooks[activeBookIndex];
             book.bookmarks.splice(idx, 1);
-            await saveBookToDB(book);
+            await storageAdapter.save(book);
             openBookmarksModal();
             updateBookmarkButtonState();
             showToast("Marcador eliminado");
@@ -2277,7 +2431,8 @@
                 clearInterval(timerCountdown);
                 timerCountdown = null;
             }
-            document.getElementById('timer-label').textContent = "Off";
+            const label = document.getElementById('timer-label');
+            if (label) label.textContent = "Off";
             document.querySelectorAll('.timer-opt-btn').forEach(b => {
                 const check = b.querySelector('.check-icon');
                 const isOffMatch = parseInt(b.dataset.minutes) === 0;
@@ -2334,8 +2489,11 @@
                 try {
                     localDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                     showToast("Carpeta vinculada con éxito", "fa-folder-check text-green-400");
-                    document.getElementById('btn-select-dir').classList.remove('text-zinc-300');
-                    document.getElementById('btn-select-dir').classList.add('text-iosAccent');
+                    const dirBtn = document.getElementById('btn-select-dir');
+                    if (dirBtn) {
+                        dirBtn.classList.remove('text-zinc-300');
+                        dirBtn.classList.add('text-iosAccent');
+                    }
                 } catch (err) {
                     showToast("Acceso denegado", "fa-xmark-circle text-red-400");
                 }
@@ -2387,11 +2545,11 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Sistema de Respaldo Importación / Exportación JSON multiplataforma ---
+        // --- STREAMING_CHUNK: Sistema de Respaldo e Intercambio JSON multiplataforma ---
         async function exportBackupJSON() {
             try {
                 showToast("Generando copia de seguridad...", "fa-spinner fa-spin");
-                const books = await getAllBooksFromDB();
+                const books = await storageAdapter.getAll();
                 if (books.length === 0) {
                     showToast("No hay libros para exportar", "fa-triangle-exclamation text-amber-500");
                     return;
@@ -2435,11 +2593,11 @@
                     
                     let importedCount = 0;
                     for (const book of data.books) {
-                        await saveBookToDB(book);
+                        await storageAdapter.save(book);
                         importedCount++;
                     }
                     
-                    currentBooks = await getAllBooksFromDB();
+                    currentBooks = await storageAdapter.getAll();
                     renderLibrary();
                     showToast(`¡Se importaron ${importedCount} libros con éxito!`, "fa-circle-check text-green-400");
                 } catch (err) {
