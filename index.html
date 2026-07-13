@@ -93,14 +93,14 @@
 
         /* Ancho simétrico unificado para selectores y controles rápidos */
         .control-row-width {
-            width: 250px !important;
-            max-width: 250px !important;
+            width: 280px !important;
+            max-width: 280px !important;
         }
 
         /* Estilo restaurado y refinado para el botón Play/Pause conforme a edited-image.jpg */
         .btn-multimedia-play {
-            width: 64px !important;
-            height: 64px !important;
+            width: 72px !important;
+            height: 72px !important;
             border-radius: 9999px !important;
             background-color: rgba(255, 255, 255, 0.08) !important; /* Estilo oscuro por defecto */
             color: #ffffff !important;
@@ -424,19 +424,19 @@
     </div>
 
     <!-- Barra de Herramientas de Simulación (Superior, adaptada) -->
-    <div class="hidden md:flex w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 justify-between items-center z-50 relative text-xs safe-padding-top">
+    <div class="hidden md:flex w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 justify-between items-center z-50 relative text-sm safe-padding-top">
         <div class="flex items-center gap-3">
-            <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>AUDIOLIBROS DIEGO</span>
+            <span class="font-bold tracking-wider text-sm"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>AUDIOLIBROS DIEGO</span>
         </div>
         
         <div class="flex items-center gap-2">
-            <button class="btn-font-dec w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Reducir Letra">A-</button>
-            <button class="btn-font-inc w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Aumentar Letra">A+</button>
+            <button class="btn-font-dec w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Reducir Letra">A-</button>
+            <button class="btn-font-inc w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Aumentar Letra">A+</button>
             <div class="h-4 w-[1px] bg-white/20 mx-1"></div>
-            <button class="btn-toggle-theme w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
+            <button class="btn-toggle-theme w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
                 <i class="fa-solid fa-moon theme-icon"></i>
             </button>
-            <button class="btn-toggle-device px-3 h-8 rounded-lg bg-iosAccent text-white text-[11px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
+            <button class="btn-toggle-device px-3 h-8 rounded-lg bg-iosAccent text-white text-[15px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
                 <i class="fa-solid fa-mobile-screen-button"></i>
                 <span class="device-btn-text">Ver PC</span>
             </button>
@@ -449,7 +449,7 @@
             <div id="app-phone-container" class="phone-frame flex flex-col h-full overflow-hidden relative">
 
                 <!-- Notificaciones Flotantes (Reubicadas de forma ultra-precisa en el gap flotante intermedio) -->
-                <div id="toast" class="opacity-0 pointer-events-none liquid-glass text-white shadow-lg flex items-center gap-2 justify-center py-2.5 px-4 rounded-xl text-xs font-semibold">
+                <div id="toast" class="opacity-0 pointer-events-none liquid-glass text-white shadow-lg flex items-center gap-2 justify-center py-2.5 px-4 rounded-xl text-sm font-semibold">
                     <i class="fa-solid fa-circle-info" id="toast-icon"></i>
                     <span id="toast-text">Notificación</span>
                 </div>
@@ -458,16 +458,16 @@
                 <div id="view-library" class="view-transition flex flex-col flex-1 min-h-0 overflow-hidden px-5 safe-padding-top">
                     <header class="flex justify-between items-center py-3 shrink-0">
                         <div>
-                            <span class="text-[10px] font-semibold opacity-60 uppercase tracking-wider">Tu Colección</span>
-                            <h1 class="text-2xl font-bold tracking-tight">Audiolibros</h1>
+                            <span class="text-[14px] font-semibold opacity-60 uppercase tracking-wider">Tu Colección</span>
+                            <h1 class="text-3xl font-bold tracking-tight">Audiolibros</h1>
                         </div>
                         <div class="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/5 liquid-glass">
-                            <button class="btn-toggle-theme w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-xs" title="Cambiar Tema">
+                            <button class="btn-toggle-theme w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-sm" title="Cambiar Tema">
                                 <i class="fa-solid fa-moon theme-icon"></i>
                             </button>
-                            <button class="btn-font-dec w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[11px] font-bold" title="Reducir Letra">A-</button>
-                            <button class="btn-font-inc w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[11px] font-bold" title="Aumentar Letra">A+</button>
-                            <button class="btn-toggle-device w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-xs" title="Vista PC/Móvil">
+                            <button class="btn-font-dec w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Reducir Letra">A-</button>
+                            <button class="btn-font-inc w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Aumentar Letra">A+</button>
+                            <button class="btn-toggle-device w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-sm" title="Vista PC/Móvil">
                                 <i class="fa-solid fa-desktop"></i>
                             </button>
                         </div>
@@ -476,46 +476,46 @@
                     <!-- Zona de Carga de Archivos -->
                     <div id="drop-zone" class="relative group mt-1 mb-3 p-3 shrink-0 rounded-2xl border-2 border-dashed border-white/20 hover:border-iosAccent/50 transition-all flex items-center gap-3 bg-white/5 cursor-pointer">
                         <input type="file" id="file-input" accept=".epub,.pdf" class="hidden">
-                        <div class="w-9 h-9 shrink-0 rounded-full bg-iosAccent/10 flex items-center justify-center text-iosAccent transition-transform group-hover:scale-110">
-                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                        <div class="w-10 h-10 shrink-0 rounded-full bg-iosAccent/10 flex items-center justify-center text-iosAccent transition-transform group-hover:scale-110">
+                            <i class="fa-solid fa-cloud-arrow-up text-base"></i>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-[11px]">Arrastra o importa un libro</h3>
-                            <p class="text-[9px] opacity-60">EPUB y PDF sin límites de memoria</p>
+                            <h3 class="font-semibold text-[15px]">Arrastra o importa un libro</h3>
+                            <p class="text-[13px] opacity-60">EPUB y PDF sin límites de memoria</p>
                         </div>
-                        <button id="btn-select-dir" class="ml-auto w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
-                            <i class="fa-solid fa-folder-open text-xs text-iosAccent"></i>
+                        <button id="btn-select-dir" class="ml-auto w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
+                            <i class="fa-solid fa-folder-open text-sm text-iosAccent"></i>
                         </button>
                     </div>
 
                     <!-- Buscador Avanzado de Biblioteca -->
                     <div class="relative mb-3 shrink-0">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                            <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+                            <i class="fa-solid fa-magnifying-glass text-[14px]"></i>
                         </span>
-                        <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[11px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
+                        <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[15px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
                     </div>
 
                     <!-- Área de scroll infinito -->
                     <div class="flex-1 min-h-0 ios-scroll pb-24">
                         <div class="flex justify-between items-center mb-2.5">
-                            <h2 class="text-sm font-bold tracking-tight">Mis Libros</h2>
+                            <h2 class="text-base font-bold tracking-tight">Mis Libros</h2>
                             <!-- Herramienta de sincronización / respaldo multiplataforma -->
-                            <div class="flex items-center gap-1 text-[9px]">
+                            <div class="flex items-center gap-1 text-[13px]">
                                 <button id="btn-backup-export" class="hover:text-iosAccent bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md flex items-center gap-1 font-semibold transition-all" title="Exportar colección completa a JSON">
-                                    <i class="fa-solid fa-file-export text-[8px]"></i> Exportar
+                                    <i class="fa-solid fa-file-export text-[12px]"></i> Exportar
                                 </button>
                                 <button id="btn-backup-import" class="hover:text-iosAccent bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md flex items-center gap-1 font-semibold transition-all" title="Importar colección completa desde JSON">
-                                    <i class="fa-solid fa-file-import text-[8px]"></i> Importar
+                                    <i class="fa-solid fa-file-import text-[12px]"></i> Importar
                                 </button>
                                 <input type="file" id="backup-import-input" accept=".json" class="hidden">
-                                <span id="library-count" class="text-[9px] opacity-70 bg-white/5 px-1.5 py-1 rounded-md font-semibold">0 libros</span>
+                                <span id="library-count" class="text-[13px] opacity-70 bg-white/5 px-1.5 py-1 rounded-md font-semibold">0 libros</span>
                             </div>
                         </div>
                         <div id="books-grid" class="flex flex-col gap-2.5 pb-12">
                             <div id="no-books-msg" class="col-span-full text-center py-16 opacity-60">
                                 <i class="fa-solid fa-book-open text-4xl mb-3 text-iosAccent"></i>
-                                <p class="text-xs font-medium">Aún no has importado ningún libro.</p>
+                                <p class="text-sm font-medium">Aún no has importado ningún libro.</p>
                             </div>
                         </div>
                     </div>
@@ -529,27 +529,27 @@
                     <header class="flex flex-col gap-2.5 px-6 pt-6 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full">
                             <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
-                                <i class="fa-solid fa-chevron-left text-xs"></i>
-                                <span class="text-xs font-semibold">Volver</span>
+                                <i class="fa-solid fa-chevron-left text-sm"></i>
+                                <span class="text-sm font-semibold">Volver</span>
                             </button>
                             <div class="text-center flex-1 mx-3 overflow-hidden">
-                                <span class="text-[9px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
-                                <h2 id="player-title" class="text-[11px] font-bold truncate">Título de Ejemplo</h2>
+                                <span class="text-[13px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
+                                <h2 id="player-title" class="text-[15px] font-bold truncate">Título de Ejemplo</h2>
                             </div>
-                            <button id="btn-export" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-emerald-400" title="Guardar Audio en PC">
-                                <i class="fa-solid fa-file-export text-xs"></i>
+                            <button id="btn-export" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-emerald-400" title="Guardar Audio en PC">
+                                <i class="fa-solid fa-file-export text-sm"></i>
                             </button>
                         </div>
                         
                         <!-- Controles de accesibilidad con el mismo ancho que el toggle de Portada/Texto -->
                         <div class="flex justify-center items-center mt-3 mb-1 shrink-0">
                             <div class="flex items-center justify-between bg-white/5 p-1 rounded-full border border-white/5 liquid-glass control-row-width">
-                                <button class="btn-toggle-theme w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-xs" title="Cambiar Tema">
+                                <button class="btn-toggle-theme w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-sm" title="Cambiar Tema">
                                     <i class="fa-solid fa-moon theme-icon"></i>
                                 </button>
-                                <button class="btn-font-dec w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[11px] font-bold" title="Reducir Letra">A-</button>
-                                <button class="btn-font-inc w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[11px] font-bold" title="Aumentar Letra">A+</button>
-                                <button class="btn-toggle-device w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-xs" title="Vista PC/Móvil">
+                                <button class="btn-font-dec w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Reducir Letra">A-</button>
+                                <button class="btn-font-inc w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Aumentar Letra">A+</button>
+                                <button class="btn-toggle-device w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-sm" title="Vista PC/Móvil">
                                     <i class="fa-solid fa-desktop"></i>
                                 </button>
                             </div>
@@ -562,8 +562,8 @@
                         <!-- Selector Portada / Texto Sincrónico con ancho exacto control-row-width -->
                         <div class="flex justify-center my-3 shrink-0">
                             <div class="p-1 rounded-full bg-white/5 flex gap-1 liquid-glass control-row-width justify-between">
-                                <button id="toggle-cover" class="flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all">Portada</button>
-                                <button id="toggle-text" class="flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all">Texto Sincrónico</button>
+                                <button id="toggle-cover" class="flex-1 py-1.5 rounded-full text-[13px] font-bold bg-white/15 text-white transition-all">Portada</button>
+                                <button id="toggle-text" class="flex-1 py-1.5 rounded-full text-[13px] font-bold text-zinc-400 transition-all">Texto Sincrónico</button>
                             </div>
                         </div>
 
@@ -573,9 +573,9 @@
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
                             </div>
                             <div class="text-center max-w-xs px-4">
-                                <h3 id="player-book-title" class="text-base font-bold tracking-tight line-clamp-1 leading-snug">Título del Libro</h3>
-                                <p id="player-book-author" class="text-xs opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
-                                <p id="player-book-saga" class="text-[10px] text-iosAccent font-semibold mt-1 uppercase tracking-wide">LIBRO ÚNICO</p>
+                                <h3 id="player-book-title" class="text-lg font-bold tracking-tight line-clamp-1 leading-snug">Título del Libro</h3>
+                                <p id="player-book-author" class="text-sm opacity-60 mt-0.5 line-clamp-1">Autor Desconocido</p>
+                                <p id="player-book-saga" class="text-[14px] text-iosAccent font-semibold mt-1 uppercase tracking-wide">LIBRO ÚNICO</p>
                             </div>
                         </div>
 
@@ -601,7 +601,7 @@
                     <!-- Panel de control de Audio inferior -->
                     <div class="liquid-glass-dark px-6 pt-5 pb-8 rounded-t-[32px] shadow-2xl relative z-50 shrink-0">
                         <div class="space-y-1 pb-2">
-                            <div class="flex justify-between text-[10px] opacity-60 px-1 font-bold">
+                            <div class="flex justify-between text-[14px] opacity-60 px-1 font-bold">
                                 <span id="time-current">0:00</span>
                                 <span id="time-total">0:00</span>
                             </div>
@@ -617,51 +617,51 @@
                         <div class="grid grid-cols-4 gap-2">
                             <!-- Voz -->
                             <div class="flex flex-col relative" id="voice-dropdown-container">
-                                <button id="btn-voice-trigger" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
-                                    <span id="voice-display-value" class="truncate flex-1 text-left text-[10px]">Voz Online HD</span>
-                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                <button id="btn-voice-trigger" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[15px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="voice-display-value" class="truncate flex-1 text-left text-[14px]">Voz Online HD</span>
+                                    <i class="fa-solid fa-chevron-down text-[12px] opacity-60 ml-1 shrink-0"></i>
                                 </button>
                                 <div id="voice-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-0 w-56 rounded-xl p-2 z-[100] max-h-[280px] overflow-y-auto ios-scroll space-y-1">
-                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Voces Disponibles</div>
+                                    <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Voces Disponibles</div>
                                 </div>
                             </div>
 
                             <!-- Velocidad con Check Minimalista -->
                             <div class="flex flex-col relative" id="speed-dropdown-container">
-                                <button id="btn-speed-trigger" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
-                                    <span id="speed-display-value" class="text-[10px]">1.0x</span>
-                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                <button id="btn-speed-trigger" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[15px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="speed-display-value" class="text-[14px]">1.0x</span>
+                                    <i class="fa-solid fa-chevron-down text-[12px] opacity-60 ml-1 shrink-0"></i>
                                 </button>
                                 <div id="speed-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 rounded-xl p-2 z-[100] space-y-1">
-                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Velocidad</div>
-                                    <button class="speed-opt-btn flyout-option w-full text-[11px] font-semibold" data-value="0.8">
-                                        <span>0.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Velocidad</div>
+                                    <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="0.8">
+                                        <span>0.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="speed-opt-btn flyout-option active-opt w-full text-[11px] font-semibold" data-value="1.0">
-                                        <span>1.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]"></i>
+                                    <button class="speed-opt-btn flyout-option active-opt w-full text-[15px] font-semibold" data-value="1.0">
+                                        <span>1.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]"></i>
                                     </button>
-                                    <button class="speed-opt-btn flyout-option w-full text-[11px] font-semibold" data-value="1.2">
-                                        <span>1.2x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="1.2">
+                                        <span>1.2x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="speed-opt-btn flyout-option w-full text-[11px] font-semibold" data-value="1.5">
-                                        <span>1.5x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="1.5">
+                                        <span>1.5x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="speed-opt-btn flyout-option w-full text-[11px] font-semibold" data-value="1.8">
-                                        <span>1.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="1.8">
+                                        <span>1.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="speed-opt-btn flyout-option w-full text-[11px] font-semibold" data-value="2.0">
-                                        <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="2.0">
+                                        <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
                                     <!-- Modulador de Tono (Pitch Slider) -->
                                     <div class="pt-2 mt-1 border-t border-white/15 space-y-1.5">
-                                        <div class="flex justify-between items-center text-[9px] uppercase font-bold opacity-60 tracking-wider px-1">
+                                        <div class="flex justify-between items-center text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
                                             <span>Tono</span>
-                                            <span id="tone-value" class="text-iosAccent font-semibold text-[10px]">Normal</span>
+                                            <span id="tone-value" class="text-iosAccent font-semibold text-[14px]">Normal</span>
                                         </div>
                                         <div class="flex items-center gap-2 px-1">
-                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[10px]"></i>
+                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[14px]"></i>
                                             <input type="range" id="slider-pitch" min="0.5" max="1.5" step="0.1" value="1.0" class="flex-1 h-1 bg-white/15 rounded-full appearance-none outline-none cursor-pointer accent-iosAccent">
-                                            <i class="fa-solid fa-volume-high text-iosAccent text-[10px]"></i>
+                                            <i class="fa-solid fa-volume-high text-iosAccent text-[14px]"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -669,17 +669,17 @@
 
                             <!-- Capítulos con Check Minimalista -->
                             <div class="flex flex-col relative" id="chapters-dropdown-container">
-                                <button id="btn-trigger-chapters" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
-                                    <span id="player-chapter-display" class="truncate flex-1 text-left text-[10px]">Capítulo</span>
-                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                <button id="btn-trigger-chapters" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[15px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="player-chapter-display" class="truncate flex-1 text-left text-[14px]">Capítulo</span>
+                                    <i class="fa-solid fa-chevron-down text-[12px] opacity-60 ml-1 shrink-0"></i>
                                 </button>
                                 <div id="chapters-flyout" class="unified-flyout hidden absolute bottom-full mb-2 right-0 w-60 rounded-xl p-2 z-[100] space-y-1">
-                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Capítulos</div>
+                                    <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Capítulos</div>
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                                            <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+                                            <i class="fa-solid fa-magnifying-glass text-[14px]"></i>
                                         </span>
-                                        <input type="text" id="chapter-search" class="w-full py-1.5 pl-8 pr-3 rounded-lg bg-white/5 text-[11px] text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo...">
+                                        <input type="text" id="chapter-search" class="w-full py-1.5 pl-8 pr-3 rounded-lg bg-white/5 text-[15px] text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo...">
                                     </div>
                                     <div id="chapters-scroll-list" class="max-h-[260px] ios-scroll space-y-1 pr-1"></div>
                                 </div>
@@ -687,29 +687,29 @@
 
                             <!-- Apagado (Temporizador) con Check Minimalista y opción "Off" integrada -->
                             <div class="flex flex-col relative" id="timer-dropdown-container">
-                                <button id="btn-timer" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-center gap-1 transition-all w-full">
-                                    <i class="fa-regular fa-clock text-[10px]"></i>
-                                    <span id="timer-label" class="text-[10px]">Off</span>
+                                <button id="btn-timer" class="unified-trigger py-2.5 px-1.5 rounded-lg text-[15px] font-semibold outline-none flex items-center justify-center gap-1 transition-all w-full">
+                                    <i class="fa-regular fa-clock text-[14px]"></i>
+                                    <span id="timer-label" class="text-[14px]">Off</span>
                                 </button>
                                 <div id="timer-flyout" class="unified-flyout hidden absolute bottom-full mb-2 right-0 w-48 rounded-xl p-2 z-[100] space-y-1">
-                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Apagado</div>
+                                    <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Apagado</div>
                                     
                                     <!-- Opción Off / Desactivado con Check y franja azul suave unificada -->
-                                    <button class="timer-opt-btn flyout-option active-opt w-full text-[11px] font-semibold" data-minutes="0">
-                                        <span><i class="fa-solid fa-power-off mr-2 opacity-60 text-[10px]"></i>Off (Desactivar)</span>
-                                        <i class="fa-solid fa-check check-icon text-iosAccent text-[10px]"></i>
+                                    <button class="timer-opt-btn flyout-option active-opt w-full text-[15px] font-semibold" data-minutes="0">
+                                        <span><i class="fa-solid fa-power-off mr-2 opacity-60 text-[14px]"></i>Off (Desactivar)</span>
+                                        <i class="fa-solid fa-check check-icon text-iosAccent text-[14px]"></i>
                                     </button>
-                                    <button class="timer-opt-btn flyout-option w-full text-[11px] font-semibold" data-minutes="10">
-                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>10 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="timer-opt-btn flyout-option w-full text-[15px] font-semibold" data-minutes="10">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[14px]"></i>10 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="timer-opt-btn flyout-option w-full text-[11px] font-semibold" data-minutes="20">
-                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>20 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="timer-opt-btn flyout-option w-full text-[15px] font-semibold" data-minutes="20">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[14px]"></i>20 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="timer-opt-btn flyout-option w-full text-[11px] font-semibold" data-minutes="30">
-                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>30 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="timer-opt-btn flyout-option w-full text-[15px] font-semibold" data-minutes="30">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[14px]"></i>30 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <button class="timer-opt-btn flyout-option w-full text-[11px] font-semibold" data-minutes="60">
-                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>1 hora</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    <button class="timer-opt-btn flyout-option w-full text-[15px] font-semibold" data-minutes="60">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[14px]"></i>1 hora</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
                                 </div>
                             </div>
@@ -717,28 +717,36 @@
 
                         <!-- Botones de Acción de Reproducción con espaciado óptimo y botón circular impecable -->
                         <div class="flex justify-between items-center px-0 pt-4 safe-padding-bottom">
-                            <button id="btn-bookmark" class="w-11 h-11 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Marcador">
-                                <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-xl"></i>
+                            <button id="btn-bookmark" class="w-12 h-12 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Marcador">
+                                <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-2xl"></i>
                             </button>
-                            <button id="btn-rewind" class="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 text-white shadow hover:scale-105 active:scale-95 transition-all">
+                            <button id="btn-rewind" class="w-14 h-14 rounded-full flex items-center justify-center bg-white/5 text-white shadow hover:scale-105 active:scale-95 transition-all">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-left text-base"></i>
-                                    <span class="absolute text-[8px] font-bold top-[4px] left-1/2 -translate-x-1/2">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-left text-lg"></i>
+                                    <span class="absolute text-[12px] font-bold top-[4px] left-1/2 -translate-x-1/2">15</span>
                                 </span>
                             </button>
                             <!-- Play/Pause con círculo restaurado con estética de color exacto y sin franja azul artificial -->
                             <button id="btn-play-pause" class="btn-multimedia-play text-white">
-                                <i id="play-icon" class="fa-solid fa-play text-xl ml-0.5"></i>
+                                <i id="play-icon" class="fa-solid fa-play text-2xl ml-0.5"></i>
                             </button>
-                            <button id="btn-forward" class="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 text-white shadow hover:scale-105 active:scale-95 transition-all">
+                            <button id="btn-forward" class="w-14 h-14 rounded-full flex items-center justify-center bg-white/5 text-white shadow hover:scale-105 active:scale-95 transition-all">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-right text-base"></i>
-                                    <span class="absolute text-[8px] font-bold top-[4px] left-1/2 -translate-x-1/2">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-right text-lg"></i>
+                                    <span class="absolute text-[12px] font-bold top-[4px] left-1/2 -translate-x-1/2">15</span>
                                 </span>
                             </button>
-                            <button id="btn-list-bookmarks" class="w-11 h-11 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Ver Marcadores">
-                                <i class="fa-solid fa-star text-xl"></i>
-                            </button>
+                            <div class="relative" id="bookmarks-dropdown-container">
+                                <button id="btn-list-bookmarks" class="w-12 h-12 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Ver Marcadores">
+                                    <i class="fa-solid fa-star text-2xl"></i>
+                                </button>
+                                <div id="bookmarks-flyout" class="unified-flyout hidden absolute bottom-full mb-2 right-0 w-72 rounded-xl p-2 z-[100] space-y-1">
+                                    <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10 flex items-center">
+                                        <i class="fa-solid fa-star text-yellow-400 mr-1.5"></i>Marcadores
+                                    </div>
+                                    <div id="bookmarks-list" class="max-h-[280px] ios-scroll space-y-1 pr-1"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -746,24 +754,15 @@
         </div>
     </div>
 
-    <!-- Modal de Marcadores Guardados -->
-    <div id="modal-bookmarks" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
-        <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Marcadores</h3>
-                <button id="close-modal-bookmarks" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="bookmarks-list" class="max-h-64 ios-scroll px-5 py-3 space-y-2"></div>
-        </div>
-    </div>
+    <!-- Marcadores como menú desplegable anclado (igual estilo que Capítulos) -->
 
     <!-- MODAL DE CONFIRMACIÓN DE ACCIONES -->
     <div id="modal-confirm" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-xs rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl p-5 text-center">
             <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-3xl mb-3 animate-bounce"></i>
-            <h3 class="font-bold text-sm mb-2" id="confirm-title">¿Eliminar Libro?</h3>
-            <p class="text-[11px] opacity-70 mb-5 leading-normal" id="confirm-message">Esta acción borrará de forma permanente el libro de tu dispositivo.</p>
-            <div class="flex gap-3 justify-center text-xs font-semibold">
+            <h3 class="font-bold text-base mb-2" id="confirm-title">¿Eliminar Libro?</h3>
+            <p class="text-[15px] opacity-70 mb-5 leading-normal" id="confirm-message">Esta acción borrará de forma permanente el libro de tu dispositivo.</p>
+            <div class="flex gap-3 justify-center text-sm font-semibold">
                 <button id="btn-confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white">Cancelar</button>
                 <button id="btn-confirm-action" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white active:scale-95 transition-all">Eliminar</button>
             </div>
@@ -981,7 +980,7 @@
                     setTimeout(() => {
                         if (wasPlayingBeforeHidden && !isPlaying) {
                             isPlaying = true;
-                            document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
+                            document.getElementById('play-icon').className = "fa-solid fa-pause text-2xl";
                             speakSentence(currentSentenceIndex);
                             startSmoothProgressLoop();
                             updateMediaSessionState("playing");
@@ -1120,6 +1119,24 @@
                 });
             }
 
+            // Lógica para desplegar el menú de MARCADORES (mismo comportamiento que Capítulos)
+            const btnListBookmarks = document.getElementById('btn-list-bookmarks');
+            const bookmarksFlyout = document.getElementById('bookmarks-flyout');
+
+            if (btnListBookmarks && bookmarksFlyout) {
+                btnListBookmarks.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeAllFlyouts(bookmarksFlyout);
+                    bookmarksFlyout.classList.toggle('hidden');
+                    if (!bookmarksFlyout.classList.contains('hidden')) {
+                        renderBookmarksList();
+                    }
+                });
+                bookmarksFlyout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+
             // Cerrar todos los flyouts al hacer clic fuera
             document.addEventListener('click', () => {
                 closeAllFlyouts();
@@ -1211,14 +1228,14 @@
 
             if (toggleCover && toggleText && wrapperCover && wrapperText) {
                 toggleCover.addEventListener('click', () => {
-                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[15px] font-bold bg-white/15 text-white transition-all";
+                    toggleText.className = "flex-1 py-1 rounded-full text-[15px] font-bold text-zinc-400 transition-all";
                     wrapperText.classList.add('hidden');
                 });
 
                 toggleText.addEventListener('click', () => {
-                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                    toggleText.className = "flex-1 py-1 rounded-full text-[15px] font-bold bg-white/15 text-white transition-all";
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[15px] font-bold text-zinc-400 transition-all";
                     const bookTitleEl = document.getElementById('player-book-title');
                     document.getElementById('text-view-title').textContent = bookTitleEl ? bookTitleEl.textContent : 'Lectura';
                     wrapperText.classList.remove('hidden');
@@ -1229,8 +1246,8 @@
             document.getElementById('btn-close-text').addEventListener('click', () => {
                 if (wrapperText && toggleCover && toggleText) {
                     wrapperText.classList.add('hidden');
-                    toggleCover.className = "flex-1 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
-                    toggleText.className = "flex-1 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                    toggleCover.className = "flex-1 py-1 rounded-full text-[15px] font-bold bg-white/15 text-white transition-all";
+                    toggleText.className = "flex-1 py-1 rounded-full text-[15px] font-bold text-zinc-400 transition-all";
                 }
             });
 
@@ -1265,10 +1282,6 @@
 
             // Gestión de Marcadores
             document.getElementById('btn-bookmark').addEventListener('click', addBookmark);
-            document.getElementById('btn-list-bookmarks').addEventListener('click', openBookmarksModal);
-            document.getElementById('close-modal-bookmarks').addEventListener('click', () => {
-                document.getElementById('modal-bookmarks').classList.add('hidden');
-            });
 
             // Barra de Progreso Deslizable
             const progressContainer = document.getElementById('progress-container');
@@ -1295,7 +1308,7 @@
         }
 
         function closeAllFlyouts(except) {
-            const flyouts = ['speed-flyout', 'voice-flyout', 'chapters-flyout', 'timer-flyout'];
+            const flyouts = ['speed-flyout', 'voice-flyout', 'chapters-flyout', 'timer-flyout', 'bookmarks-flyout'];
             flyouts.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el !== except) el.classList.add('hidden');
@@ -1409,6 +1422,7 @@
 
             function loadVoices() {
                 synthesisVoices = window.speechSynthesis.getVoices();
+                restoreVoicePreference();
                 const flyout = document.getElementById('voice-flyout');
                 if (!flyout) return;
                 
@@ -1417,21 +1431,21 @@
                 if (header) flyout.appendChild(header);
                 else {
                     const h = document.createElement('div');
-                    h.className = "text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
+                    h.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
                     h.textContent = "Voces Disponibles";
                     flyout.appendChild(h);
                 }
 
                 // Opción online priorizada con check lineal minimalista
                 const onlineBtn = document.createElement('button');
-                onlineBtn.className = "voice-opt-btn flyout-option w-full text-[11px] font-semibold";
+                onlineBtn.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
                 onlineBtn.dataset.value = "online";
                 onlineBtn.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-wifi text-iosAccent text-[10px]"></i>
+                        <i class="fa-solid fa-wifi text-iosAccent text-[14px]"></i>
                         <span>Voz Online HD</span>
                     </div>
-                    <i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:${selectedVoiceValue === 'online' ? 'visible' : 'hidden'}"></i>
+                    <i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:${selectedVoiceValue === 'online' ? 'visible' : 'hidden'}"></i>
                 `;
                 if (selectedVoiceValue === "online") onlineBtn.classList.add('active-opt');
                 onlineBtn.addEventListener('click', (e) => {
@@ -1441,7 +1455,7 @@
                 flyout.appendChild(onlineBtn);
 
                 const sysLabel = document.createElement('div');
-                sysLabel.className = "text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
+                sysLabel.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
                 sysLabel.textContent = "Voces de Sistema";
                 flyout.appendChild(sysLabel);
 
@@ -1463,7 +1477,7 @@
 
                 spanishVoices.forEach(({ voice, originalIndex }) => {
                     const opt = document.createElement('button');
-                    opt.className = "voice-opt-btn flyout-option w-full text-[11px] font-semibold";
+                    opt.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
                     opt.dataset.value = originalIndex;
                     let label = voice.name;
                     if (isQualityVoice(voice.name)) label = `🔥 ${label}`;
@@ -1471,7 +1485,7 @@
                     const isSelected = String(selectedVoiceValue) === String(originalIndex);
                     opt.innerHTML = `
                         <span class="truncate flex-1 text-left">${label}</span>
-                        <i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
+                        <i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
                     `;
                     if (isSelected) opt.classList.add('active-opt');
                     opt.addEventListener('click', (e) => {
@@ -1483,7 +1497,7 @@
 
                 if (spanishVoices.length === 0) {
                     const empty = document.createElement('div');
-                    empty.className = "text-[10px] opacity-50 text-center py-2";
+                    empty.className = "text-[14px] opacity-50 text-center py-2";
                     empty.textContent = "No se encontraron voces en español.";
                     flyout.appendChild(empty);
                 }
@@ -1500,10 +1514,48 @@
                     if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
                     b.classList.toggle('active-opt', isMatch);
                 });
+
+                try {
+                    if (value === "online") {
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'online' }));
+                    } else {
+                        const voiceObj = synthesisVoices[value];
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'system', name: voiceObj ? voiceObj.name : displayLabel }));
+                    }
+                } catch (e) {
+                    console.warn("No se pudo guardar preferencia de voz:", e);
+                }
                 
                 document.getElementById('voice-flyout').classList.add('hidden');
                 showToast(`Voz: ${shortLabel}`, "fa-circle-user text-iosAccent");
                 if (isPlaying) speakSentence(currentSentenceIndex);
+            }
+
+            // Recupera la voz elegida la última vez (Online HD o una voz de sistema específica)
+            // para que quede seleccionada automáticamente y no haya que volver a elegirla.
+            function restoreVoicePreference() {
+                try {
+                    const raw = localStorage.getItem('audiolibros_diego_voice_pref');
+                    if (!raw) return;
+                    const pref = JSON.parse(raw);
+                    const disp = document.getElementById('voice-display-value');
+
+                    if (pref.type === 'online') {
+                        selectedVoiceValue = 'online';
+                        if (disp) disp.textContent = 'Voz Online HD';
+                    } else if (pref.type === 'system' && pref.name) {
+                        const idx = synthesisVoices.findIndex(v => v.name === pref.name);
+                        if (idx !== -1) {
+                            selectedVoiceValue = idx;
+                            if (disp) {
+                                const label = pref.name.length > 18 ? pref.name.substring(0, 17) + '…' : pref.name;
+                                disp.textContent = label;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("No se pudo restaurar preferencia de voz:", e);
+                }
             }
 
             if (window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -1819,18 +1871,18 @@
                         <img src="${book.cover}" alt="Portada" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-[13px] truncate text-white leading-tight">${book.title}</h4>
-                        <p class="text-[11px] opacity-60 truncate mt-1">${book.author}</p>
-                        ${book.saga ? `<p class="text-[10px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
+                        <h4 class="font-bold text-[17px] truncate text-white leading-tight">${book.title}</h4>
+                        <p class="text-[15px] opacity-60 truncate mt-1">${book.author}</p>
+                        ${book.saga ? `<p class="text-[14px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
                         <div class="flex items-center gap-2 mt-2">
                             <div class="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
                                 <div class="h-full bg-iosAccent rounded-full transition-all" style="width: ${progressPercent}%"></div>
                             </div>
-                            <span class="text-[9px] opacity-50 shrink-0">${book.chapters.length} caps</span>
+                            <span class="text-[13px] opacity-50 shrink-0">${book.chapters.length} caps</span>
                         </div>
                     </div>
-                    <button class="w-9 h-9 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all shadow-none border-none outline-none" onclick="deleteBook(event, ${book.originalIndex})">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    <button class="w-10 h-10 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all shadow-none border-none outline-none" onclick="deleteBook(event, ${book.originalIndex})">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
                     </button>
                 `;
 
@@ -1920,18 +1972,18 @@
                 .filter(ch => ch.title.toLowerCase().includes(query.toLowerCase()));
 
             if (filtered.length === 0) {
-                listContainer.innerHTML = `<p class="text-zinc-500 text-xs text-center py-4">Sin resultados</p>`;
+                listContainer.innerHTML = `<p class="text-zinc-500 text-sm text-center py-4">Sin resultados</p>`;
                 return;
             }
 
             filtered.forEach(chapter => {
                 const isSelected = chapter.originalIdx === activeChapterIndex;
                 const item = document.createElement('button');
-                item.className = `chapter-opt-btn flyout-option w-full text-[11px] font-semibold ${isSelected ? 'active-opt' : ''}`;
+                item.className = `chapter-opt-btn flyout-option w-full text-[15px] font-semibold ${isSelected ? 'active-opt' : ''}`;
                 
                 item.innerHTML = `
                     <span class="truncate pr-2 flex-1 text-left">${chapter.title}</span>
-                    <i class="fa-solid fa-check check-icon text-iosAccent text-[10px] shrink-0" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
+                    <i class="fa-solid fa-check check-icon text-iosAccent text-[14px] shrink-0" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
                 `;
 
                 item.addEventListener('click', (e) => {
@@ -2088,7 +2140,7 @@
 
             isPlaying = true;
             const icon = document.getElementById('play-icon');
-            if (icon) icon.className = "fa-solid fa-pause text-xl";
+            if (icon) icon.className = "fa-solid fa-pause text-2xl";
             
             startSilentAudioHack();
             updateMediaSessionState("playing");
@@ -2100,7 +2152,7 @@
         function pauseAudio() {
             isPlaying = false;
             const icon = document.getElementById('play-icon');
-            if (icon) icon.className = "fa-solid fa-play text-xl ml-0.5";
+            if (icon) icon.className = "fa-solid fa-play text-2xl ml-0.5";
             
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
@@ -2133,7 +2185,12 @@
             const book = currentBooks[activeBookIndex];
             book.progressChapter = activeChapterIndex;
             book.progressSentence = currentSentenceIndex;
-            await storageAdapter.save(book);
+            // No esperamos este guardado: en iOS Safari, hacer "await" sobre una
+            // escritura a IndexedDB antes de llamar a play() rompe la cadena de
+            // "gesto del usuario" que el navegador exige para permitir el audio,
+            // haciendo que la reproducción falle en silencio en el iPhone.
+            // Guardamos el progreso en segundo plano y arrancamos el audio ya mismo.
+            storageAdapter.save(book).catch(err => console.warn("No se pudo guardar progreso:", err));
 
             if (isOnlineVoiceSelected()) {
                 speakSentenceOnline(index);
@@ -2324,11 +2381,11 @@
             const isBookmarked = book.bookmarks.some(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
 
             if (isBookmarked) {
-                icon.className = "fa-solid fa-bookmark text-xl";
+                icon.className = "fa-solid fa-bookmark text-2xl";
                 btn.classList.remove('text-zinc-400');
                 btn.classList.add('text-iosAccent', 'scale-110');
             } else {
-                icon.className = "fa-regular fa-bookmark text-xl";
+                icon.className = "fa-regular fa-bookmark text-2xl";
                 btn.classList.remove('text-iosAccent', 'scale-110');
                 btn.classList.add('text-zinc-400');
             }
@@ -2360,7 +2417,7 @@
             showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
 
-        function openBookmarksModal() {
+        function renderBookmarksList() {
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
             const list = document.getElementById('bookmarks-list');
@@ -2368,22 +2425,22 @@
             list.innerHTML = '';
 
             if (book.bookmarks.length === 0) {
-                list.innerHTML = `<p class="text-zinc-400 text-xs text-center py-4">Sin marcadores.</p>`;
+                list.innerHTML = `<p class="text-zinc-400 text-sm text-center py-4">Sin marcadores.</p>`;
             } else {
                 book.bookmarks.forEach((b, idx) => {
                     const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-iosAccent/30 active:scale-95 transition-all cursor-pointer text-xs";
+                    item.className = "flyout-option w-full text-sm";
                     item.innerHTML = `
-                        <div class="flex-1 min-w-0 pr-3">
-                            <p class="font-bold text-white truncate">${b.name}</p>
-                            <p class="text-[10px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
+                        <div class="flex-1 min-w-0 pr-3 text-left">
+                            <p class="font-bold truncate">${b.name}</p>
+                            <p class="text-[13px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
                         </div>
-                        <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
+                        <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none shrink-0" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
                     `;
                     item.addEventListener('click', (e) => {
                         if (e.target.closest('button')) return;
-                        const modal = document.getElementById('modal-bookmarks');
-                        if (modal) modal.classList.add('hidden');
+                        const flyout = document.getElementById('bookmarks-flyout');
+                        if (flyout) flyout.classList.add('hidden');
                         activeChapterIndex = b.chapter;
                         setupChapterMedia(b.chapter);
                         jumpToSentence(b.sentence);
@@ -2391,9 +2448,6 @@
                     list.appendChild(item);
                 });
             }
-
-            const modal = document.getElementById('modal-bookmarks');
-            if (modal) modal.classList.remove('hidden');
         }
 
         async function deleteBookmark(event, idx) {
@@ -2401,7 +2455,7 @@
             const book = currentBooks[activeBookIndex];
             book.bookmarks.splice(idx, 1);
             await storageAdapter.save(book);
-            openBookmarksModal();
+            renderBookmarksList();
             updateBookmarkButtonState();
             showToast("Marcador eliminado");
         }
