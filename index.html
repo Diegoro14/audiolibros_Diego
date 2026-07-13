@@ -66,9 +66,7 @@
             --blob-op: 0.12;
         }
 
-        /* ============ SOBRESCRITURA COMPLETA DE MODO CLARO ============ */
-        /* Muchos elementos usan clases fijas de Tailwind pensadas solo para modo oscuro.
-           Estas reglas las corrigen automáticamente cuando el body tiene .light-theme */
+        /* Corrección de modo claro para selectores (Siri y Velocidad) */
         body.light-theme { color-scheme: light; }
         body:not(.light-theme) { color-scheme: dark; }
 
@@ -77,66 +75,52 @@
         body.light-theme .text-zinc-400 { color: #6e6e73 !important; }
         body.light-theme .text-zinc-500 { color: #8e8e93 !important; }
         body.light-theme .placeholder-zinc-400::placeholder { color: #8e8e93 !important; }
-        body.light-theme .hover\:text-white:hover { color: var(--text-color) !important; }
 
-        body.light-theme .bg-white\/5 { background-color: rgba(0,0,0,0.045) !important; }
-        body.light-theme .bg-white\/10 { background-color: rgba(0,0,0,0.065) !important; }
-        body.light-theme .bg-white\/15 { background-color: rgba(0,0,0,0.09) !important; }
-        body.light-theme .bg-white\/20 { background-color: rgba(0,0,0,0.11) !important; }
-        body.light-theme .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.07) !important; }
-        body.light-theme .hover\:bg-white\/20:hover { background-color: rgba(0,0,0,0.1) !important; }
+        body.light-theme .bg-white/5 { background-color: rgba(0,0,0,0.045) !important; }
+        body.light-theme .bg-white/10 { background-color: rgba(0,0,0,0.065) !important; }
+        body.light-theme .bg-white/15 { background-color: rgba(0,0,0,0.09) !important; }
+        body.light-theme .bg-white/20 { background-color: rgba(0,0,0,0.11) !important; }
 
-        body.light-theme .border-white\/5,
-        body.light-theme .border-white\/10,
-        body.light-theme .border-white\/20 { border-color: rgba(0,0,0,0.1) !important; }
-
-        body.light-theme .bg-black\/10 { background-color: rgba(255,255,255,0.55) !important; }
-        body.light-theme .bg-black\/65 { background-color: rgba(120,120,128,0.4) !important; }
-        body.light-theme .bg-black\/75 { background-color: rgba(120,120,128,0.5) !important; }
+        body.light-theme .border-white/5,
+        body.light-theme .border-white/10,
+        body.light-theme .border-white/20 { border-color: rgba(0,0,0,0.1) !important; }
 
         body.light-theme .bg-zinc-900 { background-color: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; }
         body.light-theme .bg-zinc-950 { background-color: #f2f2f7 !important; }
-        body.light-theme .bg-zinc-950\/90 { background-color: rgba(242,242,247,0.94) !important; }
 
-        body.light-theme select,
-        body.light-theme input[type="text"] { color: var(--text-color); }
-        body.light-theme option { color: #1c1c1e; background-color: #ffffff; }
+        /* Ajustes específicos de contraste para los desplegables de voz y velocidad en Modo Claro */
+        body.light-theme select {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            color: #1c1c1e !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+        }
+        body.light-theme select option,
+        body.light-theme select optgroup {
+            background-color: #ffffff !important;
+            color: #1c1c1e !important;
+        }
 
-        body.light-theme #view-player { background-color: rgba(242,242,247,0.85) !important; }
-        body.light-theme #player-bg-blur { filter: blur(60px) brightness(0.6) saturate(1.5) !important; }
-        /* Forzar texto blanco en el reproductor para contraste con el difuminado */
+        /* Estilo ultra-suave y luminoso del difuminado de fondo en modo claro */
+        body.light-theme #player-bg-blur {
+            filter: blur(80px) brightness(1.35) saturate(1.1) !important;
+            opacity: 0.55 !important;
+        }
+
+        /* Ajustes de tipografía del reproductor en modo claro */
+        body.light-theme #view-player { background-color: rgba(242, 242, 247, 0.85) !important; }
         body.light-theme #view-player,
-        body.light-theme #view-player * { color: #ffffff !important; }
-        body.light-theme #view-player .opacity-60 { opacity: 0.7 !important; }
+        body.light-theme #view-player h2,
+        body.light-theme #view-player h3,
+        body.light-theme #view-player p,
+        body.light-theme #view-player span,
+        body.light-theme #view-player label {
+            color: #1c1c1e !important;
+        }
+        body.light-theme #view-player .opacity-60 { opacity: 0.75 !important; }
         body.light-theme #view-player .text-zinc-400,
-        body.light-theme #view-player .text-zinc-500 { color: rgba(255,255,255,0.6) !important; }
-        body.light-theme #view-player .placeholder-zinc-400::placeholder { color: rgba(255,255,255,0.5) !important; }
-        body.light-theme #view-player .bg-white\/5,
-        body.light-theme #view-player .bg-white\/10,
-        body.light-theme #view-player .bg-white\/15,
-        body.light-theme #view-player .bg-white\/20 { background-color: rgba(255,255,255,0.1) !important; }
-        body.light-theme #view-player .hover\:bg-white\/10:hover,
-        body.light-theme #view-player .hover\:bg-white\/20:hover { background-color: rgba(255,255,255,0.15) !important; }
-        body.light-theme #view-player .border-white\/5,
-        body.light-theme #view-player .border-white\/10,
-        body.light-theme #view-player .border-white\/20 { border-color: rgba(255,255,255,0.15) !important; }
-        body.light-theme #view-player .bg-zinc-900 { background-color: rgba(0,0,0,0.4) !important; border-color: rgba(255,255,255,0.1) !important; }
-        body.light-theme #view-player select,
-        body.light-theme #view-player input[type="text"] { color: #ffffff !important; background-color: rgba(0,0,0,0.4) !important; border-color: rgba(255,255,255,0.15) !important; }
-        body.light-theme #view-player .liquid-glass { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.12) !important; }
-        body.light-theme #view-player .liquid-glass-dark { background: rgba(0,0,0,0.5) !important; border-top-color: rgba(255,255,255,0.1) !important; }
-        /* Mantener el botón de play/pause siempre visible (blanco con ícono negro) */
-        body.light-theme #view-player #btn-play-pause { background: #ffffff !important; color: #000000 !important; }
-        body.light-theme #view-player #btn-play-pause i { color: #000000 !important; }
-        /* Las opciones del select deben ser legibles (texto oscuro en fondo claro) */
-        body.light-theme #view-player select option { color: #1c1c1e !important; background-color: #ffffff !important; }
-        body.light-theme .book-card,
-        body.light-theme #modal-bookmarks .liquid-glass,
-        body.light-theme #modal-timer .liquid-glass { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        body.light-theme #view-player .text-zinc-500 { color: #555558 !important; }
 
-        body.light-theme #toast { color: #1c1c1e; }
-        body.light-theme ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
-
+        /* Transiciones fluidas */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
@@ -147,7 +131,6 @@
             transition: background-color 0.4s ease, color 0.4s ease, font-size 0.2s ease;
         }
 
-        /* Efecto Liquid Glass */
         .liquid-glass {
             background: var(--glass-bg);
             backdrop-filter: blur(25px) saturate(190%);
@@ -163,7 +146,6 @@
             border-top: 1px solid var(--glass-border);
         }
 
-        /* Margen de seguridad dinámico para iPhone (Notch y barras nativas del sistema) */
         .safe-padding-top {
             padding-top: max(0.75rem, env(safe-area-inset-top));
         }
@@ -171,12 +153,10 @@
             padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
         }
 
-        /* Transiciones suaves */
         .view-transition {
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
         }
 
-        /* Animación de lectura activa sincronizada al compás del audio */
         .word-active {
             background-color: var(--accent-glow);
             color: var(--accent-color);
@@ -188,7 +168,6 @@
             transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Simulador de teléfono premium simplificado sin notch por software */
         .phone-frame {
             width: 393px;
             height: 852px;
@@ -200,7 +179,6 @@
             background: var(--bg-color);
         }
 
-        /* Scrollbar Premium iOS */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -212,9 +190,6 @@
             background: var(--glass-border);
             border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-color);
-        }
     </style>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
@@ -225,25 +200,18 @@
         <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-blue-600/15 blur-[140px] animate-pulse transition-opacity duration-700" style="animation-duration: 8s; opacity: var(--blob-op);"></div>
     </div>
 
-    <!-- PANEL SUPERIOR GLOBAL (Herramientas del Sistema con adaptación nativa al notch de iOS) -->
     <div class="w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 flex justify-between items-center z-50 relative text-xs safe-padding-top">
         <div class="flex items-center gap-3">
             <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>VOZALQUIMIA</span>
         </div>
         
         <div class="flex items-center gap-2">
-            <!-- Botón Cambiar Letra (Agrandar/Encoger) -->
             <button id="btn-font-dec" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Reducir Letra">A-</button>
             <button id="btn-font-inc" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Aumentar Letra">A+</button>
-            
             <div class="h-4 w-[1px] bg-white/20 mx-1"></div>
-
-            <!-- Botón Modo Claro/Oscuro -->
             <button id="btn-toggle-theme" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
                 <i class="fa-solid fa-moon" id="theme-icon"></i>
             </button>
-
-            <!-- Botón Cambiar Interfaz (PC / Móvil) -->
             <button id="btn-toggle-device" class="px-3 h-8 rounded-lg bg-iosAccent text-white text-[11px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
                 <i class="fa-solid fa-mobile-screen-button"></i>
                 <span id="device-btn-text">Ver Móvil</span>
@@ -251,13 +219,9 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR DE CONTROL DE DISPOSITIVO (Centra el móvil o lo expande a PC) -->
+    <!-- CONTENEDOR DE CONTROL DE DISPOSITIVO -->
     <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-2 md:p-6 transition-all duration-500">
-        
-        <!-- ESTE CONTENEDOR SE PUEDE TRANSFORMAR EN UN IPHONE O EN UNA INTERFAZ DE ESCRITORIO PC -->
         <div id="device-wrapper" class="w-full h-full flex flex-col md:flex-row gap-6 max-w-7xl">
-            
-            <!-- CONTENEDOR PRINCIPAL DE LA APP -->
             <div id="app-phone-container" class="flex-1 flex flex-col h-full bg-transparent overflow-hidden relative">
 
                 <!-- Notificaciones Flotantes -->
@@ -266,9 +230,7 @@
                     <span id="toast-text">Notificación</span>
                 </div>
 
-                <!-- ================= MAIN VIEW (Biblioteca & Carga) ================= -->
                 <div id="view-library" class="view-transition flex flex-col flex-1 min-h-0 overflow-hidden px-4">
-                    
                     <header class="flex justify-between items-center py-2">
                         <div>
                             <span class="text-[10px] font-semibold opacity-60 uppercase tracking-wider">Tu Colección</span>
@@ -291,7 +253,7 @@
                         </div>
                     </div>
 
-                    <!-- BUSCADOR AVANZADO DE BIBLIOTECA -->
+                    <!-- Buscador Avanzado de Biblioteca -->
                     <div class="relative mb-2">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                             <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
@@ -299,14 +261,12 @@
                         <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[11px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
                     </div>
 
-                    <!-- Listado con Scrolls Suaves y Tamaño de Tarjeta Controlado -->
+                    <!-- Listado con Scroll Continuo e Infinito -->
                     <div class="flex-1 min-h-0 overflow-y-auto pb-24">
                         <div class="flex justify-between items-center mb-2">
                             <h2 class="text-sm font-bold tracking-tight">Mis Libros</h2>
                             <span id="library-count" class="text-[10px] opacity-70 bg-white/5 px-2 py-0.5 rounded-full font-semibold">0 libros</span>
                         </div>
-
-                        <!-- Grid compacto: 3 columnas en teléfono, más en PC -->
                         <div id="books-grid" class="flex flex-col gap-2 pb-4">
                             <div id="no-books-msg" class="col-span-full text-center py-12 opacity-60">
                                 <i class="fa-solid fa-book-open text-3xl mb-3"></i>
@@ -316,13 +276,10 @@
                     </div>
                 </div>
 
-                <!-- ================= PLAYER VIEW (Reproductor iOS) ================= -->
                 <div id="view-player" class="view-transition hidden absolute inset-0 z-40 flex flex-col overflow-hidden">
-                    <!-- Fondo difuminado con la portada del libro -->
-                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-700" style="filter: blur(60px) brightness(0.3) saturate(1.8); transform: scale(1.3);"></div>
+                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-700" style="filter: blur(100px) brightness(0.35) saturate(1.8); transform: scale(1.35);"></div>
                     
                     <header class="flex justify-between items-center px-6 py-4 safe-padding-top">
-                        <!-- Botón volver -->
                         <button id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
                             <i class="fa-solid fa-chevron-left text-sm"></i>
                         </button>
@@ -335,10 +292,7 @@
                         </button>
                     </header>
 
-                    <!-- Cuerpo del Reproductor (Letra / Cover) -->
                     <div class="flex-1 flex flex-col px-6 overflow-hidden">
-                        
-                        <!-- Toggle Cover/Lyrics -->
                         <div class="flex justify-center mb-2">
                             <div class="p-1 rounded-full bg-white/5 flex gap-1 liquid-glass">
                                 <button id="toggle-cover" class="px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all">Portada</button>
@@ -346,10 +300,10 @@
                             </div>
                         </div>
 
-                        <!-- Contenedor Portada -->
+                        <!-- Miniatura de Portada Optimizada para NO RECORTAR y ser Proporcional -->
                         <div id="wrapper-cover" class="shrink-0 flex flex-col items-center justify-center transition-all duration-300 max-h-[52vh] md:max-h-[46vh] lg:max-h-[42vh]">
-                            <div class="relative w-full max-w-[230px] md:max-w-[260px] lg:max-w-[280px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-2 mx-auto">
-                                <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
+                            <div class="relative w-full max-w-[230px] md:max-w-[260px] lg:max-w-[280px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-2 mx-auto bg-black/15 flex items-center justify-center">
+                                <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-contain">
                             </div>
                             <div class="text-center max-w-xs mb-1">
                                 <h3 id="player-book-title" class="text-sm font-bold tracking-tight line-clamp-1">Título del Libro</h3>
@@ -358,14 +312,14 @@
                             </div>
                         </div>
 
-                        <!-- Contenedor Texto Sincronizado (Letra Legible al compás de la reproducción) -->
+                        <!-- Texto Sincronizado -->
                         <div id="wrapper-text" class="hidden flex-1 flex flex-col overflow-hidden mb-3">
                             <div id="lyrics-container" class="flex-1 overflow-y-auto px-1 py-4 space-y-4 text-center text-base md:text-lg font-medium leading-relaxed select-none">
                                 <div class="opacity-40 py-12 text-sm">Carga un libro para iniciar la lectura sincronizada.</div>
                             </div>
                         </div>
 
-                        <!-- Panel de Navegación de Capítulos -->
+                        <!-- Selector de Capítulos -->
                         <div class="mt-5 mb-1 px-1 shrink-0">
                             <button id="btn-trigger-chapters" class="w-full py-2.5 px-4 rounded-xl liquid-glass text-xs font-semibold flex justify-between items-center hover:bg-white/10 active:scale-95 transition-all text-white bg-white/5 shadow-md">
                                 <span class="flex items-center gap-2">
@@ -375,13 +329,9 @@
                                 <i class="fa-solid fa-chevron-right text-zinc-400 text-[10px]"></i>
                             </button>
                         </div>
-
                     </div>
 
-                    <!-- Barra inferior de Mandos de Reproducción -->
                     <div class="liquid-glass-dark px-6 pt-4 pb-4 md:pt-3 md:pb-3 md:space-y-2.5 space-y-3 rounded-t-[32px] shadow-2xl relative z-50">
-                        
-                        <!-- Barra de Progreso Deslizable (Timeline) -->
                         <div class="space-y-1">
                             <div class="flex justify-between text-[10px] opacity-60 px-1 font-bold">
                                 <span id="time-current">0:00</span>
@@ -395,15 +345,15 @@
                             </div>
                         </div>
 
-                        <!-- Selector de Voces Neuronales en Español Latino y Ajustes -->
+                        <!-- Controles de Ajustes de Audio -->
                         <div class="grid grid-cols-2 gap-2 md:gap-3">
                             <div class="flex flex-col">
                                 <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1 flex items-center gap-1">
-                                    Voz
-                                    <button id="btn-voice-info" type="button" class="w-3.5 h-3.5 rounded-full bg-white/10 flex items-center justify-center text-[8px] leading-none" title="Cómo obtener mejores voces">i</button>
+                                    Voz iOS / Siri
+                                    <button id="btn-voice-info" type="button" class="w-3.5 h-3.5 rounded-full bg-white/10 flex items-center justify-center text-[8px] leading-none" title="Ayuda">i</button>
                                 </label>
                                 <select id="select-voices" class="py-2 md:py-1.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
-                                    <!-- Las voces se auto-poblarán -->
+                                    <!-- Voces cargadas dinámicamente -->
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-2">
@@ -411,7 +361,7 @@
                                     <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Velocidad</label>
                                     <select id="select-rate" class="py-2 md:py-1.5 px-2 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none">
                                         <option value="0.8">0.8x</option>
-                                        <option value="1.0" selected>1.0x (Normal)</option>
+                                        <option value="1.0" selected>1.0x (Norm)</option>
                                         <option value="1.2">1.2x</option>
                                         <option value="1.5">1.5x</option>
                                         <option value="1.8">1.8x</option>
@@ -427,50 +377,37 @@
                             </div>
                         </div>
 
-                        <!-- Mandos Físicos de audio -->
+                        <!-- Botones de Acción de Reproducción -->
                         <div class="flex justify-between items-center px-4 py-0.5 md:py-0 safe-padding-bottom">
-                            <!-- Marcador de Frases/Páginas -->
-                            <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Añadir Marcador">
+                            <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Marcador">
                                 <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-lg"></i>
                             </button>
-
-                            <!-- Retroceder 15 Segundos -->
                             <button id="btn-rewind" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
                                 <span class="relative">
                                     <i class="fa-solid fa-arrow-rotate-left text-base text-white"></i>
                                     <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
                                 </span>
                             </button>
-
-                            <!-- PLAY / PAUSA PRINCIPAL -->
                             <button id="btn-play-pause" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 transition-all hover:bg-zinc-100">
                                 <i id="play-icon" class="fa-solid fa-play text-xl ml-0.5"></i>
                             </button>
-
-                            <!-- Adelantar 15 Segundos -->
                             <button id="btn-forward" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
                                 <span class="relative">
                                     <i class="fa-solid fa-arrow-rotate-right text-base text-white"></i>
                                     <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
                                 </span>
                             </button>
-
-                            <!-- Marcadores Guardados -->
                             <button id="btn-list-bookmarks" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Ver Marcadores">
                                 <i class="fa-solid fa-star text-base"></i>
                             </button>
                         </div>
-
                     </div>
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
-    <!-- ================= MODAL DE NAVEGACIÓN DE CAPÍTULOS iOS (Reemplazo del selector roto) ================= -->
+    <!-- Modal de Selección de Capítulos -->
     <div id="modal-chapters" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end justify-center p-0 md:p-6">
         <div class="w-full max-w-lg md:rounded-2xl bg-zinc-900 border-t border-white/10 overflow-hidden shadow-2xl flex flex-col h-[75vh] md:h-[65vh]">
             <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-zinc-950">
@@ -480,47 +417,34 @@
                 </div>
                 <button id="close-modal-chapters" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
-            <!-- Buscador dentro del listado de capítulos -->
             <div class="p-3 bg-zinc-950 border-b border-white/5">
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input type="text" id="chapter-search" class="w-full py-2 pl-9 pr-4 rounded-xl bg-white/5 text-xs text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo por título...">
+                    <input type="text" id="chapter-search" class="w-full py-2 pl-9 pr-4 rounded-xl bg-white/5 text-xs text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo...">
                 </div>
             </div>
-
-            <!-- Listado con scroll elegante y cómodo para clics -->
-            <div id="chapters-scroll-list" class="flex-1 overflow-y-auto p-4 space-y-2">
-                <!-- Capítulos inyectados dinámicamente -->
-            </div>
+            <div id="chapters-scroll-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
         </div>
     </div>
 
-    <!-- ================= MODAL MARCADORES ================= -->
+    <!-- Modal de Marcadores Guardados -->
     <div id="modal-bookmarks" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
             <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Marcadores Guardados</h3>
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Marcadores</h3>
                 <button id="close-modal-bookmarks" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="bookmarks-list" class="max-h-64 overflow-y-auto px-5 py-3 space-y-2">
-                <!-- Inyectado por JS -->
-            </div>
+            <div id="bookmarks-list" class="max-h-64 overflow-y-auto px-5 py-3 space-y-2"></div>
         </div>
     </div>
 
-    <!-- Reproductor de audio real (necesario para que funcione con la pantalla bloqueada en iPhone) -->
-    <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
-    <!-- Audio silencioso para mantener Media Session activo con voces del sistema -->
-    <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
-
-    <!-- ================= MODAL SLEEP TIMER ================= -->
+    <!-- Modal de Temporizador -->
     <div id="modal-timer" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
             <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-regular fa-clock mr-2"></i>Temporizador de Apagado</h3>
+                <h3 class="font-bold text-sm"><i class="fa-regular fa-clock mr-2"></i>Temporizador</h3>
                 <button id="close-modal-timer" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-5 grid grid-cols-2 gap-3 text-center text-xs">
@@ -532,6 +456,23 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DE CONFIRMACIÓN DE ACCIONES (Reemplazo Premium de confirm()) -->
+    <div id="modal-confirm" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
+        <div class="w-full max-w-xs rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl p-5 text-center">
+            <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-3xl mb-3 animate-bounce"></i>
+            <h3 class="font-bold text-sm mb-2" id="confirm-title">¿Eliminar Libro?</h3>
+            <p class="text-[11px] opacity-70 mb-5 leading-normal" id="confirm-message">Esta acción borrará de forma permanente el libro de tu dispositivo.</p>
+            <div class="flex gap-3 justify-center text-xs font-semibold">
+                <button id="btn-confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white">Cancelar</button>
+                <button id="btn-confirm-action" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white active:scale-95 transition-all">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Elementos de Audio de Respaldo -->
+    <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
+    <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
 
     <script>
         // --- ESTADO GLOBAL DE LA APLICACIÓN ---
@@ -549,21 +490,19 @@
         let timerCountdown = null;
         let remainingTimerSeconds = 0;
 
-        // Variables de UI y Gesto Swipe
         let isPcLayout = false;
         let touchStartX = 0;
         let touchEndX = 0;
+        let confirmActionCallback = null;
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        // Detectar cuando la app vuelve a primer plano (PWA desbloqueo) para auto-reanudar
+        // Eventos para reanudar al desbloquear el móvil
         let wasPlayingBeforeHidden = false;
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                // La app volvió a primer plano
                 if (wasPlayingBeforeHidden && activeBookIndex !== null) {
-                    // En PWA, speechSynthesis se cancela al bloquear. Reanudar.
                     setTimeout(() => {
                         if (wasPlayingBeforeHidden && !isPlaying) {
                             isPlaying = true;
@@ -572,6 +511,7 @@
                             startProgressTicker();
                             updateMediaSessionState("playing");
                             if (!isOnlineVoiceSelected()) {
+                                const silentKeepalive = document.getElementById('silent-keepalive');
                                 silentKeepalive.play().catch(() => {});
                             }
                             showToast("Reanudando...", "fa-play text-green-400");
@@ -580,7 +520,6 @@
                 }
                 wasPlayingBeforeHidden = false;
             } else {
-                // La app pasa a segundo plano
                 if (isPlaying) {
                     wasPlayingBeforeHidden = true;
                 }
@@ -593,6 +532,31 @@
             initApp();
             initSpeechSynthesis();
         };
+
+        // --- FUNCIONES DE PERSISTENCIA Y TEMA ---
+        function restoreTheme() {
+            const savedTheme = localStorage.getItem('voz_alquimia_theme');
+            const icon = document.getElementById('theme-icon');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                icon.className = "fa-solid fa-sun";
+            }
+        }
+
+        function restoreFontScale() {
+            const saved = localStorage.getItem('voz_alquimia_font_scale');
+            if (saved) {
+                document.documentElement.style.setProperty('--font-scale', saved);
+            }
+        }
+
+        // Modal de confirmación estilizado
+        function showCustomConfirm(title, message, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmActionCallback = onConfirm;
+            document.getElementById('modal-confirm').classList.remove('hidden');
+        }
 
         function initApp() {
             loadLibraryFromStorage();
@@ -623,77 +587,68 @@
                 }
             });
 
-            // Buscador de Biblioteca
-            document.getElementById('library-search').addEventListener('input', () => {
-                renderLibrary();
+            // Buscadores
+            document.getElementById('library-search').addEventListener('input', () => renderLibrary());
+            document.getElementById('chapter-search').addEventListener('input', (e) => filterChapters(e.target.value));
+
+            // Botones de Confirmación Custom
+            document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+                document.getElementById('modal-confirm').classList.add('hidden');
+                confirmActionCallback = null;
+            });
+            document.getElementById('btn-confirm-action').addEventListener('click', () => {
+                if (confirmActionCallback) confirmActionCallback();
+                document.getElementById('modal-confirm').classList.add('hidden');
+                confirmActionCallback = null;
             });
 
-            // Buscador de Capítulos
-            document.getElementById('chapter-search').addEventListener('input', (e) => {
-                filterChapters(e.target.value);
-            });
-
-            // Botón Volver
+            // Navegaciones y Controles
             document.getElementById('btn-back').addEventListener('click', () => {
                 pauseAudio();
                 switchView('library');
             });
 
-            // Control de tamaño de fuente
             document.getElementById('btn-font-inc').addEventListener('click', () => adjustGlobalFont(0.05));
             document.getElementById('btn-font-dec').addEventListener('click', () => adjustGlobalFont(-0.05));
-
-            // Control de tema (Claro / Oscuro)
             document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
-
-            // Control de dispositivo (PC / Móvil)
             document.getElementById('btn-toggle-device').addEventListener('click', toggleDeviceView);
 
-            // Gestores del Reproductor
             document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
             document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
             document.getElementById('btn-forward').addEventListener('click', () => skipSeconds(15));
 
-            // Cambiar velocidad en vivo (afecta al audio que está sonando en ese momento)
             document.getElementById('select-rate').addEventListener('change', (e) => {
                 const rate = parseFloat(e.target.value);
+                const ttsAudioEl = document.getElementById('tts-audio-player');
                 if (!ttsAudioEl.paused) ttsAudioEl.playbackRate = rate;
                 if (activeUtterance) activeUtterance.rate = rate;
             });
 
-            // Cambiar de motor de voz en vivo (reinicia la frase actual con la nueva voz)
             document.getElementById('select-voices').addEventListener('change', () => {
-                if (isPlaying) {
-                    speakSentence(currentSentenceIndex);
-                }
+                if (isPlaying) speakSentence(currentSentenceIndex);
             });
             
-            // Toggle Cover / Text
+            // Toggle de Portada / Letras
             const toggleCover = document.getElementById('toggle-cover');
             const toggleText = document.getElementById('toggle-text');
             const wrapperCover = document.getElementById('wrapper-cover');
             const wrapperText = document.getElementById('wrapper-text');
 
             toggleCover.addEventListener('click', () => {
-                toggleCover.classList.add('bg-white/15', 'text-white');
-                toggleCover.classList.remove('text-zinc-400');
-                toggleText.classList.remove('bg-white/15', 'text-white');
-                toggleText.classList.add('text-zinc-400');
+                toggleCover.className = "px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                toggleText.className = "px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
                 wrapperCover.classList.remove('hidden');
                 wrapperText.classList.add('hidden');
             });
 
             toggleText.addEventListener('click', () => {
-                toggleText.classList.add('bg-white/15', 'text-white');
-                toggleText.classList.remove('text-zinc-400');
-                toggleCover.classList.remove('bg-white/15', 'text-white');
-                toggleCover.classList.add('text-zinc-400');
+                toggleText.className = "px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                toggleCover.className = "px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
                 wrapperText.classList.remove('hidden');
                 wrapperCover.classList.add('hidden');
                 scrollToActiveSentence();
             });
 
-            // Manejo de Modal de Capítulos iOS
             document.getElementById('btn-trigger-chapters').addEventListener('click', () => {
                 document.getElementById('modal-chapters').classList.remove('hidden');
                 renderChaptersModalList();
@@ -705,7 +660,7 @@
             document.getElementById('btn-select-dir').addEventListener('click', requestDirectoryAccess);
             document.getElementById('btn-export').addEventListener('click', exportAudiobookToFolder);
 
-            // Temporizador
+            // Temporizador de Apagado
             document.getElementById('btn-timer').addEventListener('click', () => {
                 document.getElementById('modal-timer').classList.remove('hidden');
             });
@@ -723,14 +678,14 @@
                 document.getElementById('modal-timer').classList.add('hidden');
             });
 
-            // Marcadores
+            // Gestión de Marcadores
             document.getElementById('btn-bookmark').addEventListener('click', addBookmark);
             document.getElementById('btn-list-bookmarks').addEventListener('click', openBookmarksModal);
             document.getElementById('close-modal-bookmarks').addEventListener('click', () => {
                 document.getElementById('modal-bookmarks').classList.add('hidden');
             });
 
-            // Progreso deslizable
+            // Barra de Progreso Deslizable
             const progressContainer = document.getElementById('progress-container');
             progressContainer.addEventListener('click', (e) => {
                 const rect = progressContainer.getBoundingClientRect();
@@ -738,7 +693,7 @@
                 seekToPosition(clickPos);
             });
 
-            // Configurar gestos táctiles para deslizar (Swipe) y volver atrás
+            // Eventos Táctiles para iOS Swipe Back
             const playerView = document.getElementById('view-player');
             playerView.addEventListener('touchstart', (e) => {
                 touchStartX = e.changedTouches[0].screenX;
@@ -750,9 +705,36 @@
             }, { passive: true });
         }
 
-        // Control de tamaño de fuente
+        // --- STREAMING_CHUNK: Procesando y comprimiendo imágenes con CANVAS (Reducción de un 98%) ---
+        function compressCoverImage(dataUrl) {
+            return new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    img.onload = () => {
+                        const maxW = 120, maxH = 180;
+                        let { width, height } = img;
+                        const ratio = Math.min(maxW / width, maxH / height, 1);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Compresión del 45% en JPEG para ahorrar memoria física
+                        resolve(canvas.toDataURL('image/jpeg', 0.45));
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = dataUrl;
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
         function adjustGlobalFont(delta) {
-            let currentScale = parseFloat(document.documentElement.style.getPropertyValue('--font-scale')) || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale')) || 1;
+            let currentScale = parseFloat(document.documentElement.style.getPropertyValue('--font-scale')) || 1;
             currentScale = Math.round((currentScale + delta) * 100) / 100;
             if (currentScale < 0.75) currentScale = 0.75;
             if (currentScale > 1.6) currentScale = 1.6;
@@ -761,23 +743,6 @@
             showToast(`Tamaño de letra: ${Math.round(currentScale * 100)}%`, "fa-text-height");
         }
 
-        function restoreFontScale() {
-            const saved = localStorage.getItem('voz_alquimia_font_scale');
-            if (saved) {
-                document.documentElement.style.setProperty('--font-scale', saved);
-            }
-        }
-
-        function restoreTheme() {
-            const savedTheme = localStorage.getItem('voz_alquimia_theme');
-            const icon = document.getElementById('theme-icon');
-            if (savedTheme === 'light') {
-                document.body.classList.add('light-theme');
-                icon.className = "fa-solid fa-sun";
-            }
-        }
-
-        // Alternar Modo Claro / Oscuro
         function toggleTheme() {
             const body = document.body;
             const icon = document.getElementById('theme-icon');
@@ -792,7 +757,6 @@
             }
         }
 
-        // Alternar vista de dispositivo PC vs Móvil
         function toggleDeviceView() {
             const workspace = document.getElementById('app-workspace');
             const wrapper = document.getElementById('device-wrapper');
@@ -816,86 +780,66 @@
             }
         }
 
-        // Detectar gesto de volver
         function handleSwipeGesture() {
-            const swipeDistance = touchEndX - touchStartX;
-            if (swipeDistance > 120) {
+            if (touchEndX - touchStartX > 120) {
                 pauseAudio();
                 switchView('library');
             }
         }
 
+        // --- STREAMING_CHUNK: Inicializando y listando las voces nativas incluyendo Siri v2 ---
         function initSpeechSynthesis() {
             if (!('speechSynthesis' in window)) {
-                showToast("Su navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
+                showToast("Navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
                 return;
             }
+
+            // Bucle inteligente recurrente para capturar las voces en móviles iOS/Safari
+            let loadInterval = setInterval(() => {
+                synthesisVoices = window.speechSynthesis.getVoices();
+                if (synthesisVoices.length > 0) {
+                    clearInterval(loadInterval);
+                    loadVoices();
+                }
+            }, 200);
 
             function loadVoices() {
                 synthesisVoices = window.speechSynthesis.getVoices();
                 const select = document.getElementById('select-voices');
                 select.innerHTML = '';
 
-                // Opción recomendada: motor de audio online (voz real, funciona con pantalla bloqueada)
+                // Opción online priorizada
                 const onlineGroup = document.createElement('optgroup');
                 onlineGroup.label = "Recomendada";
                 const onlineOpt = document.createElement('option');
                 onlineOpt.value = "online";
-                onlineOpt.textContent = "🌐 Voz Online HD (funciona con pantalla bloqueada)";
+                onlineOpt.textContent = "🌐 Voz Online HD (Pantalla Bloqueada)";
                 onlineGroup.appendChild(onlineOpt);
                 select.appendChild(onlineGroup);
 
-                // Guardamos el índice ORIGINAL de cada voz (antes de separar/ordenar) para que
-                // seleccionar una voz apunte siempre a la voz correcta en synthesisVoices.
                 const indexedVoices = synthesisVoices.map((voice, originalIndex) => ({ voice, originalIndex }));
+                const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
 
                 const isQualityVoice = (name) => {
                     const n = name.toLowerCase();
-                    return n.includes('neural') || n.includes('natural') || n.includes('online') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium');
+                    return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium');
                 };
 
-                const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
-                // Ya no mostramos otros idiomas
-                const otherVoices = [];
-
-                const byQualityThenName = (a, b) => {
+                spanishVoices.sort((a, b) => {
                     const aQ = isQualityVoice(a.voice.name);
                     const bQ = isQualityVoice(b.voice.name);
                     if (aQ && !bQ) return -1;
                     if (!aQ && bQ) return 1;
-                    // Primorizar Google, Microsoft, Apple (iPhone)
-                    const providers = ['google', 'microsoft', 'apple', 'siri'];
-                    const aP = providers.findIndex(p => a.voice.name.toLowerCase().includes(p));
-                    const bP = providers.findIndex(p => b.voice.name.toLowerCase().includes(p));
-                    if (aP !== bP) return aP - bP;
                     return a.voice.name.localeCompare(b.voice.name);
-                };
+                });
 
-                spanishVoices.sort(byQualityThenName);
-                otherVoices.sort(byQualityThenName);
-
-                function appendVoiceGroup(label, list) {
-                    if (list.length === 0) return;
+                if (spanishVoices.length > 0) {
                     const group = document.createElement('optgroup');
-                    group.label = label;
-                    list.forEach(({ voice, originalIndex }) => {
+                    group.label = "Voces de Sistema (iOS)";
+                    spanishVoices.forEach(({ voice, originalIndex }) => {
                         const opt = document.createElement('option');
-                        let name = voice.name.replace("Microsoft", "MS").trim();
-                        const langCode = voice.lang.toLowerCase();
-                        // Etiqueta de variante: es-MX, es-ES, es-AR, etc.
-                        let variant = '';
-                        if (langCode.includes('mx')) variant = '🇲🇽';
-                        else if (langCode.includes('es') && langCode.length <= 5) variant = '🇪🇸';
-                        else if (langCode.includes('ar')) variant = '🇦🇷';
-                        else if (langCode.includes('co')) variant = '🇨🇴';
-                        else if (langCode.includes('cl')) variant = '🇨🇱';
-                        else if (langCode.includes('pe')) variant = '🇵🇪';
-                        else if (langCode.includes('ve')) variant = '🇻🇪';
-                        else variant = '🌐';
-
-                        let label = `${variant} ${name}`;
+                        let label = voice.name;
                         if (isQualityVoice(voice.name)) label = `🔥 ${label}`;
-
                         opt.textContent = label;
                         opt.value = originalIndex;
                         group.appendChild(opt);
@@ -903,22 +847,15 @@
                     select.appendChild(group);
                 }
 
-                appendVoiceGroup("Voces en Español", spanishVoices);
-                // otherVoices ya está vacío, no se muestra
-
-                // Seleccionar la primera voz española disponible si no hay online
-                if (spanishVoices.length > 0) {
-                    select.value = "online";
-                }
+                select.value = "online";
             }
 
-            loadVoices();
             if (window.speechSynthesis.onvoiceschanged !== undefined) {
                 window.speechSynthesis.onvoiceschanged = loadVoices;
             }
 
             document.getElementById('btn-voice-info').addEventListener('click', () => {
-                showToast("Tip: en Ajustes > Accesibilidad > Contenido Hablado > Voces > Español, descarga una voz 'Mejorada' para más calidad offline. La Voz Online HD ya suena natural y funciona con pantalla bloqueada.", "fa-lightbulb text-yellow-300");
+                showToast("Tip: Activa Siri o Paulina Mejorada en Ajustes de Accesibilidad de tu iPhone para máxima calidad sin internet.", "fa-lightbulb text-yellow-300");
             });
         }
 
@@ -936,12 +873,11 @@
             setTimeout(() => {
                 toast.classList.remove('opacity-100');
                 toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
+            }, 2500);
         }
 
         function processUploadedFile(file) {
             showToast("Procesando Archivo...", "fa-spinner fa-spin");
-            
             const fileName = file.name.trim();
             const ext = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
             
@@ -954,6 +890,7 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Procesando archivos EPUB y extrayendo textos y portadas ---
         function parseEPUBFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -1007,7 +944,6 @@
                         }
                     }
 
-                    // Intentar extraer la portada real embebida en el EPUB
                     let coverUrl = await extractEpubCover(zip, opfDoc, manifestItems, opfFolder, title);
 
                     const newBook = {
@@ -1032,16 +968,10 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Extrae la portada real de un EPUB probando los 3 métodos estándar:
-        // 1) <meta name="cover" content="ID"> apuntando a un item del manifest
-        // 2) <item properties="cover-image"> (EPUB3)
-        // 3) Un item del manifest cuyo id/href contenga la palabra "cover"
         async function extractEpubCover(zip, opfDoc, manifestItems, opfFolder, title) {
             const fallback = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
             try {
                 let coverHref = null;
-
-                // Método 1: meta name="cover"
                 const metaCover = opfDoc.querySelector('meta[name="cover"]');
                 if (metaCover) {
                     const coverId = metaCover.getAttribute('content');
@@ -1050,7 +980,6 @@
                     }
                 }
 
-                // Método 2: EPUB3 properties="cover-image"
                 if (!coverHref) {
                     const items = opfDoc.querySelectorAll('manifest > item');
                     for (let item of items) {
@@ -1062,7 +991,6 @@
                     }
                 }
 
-                // Método 3: buscar cualquier imagen cuyo id/href contenga "cover"
                 if (!coverHref) {
                     const items = opfDoc.querySelectorAll('manifest > item');
                     for (let item of items) {
@@ -1078,7 +1006,6 @@
 
                 if (!coverHref) return fallback;
 
-                // Resolver la ruta relativa dentro del zip
                 let fullPath = opfFolder + coverHref;
                 let imageFile = zip.file(fullPath) || zip.file(coverHref) || zip.file(decodeURIComponent(fullPath));
 
@@ -1086,46 +1013,18 @@
 
                 const base64Data = await imageFile.async('base64');
                 const ext = coverHref.split('.').pop().toLowerCase();
-                const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+                const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
                 const mime = mimeMap[ext] || 'image/jpeg';
                 const rawDataUrl = `data:${mime};base64,${base64Data}`;
 
-                // Comprimir para no saturar el almacenamiento local del navegador
                 const compressed = await compressCoverImage(rawDataUrl);
                 return compressed || rawDataUrl;
             } catch (err) {
-                console.warn("No se pudo extraer la portada del EPUB:", err);
                 return fallback;
             }
         }
 
-        // Reduce una imagen de portada a un tamaño manejable (máx 400x600, JPEG calidad 0.82)
-        function compressCoverImage(dataUrl) {
-            return new Promise((resolve) => {
-                try {
-                    const img = new Image();
-                    img.onload = () => {
-                        const maxW = 400, maxH = 600;
-                        let { width, height } = img;
-                        const ratio = Math.min(maxW / width, maxH / height, 1);
-                        width = Math.round(width * ratio);
-                        height = Math.round(height * ratio);
-
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.82));
-                    };
-                    img.onerror = () => resolve(null);
-                    img.src = dataUrl;
-                } catch (e) {
-                    resolve(null);
-                }
-            });
-        }
-
+        // --- STREAMING_CHUNK: Procesando archivos PDF e inyectando Canvas para miniaturas ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -1155,13 +1054,10 @@
                         }
                     }
 
-                    // Generar portada real renderizando la primera página del PDF
                     let coverUrl = "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF";
                     try {
                         coverUrl = await renderPDFPageAsCover(pdf, 1);
-                    } catch (coverErr) {
-                        console.warn("No se pudo generar portada del PDF:", coverErr);
-                    }
+                    } catch (coverErr) {}
 
                     const newBook = {
                         id: Date.now().toString(),
@@ -1185,10 +1081,9 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Renderiza una página del PDF a imagen (para usar como portada del libro)
         async function renderPDFPageAsCover(pdf, pageNumber) {
             const page = await pdf.getPage(pageNumber);
-            const viewport = page.getViewport({ scale: 1.5 });
+            const viewport = page.getViewport({ scale: 1.0 });
 
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
@@ -1197,7 +1092,7 @@
 
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.8);
             const compressed = await compressCoverImage(rawDataUrl);
             return compressed || rawDataUrl;
         }
@@ -1225,6 +1120,7 @@
             localStorage.setItem('voz_alquimia_library', JSON.stringify(currentBooks));
         }
 
+        // --- STREAMING_CHUNK: Renderizando listado de la Biblioteca (Ajuste a scroll infinito) ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             const counter = document.getElementById('library-count');
@@ -1254,13 +1150,12 @@
                 card.className = "book-card flex items-center gap-3 p-2.5 rounded-xl liquid-glass cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all";
                 card.dataset.index = book.originalIndex;
 
-                // Calcular progreso del libro
                 const totalSentences = book.chapters.reduce((sum, ch) => sum + (ch.text ? ch.text.split(/[.!?]+/).filter(s => s.trim()).length : 0), 0);
                 const progressPercent = totalSentences > 0 ? Math.round(((book.progressChapter || 0) / book.chapters.length) * 100) : 0;
 
                 card.innerHTML = `
-                    <div class="relative w-14 h-[72px] shrink-0 rounded-lg overflow-hidden shadow-md bg-zinc-900 flex items-center justify-center">
-                        <img src="${book.cover}" alt="Portada" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
+                    <div class="relative w-14 h-[72px] shrink-0 rounded-lg overflow-hidden shadow-md bg-zinc-900/40 flex items-center justify-center">
+                        <img src="${book.cover}" alt="Portada" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
                     </div>
                     <div class="flex-1 min-w-0">
                         <h4 class="font-semibold text-[13px] truncate text-white leading-tight">${book.title}</h4>
@@ -1273,7 +1168,7 @@
                             <span class="text-[9px] opacity-50 shrink-0">${book.chapters.length} caps</span>
                         </div>
                     </div>
-                    <button class="w-8 h-8 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/80 flex items-center justify-center text-zinc-500 hover:text-white transition-all" onclick="deleteBook(event, ${book.originalIndex})">
+                    <button class="w-8 h-8 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all" onclick="deleteBook(event, ${book.originalIndex})">
                         <i class="fa-solid fa-trash-can text-[11px]"></i>
                     </button>
                 `;
@@ -1287,14 +1182,21 @@
             });
         }
 
+        // Eliminación Segura usando Dialog Custom y No confirm() de sistema
         function deleteBook(event, originalIndex) {
             event.stopPropagation();
-            if (confirm(`¿Eliminar "${currentBooks[originalIndex].title}"?`)) {
-                currentBooks.splice(originalIndex, 1);
-                saveLibraryToStorage();
-                renderLibrary();
-                showToast("Libro eliminado de la biblioteca");
-            }
+            const bookTitle = currentBooks[originalIndex].title;
+            
+            showCustomConfirm(
+                "¿Eliminar Libro?",
+                `¿Estás seguro de que deseas eliminar "${bookTitle}" de tu biblioteca?`,
+                () => {
+                    currentBooks.splice(originalIndex, 1);
+                    saveLibraryToStorage();
+                    renderLibrary();
+                    showToast("Libro eliminado de la biblioteca");
+                }
+            );
         }
 
         function switchView(viewName) {
@@ -1310,6 +1212,7 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Cargando el reproductor y ajustando la vista proporcional del Cover ---
         function loadAudiobookPlayer(index) {
             clearTTSAudioCache();
             activeBookIndex = index;
@@ -1320,7 +1223,11 @@
             document.getElementById('player-title').textContent = book.title;
             document.getElementById('player-book-title').textContent = book.title;
             document.getElementById('player-book-author').textContent = book.author;
-            document.getElementById('player-cover-img').src = book.cover;
+            
+            // Asigna la imagen y mantén la proporción mediante object-contain
+            const playerCover = document.getElementById('player-cover-img');
+            playerCover.src = book.cover;
+            
             document.getElementById('player-bg-blur').style.backgroundImage = `url(${book.cover})`;
 
             const sagaEl = document.getElementById('player-book-saga');
@@ -1392,7 +1299,6 @@
             const book = currentBooks[activeBookIndex];
             const chapter = book.chapters[chapterIdx];
             
-            // Actualizar etiqueta del botón de capítulos en la interfaz principal
             document.getElementById('player-chapter-display').textContent = chapter.title;
 
             const text = chapter.text;
@@ -1427,33 +1333,14 @@
             }
         }
 
-        let dummyAudioContext = null;
-        let dummyAudioNode = null;
-
-        // Audio silencioso en base64 (1 segundo de silencio MP3)
-        // Se usa para mantener Media Session activo cuando se usan voces del sistema
-        const SILENT_MP3_DATA = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYgFtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t////////////////////////////////////////////////////////////AAAAAABhY2Y1Ny4xMQAAAAAAAAAAAAAAACQAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYgFtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t';
-
+        // Base64 Silencioso en formato WAV continuo para evitar suspensiones de Safari/iOS
+        const SILENT_WAV_DATA = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
         const silentKeepalive = document.getElementById('silent-keepalive');
-        silentKeepalive.src = SILENT_MP3_DATA;
-        silentKeepalive.volume = 0.01; // casi inaudible pero mantiene la sesión activa
+        silentKeepalive.src = SILENT_WAV_DATA;
+        silentKeepalive.volume = 0.01;
 
         function startSilentAudioHack() {
-            // Intentar reproducir audio silencioso para mantener Media Session
             silentKeepalive.play().catch(() => {});
-
-            if (!dummyAudioContext) {
-                dummyAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const buffer = dummyAudioContext.createBuffer(1, 1, 22050);
-                dummyAudioNode = dummyAudioContext.createBufferSource();
-                dummyAudioNode.buffer = buffer;
-                dummyAudioNode.loop = true;
-                dummyAudioNode.connect(dummyAudioContext.destination);
-                dummyAudioNode.start(0);
-            }
-            if (dummyAudioContext.state === 'suspended') {
-                dummyAudioContext.resume();
-            }
         }
 
         function stopSilentAudioHack() {
@@ -1461,12 +1348,12 @@
             silentKeepalive.currentTime = 0;
         }
 
-        // --- Motor de Voz Online HD (audio real, funciona con pantalla bloqueada) ---
+        // --- STREAMING_CHUNK: Sistema de inyección CORS-Safe directa para Voz Online HD ---
         const ttsAudioEl = document.getElementById('tts-audio-player');
-        let ttsAudioCache = {}; // key: "chapter-sentence" -> blob URL
+        let ttsAudioCache = {};
         let ttsPrefetchInFlight = {};
 
-        function splitTextIntoTTSChunks(text, maxLen = 170) {
+        function splitTextIntoTTSChunks(text, maxLen = 150) {
             const rawSentences = text.split(/(?<=[.!?])\s+/);
             const chunks = [];
             let current = "";
@@ -1482,67 +1369,20 @@
             return chunks.length > 0 ? chunks : [text];
         }
 
-        async function fetchOnlineTTSBlobUrl(text) {
-            const chunks = splitTextIntoTTSChunks(text, 170);
-            const buffers = [];
-
-            // Intentar con el endpoint principal de Google
-            const endpoints = [
-                (q) => `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(q)}`,
-                (q) => `https://translate.google.com/translate_tts?ie=UTF-8&tl=es&client=tw-ob&q=${encodeURIComponent(q)}`,
-            ];
-
-            for (const chunk of chunks) {
-                let fetched = false;
-                for (const makeUrl of endpoints) {
-                    try {
-                        const url = makeUrl(chunk);
-                        const res = await fetch(url);
-                        if (res.ok) {
-                            const contentType = res.headers.get('content-type') || '';
-                            // Verificar que no sea HTML (Google a veces devuelve captcha)
-                            if (contentType.includes('audio') || contentType.includes('octet')) {
-                                buffers.push(await res.arrayBuffer());
-                                fetched = true;
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        continue;
-                    }
-                }
-                if (!fetched) {
-                    console.warn("TTS chunk fallo para:", chunk.substring(0, 50));
-                }
-            }
-            if (buffers.length === 0) throw new Error("Sin audio recibido");
-            const blob = new Blob(buffers, { type: 'audio/mp3' });
-            return URL.createObjectURL(blob);
-        }
-
-        async function getSentenceAudioUrl(chapterIdx, sentenceIdx, text) {
-            const key = `${chapterIdx}-${sentenceIdx}`;
-            if (ttsAudioCache[key]) return ttsAudioCache[key];
-            if (ttsPrefetchInFlight[key]) return ttsPrefetchInFlight[key];
-
-            const promise = fetchOnlineTTSBlobUrl(text).then(url => {
-                ttsAudioCache[key] = url;
-                delete ttsPrefetchInFlight[key];
-                return url;
-            });
-            ttsPrefetchInFlight[key] = promise;
-            return promise;
+        // Enlace directo evitando llamadas de fetch asíncronas para anular CORS
+        function getOnlineTTSUrlDirect(text) {
+            return `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(text.substring(0, 150))}`;
         }
 
         function prefetchNextSentence(chapterIdx, sentenceIdx) {
             if (sentenceIdx >= textSentences.length) return;
+            const text = textSentences[sentenceIdx];
             const key = `${chapterIdx}-${sentenceIdx}`;
-            if (ttsAudioCache[key] || ttsPrefetchInFlight[key]) return;
-            getSentenceAudioUrl(chapterIdx, sentenceIdx, textSentences[sentenceIdx]).catch(() => {});
+            if (ttsAudioCache[key]) return;
+            ttsAudioCache[key] = getOnlineTTSUrlDirect(text);
         }
 
         function clearTTSAudioCache() {
-            Object.values(ttsAudioCache).forEach(url => URL.revokeObjectURL(url));
             ttsAudioCache = {};
             ttsPrefetchInFlight = {};
         }
@@ -1559,19 +1399,8 @@
             isPlaying = true;
             document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
             
-            if (isOnlineVoiceSelected()) {
-                startSilentAudioHack();
-            } else {
-                // Con voces del sistema, reproducir audio silencioso ANTES de speak()
-                // para que iOS registre la sesión de audio y muestre controles en lock screen
-                silentKeepalive.play().then(() => {
-                    // Pequeña pausa para asegurar que el audio silencioso está activo
-                    // antes de registrar Media Session metadata
-                    updateMediaSessionState("playing");
-                }).catch(() => {
-                    updateMediaSessionState("playing");
-                });
-            }
+            startSilentAudioHack();
+            updateMediaSessionState("playing");
 
             speakSentence(currentSentenceIndex);
             startProgressTicker();
@@ -1594,12 +1423,12 @@
             if (!isPlaying) return;
             if (index >= textSentences.length) {
                 if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
-                    showToast("Pasando al siguiente capítulo...");
+                    showToast("Siguiente capítulo...");
                     changeChapter(activeChapterIndex + 1);
                     playAudio();
                 } else {
                     pauseAudio();
-                    showToast("¡Felicidades, terminaste el libro!", "fa-trophy text-yellow-400");
+                    showToast("¡Terminaste el audiolibro!", "fa-trophy text-yellow-400");
                 }
                 return;
             }
@@ -1646,26 +1475,23 @@
                 }
             };
 
-            // Mantener audio silencioso reproduciéndose para Media Session en pantalla de bloqueo
             silentKeepalive.play().catch(() => {});
-
             window.speechSynthesis.speak(activeUtterance);
         }
 
-        async function speakSentenceOnline(index) {
+        function speakSentenceOnline(index) {
             window.speechSynthesis.cancel();
             const sentenceText = textSentences[index];
             const rateSelect = document.getElementById('select-rate');
 
             try {
-                const url = await getSentenceAudioUrl(activeChapterIndex, index, sentenceText);
-                if (!isPlaying || currentSentenceIndex !== index) return; // el usuario pausó o saltó mientras cargaba
-
-                ttsAudioEl.src = url;
+                // Inyección directa para bypass de bloqueos CORS
+                const directUrl = getOnlineTTSUrlDirect(sentenceText);
+                
+                ttsAudioEl.src = directUrl;
                 ttsAudioEl.playbackRate = parseFloat(rateSelect.value);
-                await ttsAudioEl.play();
+                ttsAudioEl.play().catch(() => {});
 
-                // Precargar la siguiente frase mientras suena esta, para que no haya silencios
                 prefetchNextSentence(activeChapterIndex, index + 1);
 
                 ttsAudioEl.onended = () => {
@@ -1675,22 +1501,8 @@
                     if (isPlaying) speakSentence(currentSentenceIndex + 1);
                 };
             } catch (err) {
-                console.warn("Fallo la Voz Online HD:", err);
-                if (!isPlaying) return;
-
-                const voiceSelect = document.getElementById('select-voices');
-                const allOptions = Array.from(voiceSelect.options).filter(opt => opt.value !== "online");
-                const spanishOption = allOptions.find(opt => opt.parentElement.label.startsWith("Voces en Español"));
-                const fallbackOption = spanishOption || allOptions[0];
-
-                if (fallbackOption) {
-                    voiceSelect.value = fallbackOption.value;
-                    showToast("Voz Online HD no disponible ahora mismo. Cambié a voz del sistema.", "fa-triangle-exclamation text-yellow-400");
-                    speakSentence(currentSentenceIndex);
-                } else {
-                    showToast("Voz Online HD no disponible y no hay voces del sistema instaladas.", "fa-wifi text-red-400");
-                    pauseAudio();
-                }
+                console.warn(err);
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
             }
         }
 
@@ -1800,12 +1612,10 @@
                 icon.className = "fa-solid fa-bookmark text-lg";
                 btn.classList.remove('text-zinc-400');
                 btn.classList.add('text-iosAccent', 'scale-110');
-                btn.style.color = 'var(--accent-color)';
             } else {
                 icon.className = "fa-regular fa-bookmark text-lg";
                 btn.classList.remove('text-iosAccent', 'scale-110');
                 btn.classList.add('text-zinc-400');
-                btn.style.color = '';
             }
         }
 
@@ -1906,10 +1716,10 @@
             document.getElementById('timer-label').textContent = "Off";
         }
 
+        // --- STREAMING_CHUNK: Registrando e integrando Media Session nativa ---
         function registerMediaSession() {
             if (!('mediaSession' in navigator)) return;
 
-            // Registrar handlers UNA SOLA VEZ
             if (navigator.mediaSession._handlersRegistered) return;
             navigator.mediaSession._handlersRegistered = true;
 
@@ -1928,37 +1738,15 @@
             } catch (e) {}
         }
 
-        function updatePositionState() {
-            if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
-            try {
-                const duration = ttsAudioEl.duration;
-                const position = ttsAudioEl.currentTime;
-                if (isFinite(duration) && duration > 0 && isFinite(position)) {
-                    navigator.mediaSession.setPositionState({
-                        duration: duration,
-                        playbackRate: ttsAudioEl.playbackRate || 1,
-                        position: Math.min(position, duration)
-                    });
-                }
-            } catch (e) { /* posición no disponible aún */ }
-        }
-
         function updateMediaSessionState(state) {
             if ('mediaSession' in navigator && activeBookIndex !== null) {
                 const book = currentBooks[activeBookIndex];
                 const coverSrc = book.cover || '';
                 const isJpeg = coverSrc.startsWith('data:image/jpeg');
-                const isPng = coverSrc.startsWith('data:image/png') || coverSrc.includes('placehold.co');
-                const mime = isJpeg ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
+                const mime = isJpeg ? 'image/jpeg' : 'image/png';
 
-                // Crear artwork con múltiples tamaños para mejor compatibilidad con lock screen
                 const artwork = [];
                 if (coverSrc) {
-                    artwork.push({ src: coverSrc, sizes: '96x96', type: mime });
-                    artwork.push({ src: coverSrc, sizes: '128x128', type: mime });
-                    artwork.push({ src: coverSrc, sizes: '192x192', type: mime });
-                    artwork.push({ src: coverSrc, sizes: '256x256', type: mime });
-                    artwork.push({ src: coverSrc, sizes: '384x384', type: mime });
                     artwork.push({ src: coverSrc, sizes: '512x512', type: mime });
                 }
 
@@ -1976,15 +1764,14 @@
             if ('showDirectoryPicker' in window) {
                 try {
                     localDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                    showToast("Carpeta local vinculada con éxito en tu PC", "fa-folder-check text-green-400");
+                    showToast("Carpeta vinculada con éxito", "fa-folder-check text-green-400");
                     document.getElementById('btn-select-dir').classList.remove('text-zinc-300');
                     document.getElementById('btn-select-dir').classList.add('text-iosAccent');
                 } catch (err) {
-                    console.error(err);
-                    showToast("Acceso a carpetas denegado", "fa-xmark-circle text-red-400");
+                    showToast("Acceso denegado", "fa-xmark-circle text-red-400");
                 }
             } else {
-                showToast("Tu navegador no soporta el guardado directo de carpetas PC.", "fa-circle-question");
+                showToast("Su navegador no soporta carpetas físicas directas.", "fa-circle-question");
             }
         }
 
@@ -1993,30 +1780,26 @@
             const book = currentBooks[activeBookIndex];
 
             if (!localDirectoryHandle) {
-                showToast("Vincula primero una carpeta de tu PC usando el ícono superior.", "fa-folder-open");
+                showToast("Vincula una carpeta en tu PC usando el ícono de arriba.", "fa-folder-open");
                 return;
             }
 
-            showToast("Generando y Guardando capítulos en MP3...", "fa-gear fa-spin");
+            showToast("Exportando capítulos...", "fa-gear fa-spin");
 
             try {
                 for (let i = 0; i < book.chapters.length; i++) {
                     const chapter = book.chapters[i];
-                    const chunks = splitTextIntoTTSChunks(chapter.text, 170);
-
+                    const chunks = splitTextIntoTTSChunks(chapter.text, 150);
                     const audioBlobs = [];
                     
                     for (let j = 0; j < chunks.length; j++) {
-                        const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(chunks[j])}`;
+                        const ttsUrl = getOnlineTTSUrlDirect(chunks[j]);
                         try {
                             const res = await fetch(ttsUrl);
                             if (res.ok) {
-                                const buffer = await res.arrayBuffer();
-                                audioBlobs.push(buffer);
+                                audioBlobs.push(await res.arrayBuffer());
                             }
-                        } catch (e) {
-                            console.warn("Fallo al descargar segmento de audio, reintentando...", e);
-                        }
+                        } catch (e) {}
                     }
 
                     if (audioBlobs.length > 0) {
@@ -2029,10 +1812,9 @@
                         await writable.close();
                     }
                 }
-                showToast("¡Audiolibros en MP3 sincronizados en tu PC!", "fa-circle-check");
+                showToast("¡Audiolibro sincronizado en tu PC con éxito!", "fa-circle-check");
             } catch (error) {
-                console.error(error);
-                showToast("Error guardando audiolibros en PC", "fa-triangle-exclamation");
+                showToast("Error exportando audiolibros", "fa-triangle-exclamation");
             }
         }
     </script>
