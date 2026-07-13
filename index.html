@@ -240,7 +240,7 @@
                 </div>
 
                 <!-- ================= MAIN VIEW (Biblioteca & Carga) ================= -->
-                <div id="view-library" class="view-transition flex flex-col flex-1 overflow-hidden px-4">
+                <div id="view-library" class="view-transition flex flex-col flex-1 min-h-0 overflow-hidden px-4">
                     
                     <header class="flex justify-between items-center py-4">
                         <div>
@@ -271,7 +271,7 @@
                     </div>
 
                     <!-- Listado con Scrolls Suaves y Tamaño de Tarjeta Controlado -->
-                    <div class="flex-1 overflow-y-auto pb-24">
+                    <div class="flex-1 min-h-0 overflow-y-auto pb-24">
                         <div class="flex justify-between items-center mb-3">
                             <h2 class="text-base font-bold tracking-tight">Mis Libros</h2>
                             <span id="library-count" class="text-[10px] opacity-70 bg-white/5 px-2.5 py-1 rounded-full font-semibold">0 libros</span>
@@ -525,12 +525,42 @@
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
+        // Detectar cuando la app vuelve a primer plano (PWA desbloqueo) para auto-reanudar
+        let wasPlayingBeforeHidden = false;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                // La app volvió a primer plano
+                if (wasPlayingBeforeHidden && activeBookIndex !== null) {
+                    // En PWA, speechSynthesis se cancela al bloquear. Reanudar.
+                    setTimeout(() => {
+                        if (wasPlayingBeforeHidden && !isPlaying) {
+                            isPlaying = true;
+                            document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
+                            speakSentence(currentSentenceIndex);
+                            startProgressTicker();
+                            updateMediaSessionState("playing");
+                            if (!isOnlineVoiceSelected()) {
+                                silentKeepalive.play().catch(() => {});
+                            }
+                            showToast("Reanudando...", "fa-play text-green-400");
+                        }
+                    }, 300);
+                }
+                wasPlayingBeforeHidden = false;
+            } else {
+                // La app pasa a segundo plano
+                if (isPlaying) {
+                    wasPlayingBeforeHidden = true;
+                }
+            }
+        });
+
         window.onload = function() {
             restoreTheme();
             restoreFontScale();
             initApp();
             initSpeechSynthesis();
-            registerMediaSession();
         };
 
         function initApp() {
@@ -1152,7 +1182,7 @@
             const existingCards = grid.querySelectorAll('.book-card');
             existingCards.forEach(card => card.remove());
 
-            const filteredBooks = currentBooks.filter(book => {
+            const filteredBooks = currentBooks.map((book, originalIndex) => ({ ...book, originalIndex })).filter(book => {
                 return (book.title.toLowerCase().includes(searchQuery) ||
                         book.author.toLowerCase().includes(searchQuery) ||
                         (book.saga && book.saga.toLowerCase().includes(searchQuery)));
@@ -1171,12 +1201,12 @@
                 const card = document.createElement('div');
                 // Tarjeta contenida y delimitada de forma limpia
                 card.className = "book-card w-full max-w-[150px] relative rounded-2xl liquid-glass p-3 flex flex-col justify-between overflow-hidden cursor-pointer hover:bg-white/10 active:scale-95 transition-all mx-auto sm:mx-0";
-                card.dataset.index = index;
+                card.dataset.index = book.originalIndex;
                 
                 card.innerHTML = `
                     <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md mb-2 bg-zinc-900 flex items-center justify-center">
                         <img src="${book.cover}" alt="Portada" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
-                        <button class="absolute top-2 right-2 w-7 h-7 bg-red-600/80 rounded-full flex items-center justify-center text-white active:bg-red-800 transition-all shadow" onclick="deleteBook(event, ${index})">
+                        <button class="absolute top-2 right-2 w-7 h-7 bg-red-600/80 rounded-full flex items-center justify-center text-white active:bg-red-800 transition-all shadow" onclick="deleteBook(event, ${book.originalIndex})">
                             <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
                     </div>
@@ -1189,17 +1219,17 @@
 
                 card.addEventListener('click', (e) => {
                     if (e.target.closest('button')) return;
-                    loadAudiobookPlayer(index);
+                    loadAudiobookPlayer(book.originalIndex);
                 });
 
                 grid.appendChild(card);
             });
         }
 
-        function deleteBook(event, index) {
+        function deleteBook(event, originalIndex) {
             event.stopPropagation();
-            if (confirm(`¿Eliminar "${currentBooks[index].title}"?`)) {
-                currentBooks.splice(index, 1);
+            if (confirm(`¿Eliminar "${currentBooks[originalIndex].title}"?`)) {
+                currentBooks.splice(originalIndex, 1);
                 saveLibraryToStorage();
                 renderLibrary();
                 showToast("Libro eliminado de la biblioteca");
@@ -1462,15 +1492,27 @@
 
         function playAudio() {
             if (textSentences.length === 0) return;
-            startSilentAudioHack();
             registerMediaSession();
 
             isPlaying = true;
             document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
             
+            if (isOnlineVoiceSelected()) {
+                startSilentAudioHack();
+            } else {
+                // Con voces del sistema, reproducir audio silencioso ANTES de speak()
+                // para que iOS registre la sesión de audio y muestre controles en lock screen
+                silentKeepalive.play().then(() => {
+                    // Pequeña pausa para asegurar que el audio silencioso está activo
+                    // antes de registrar Media Session metadata
+                    updateMediaSessionState("playing");
+                }).catch(() => {
+                    updateMediaSessionState("playing");
+                });
+            }
+
             speakSentence(currentSentenceIndex);
             startProgressTicker();
-            updateMediaSessionState("playing");
         }
 
         function pauseAudio() {
@@ -1805,41 +1847,23 @@
         function registerMediaSession() {
             if (!('mediaSession' in navigator)) return;
 
-            navigator.mediaSession.setActionHandler('play', () => playAudio());
-            navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
+            // Registrar handlers UNA SOLA VEZ
+            if (navigator.mediaSession._handlersRegistered) return;
+            navigator.mediaSession._handlersRegistered = true;
+
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (!isPlaying) playAudio();
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                if (isPlaying) pauseAudio();
+            });
             navigator.mediaSession.setActionHandler('seekbackward', () => skipSeconds(-15));
             navigator.mediaSession.setActionHandler('seekforward', () => skipSeconds(15));
-            // Algunos iPhone muestran "anterior/siguiente" en vez de "retroceder/adelantar" —
-            // los mapeamos igual para que siempre haya un control funcional.
             try {
                 navigator.mediaSession.setActionHandler('previoustrack', () => skipSeconds(-15));
                 navigator.mediaSession.setActionHandler('nexttrack', () => skipSeconds(15));
                 navigator.mediaSession.setActionHandler('stop', () => pauseAudio());
-            } catch (e) { /* algunos navegadores no soportan todos los handlers */ }
-
-            // Mantiene sincronizado el estado real del audio con la pantalla de bloqueo,
-            // incluso si iOS pausa/reanuda el elemento directamente sin pasar por nuestros botones.
-            if (!ttsAudioEl.dataset.mediaSessionBound) {
-                ttsAudioEl.addEventListener('play', () => {
-                    navigator.mediaSession.playbackState = 'playing';
-                });
-                ttsAudioEl.addEventListener('pause', () => {
-                    navigator.mediaSession.playbackState = 'paused';
-                });
-                ttsAudioEl.addEventListener('timeupdate', () => {
-                    updatePositionState();
-                });
-
-                // También sincronizar con el audio silencioso (voces del sistema)
-                silentKeepalive.addEventListener('play', () => {
-                    if (isPlaying) navigator.mediaSession.playbackState = 'playing';
-                });
-                silentKeepalive.addEventListener('pause', () => {
-                    if (!isPlaying) navigator.mediaSession.playbackState = 'paused';
-                });
-
-                ttsAudioEl.dataset.mediaSessionBound = "1";
-            }
+            } catch (e) {}
         }
 
         function updatePositionState() {
@@ -1865,11 +1889,22 @@
                 const isPng = coverSrc.startsWith('data:image/png') || coverSrc.includes('placehold.co');
                 const mime = isJpeg ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
 
+                // Crear artwork con múltiples tamaños para mejor compatibilidad con lock screen
+                const artwork = [];
+                if (coverSrc) {
+                    artwork.push({ src: coverSrc, sizes: '96x96', type: mime });
+                    artwork.push({ src: coverSrc, sizes: '128x128', type: mime });
+                    artwork.push({ src: coverSrc, sizes: '192x192', type: mime });
+                    artwork.push({ src: coverSrc, sizes: '256x256', type: mime });
+                    artwork.push({ src: coverSrc, sizes: '384x384', type: mime });
+                    artwork.push({ src: coverSrc, sizes: '512x512', type: mime });
+                }
+
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: book.title,
                     artist: book.author,
                     album: book.chapters[activeChapterIndex].title,
-                    artwork: coverSrc ? [{ src: coverSrc, sizes: '400x600', type: mime }] : []
+                    artwork: artwork
                 });
                 navigator.mediaSession.playbackState = state;
             }
