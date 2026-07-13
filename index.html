@@ -365,12 +365,14 @@
             }
             #device-wrapper {
                 width: 100% !important;
-                height: 100dvh !important;
+                height: auto !important;
+                flex: 1 1 0% !important;
+                min-height: 0 !important;
                 gap: 0 !important;
             }
             #app-phone-container {
                 width: 100% !important;
-                height: 100dvh !important;
+                height: 100% !important;
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
@@ -405,20 +407,20 @@
         <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-blue-600/15 blur-[140px] animate-pulse transition-opacity duration-700" style="animation-duration: 8s; opacity: var(--blob-op);"></div>
     </div>
 
-    <!-- Barra de Herramientas de Simulación (Oculta automáticamente en Móviles) -->
-    <div class="hidden md:flex w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 justify-between items-center z-50 relative text-xs safe-padding-top">
+    <!-- Barra de Herramientas (Visible siempre: PC y Móvil) -->
+    <div class="flex w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 justify-between items-center z-50 relative text-xs safe-padding-top">
         <div class="flex items-center gap-3">
             <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>VOZALQUIMIA</span>
         </div>
         
         <div class="flex items-center gap-2">
-            <button id="btn-font-dec" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Reducir Letra">A-</button>
-            <button id="btn-font-inc" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white transition-all active:scale-90" title="Aumentar Letra">A+</button>
-            <div class="h-4 w-[1px] bg-white/20 mx-1"></div>
-            <button id="btn-toggle-theme" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
+            <button id="btn-font-dec" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white text-[10px] md:text-xs transition-all active:scale-90" title="Reducir Letra">A-</button>
+            <button id="btn-font-inc" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-white text-[10px] md:text-xs transition-all active:scale-90" title="Aumentar Letra">A+</button>
+            <div class="h-4 w-[1px] bg-white/20 mx-0.5 md:mx-1"></div>
+            <button id="btn-toggle-theme" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-90" title="Alternar Modo Claro/Oscuro">
                 <i class="fa-solid fa-moon" id="theme-icon"></i>
             </button>
-            <button id="btn-toggle-device" class="px-3 h-8 rounded-lg bg-iosAccent text-white text-[11px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
+            <button id="btn-toggle-device" class="px-2 md:px-3 h-7 md:h-8 rounded-lg bg-iosAccent text-white text-[10px] md:text-[11px] font-semibold flex items-center gap-1 md:gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
                 <i class="fa-solid fa-mobile-screen-button"></i>
                 <span id="device-btn-text">Ver PC</span>
             </button>
@@ -444,11 +446,15 @@
                             <h1 class="text-2xl font-bold tracking-tight">Audiolibros</h1>
                         </div>
                         <div class="flex items-center gap-2">
-                            <!-- Alternador de Tema Integrado para Móviles -->
-                            <button id="btn-toggle-theme-mobile" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white" title="Cambiar Tema">
+                            <button id="btn-font-dec-mobile" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white font-bold text-[10px]" title="Reducir Letra">A-</button>
+                            <button id="btn-font-inc-mobile" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white font-bold text-[10px]" title="Aumentar Letra">A+</button>
+                            <button id="btn-toggle-theme-mobile" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white" title="Cambiar Tema">
                                 <i class="fa-solid fa-moon"></i>
                             </button>
-                            <button id="btn-select-dir" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
+                            <button id="btn-toggle-device-mobile" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white" title="Cambiar Vista PC/Teléfono">
+                                <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+                            </button>
+                            <button id="btn-select-dir" class="w-9 h-9 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
                                 <i class="fa-solid fa-folder-open text-base text-iosAccent"></i>
                             </button>
                         </div>
@@ -502,6 +508,9 @@
                             <span class="text-[10px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
                             <h2 id="player-title" class="text-xs font-bold truncate">Título de Ejemplo</h2>
                         </div>
+                        <button id="btn-toggle-theme-player" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white" title="Cambiar Tema">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
                         <button id="btn-export" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-emerald-400" title="Guardar Audio en PC">
                             <i class="fa-solid fa-file-export text-sm"></i>
                         </button>
@@ -802,10 +811,12 @@
             const savedTheme = localStorage.getItem('voz_alquimia_theme');
             const icon = document.getElementById('theme-icon');
             const iconMobile = document.querySelector('#btn-toggle-theme-mobile i');
+            const iconPlayer = document.querySelector('#btn-toggle-theme-player i');
             if (savedTheme === 'light') {
                 document.body.classList.add('light-theme');
                 icon.className = "fa-solid fa-sun";
                 if (iconMobile) iconMobile.className = "fa-solid fa-sun";
+                if (iconPlayer) iconPlayer.className = "fa-solid fa-sun";
             }
         }
 
@@ -981,9 +992,13 @@
 
             document.getElementById('btn-font-inc').addEventListener('click', () => adjustGlobalFont(0.05));
             document.getElementById('btn-font-dec').addEventListener('click', () => adjustGlobalFont(-0.05));
+            document.getElementById('btn-font-inc-mobile').addEventListener('click', () => adjustGlobalFont(0.05));
+            document.getElementById('btn-font-dec-mobile').addEventListener('click', () => adjustGlobalFont(-0.05));
             document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
             document.getElementById('btn-toggle-theme-mobile').addEventListener('click', toggleTheme);
+            document.getElementById('btn-toggle-theme-player').addEventListener('click', toggleTheme);
             document.getElementById('btn-toggle-device').addEventListener('click', toggleDeviceView);
+            document.getElementById('btn-toggle-device-mobile').addEventListener('click', toggleDeviceView);
 
             document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
             document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
@@ -1124,15 +1139,18 @@
             const body = document.body;
             const icon = document.getElementById('theme-icon');
             const iconMobile = document.querySelector('#btn-toggle-theme-mobile i');
+            const iconPlayer = document.querySelector('#btn-toggle-theme-player i');
             body.classList.toggle('light-theme');
             
             if (body.classList.contains('light-theme')) {
                 icon.className = "fa-solid fa-sun";
                 if (iconMobile) iconMobile.className = "fa-solid fa-sun";
+                if (iconPlayer) iconPlayer.className = "fa-solid fa-sun";
                 localStorage.setItem('voz_alquimia_theme', 'light');
             } else {
                 icon.className = "fa-solid fa-moon";
                 if (iconMobile) iconMobile.className = "fa-solid fa-moon";
+                if (iconPlayer) iconPlayer.className = "fa-solid fa-moon";
                 localStorage.setItem('voz_alquimia_theme', 'dark');
             }
         }
@@ -1912,26 +1930,65 @@
         function speakSentenceOnline(index) {
             window.speechSynthesis.cancel();
             const sentenceText = textSentences[index];
+            const directUrl = getOnlineTTSUrlDirect(sentenceText);
 
-            try {
-                const directUrl = getOnlineTTSUrlDirect(sentenceText);
-                
-                ttsAudioEl.src = directUrl;
-                ttsAudioEl.playbackRate = activeSpeedRate;
-                ttsAudioEl.play().catch(() => {});
+            // Limpiar handlers previos para evitar duplicados
+            ttsAudioEl.onended = null;
+            ttsAudioEl.onerror = null;
 
-                prefetchNextSentence(activeChapterIndex, index + 1);
+            // Método híbrido: intenta fetch→blob (compatible iOS), fallback a src directo (PC)
+            const tryBlobMethod = () => {
+                fetch(directUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        if (!isPlaying || currentSentenceIndex !== index) return;
+                        const blobUrl = URL.createObjectURL(blob);
+                        playAudioBlob(blobUrl, index);
+                    })
+                    .catch(() => {
+                        // Fallback: método directo con src
+                        if (!isPlaying || currentSentenceIndex !== index) return;
+                        playAudioDirect(directUrl, index);
+                    });
+            };
 
-                ttsAudioEl.onended = () => {
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
-                ttsAudioEl.onerror = () => {
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
-            } catch (err) {
-                console.warn(err);
+            tryBlobMethod();
+        }
+
+        function playAudioBlob(blobUrl, index) {
+            ttsAudioEl.src = blobUrl;
+            ttsAudioEl.playbackRate = activeSpeedRate;
+            ttsAudioEl.onended = () => {
+                URL.revokeObjectURL(blobUrl);
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
-            }
+            };
+            ttsAudioEl.onerror = () => {
+                URL.revokeObjectURL(blobUrl);
+                if (isPlaying && currentSentenceIndex === index) {
+                    setTimeout(() => speakSentenceOnline(index), 500);
+                }
+            };
+            ttsAudioEl.play().catch(() => {});
+            prefetchNextSentence(activeChapterIndex, index + 1);
+        }
+
+        function playAudioDirect(url, index) {
+            ttsAudioEl.src = url;
+            ttsAudioEl.playbackRate = activeSpeedRate;
+            ttsAudioEl.onended = () => {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.onerror = () => {
+                if (isPlaying && currentSentenceIndex === index) {
+                    setTimeout(() => speakSentenceOnline(index), 800);
+                }
+            };
+            ttsAudioEl.load();
+            ttsAudioEl.play().catch(() => {});
+            prefetchNextSentence(activeChapterIndex, index + 1);
         }
 
         function jumpToSentence(idx) {
