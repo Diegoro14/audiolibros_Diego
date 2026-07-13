@@ -35,6 +35,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <style>
+        html {
+            font-size: calc(16px * var(--font-scale, 1));
+            transition: font-size 0.2s ease;
+        }
         :root {
             --font-scale: 1.0;
             --bg-color: #050508;
@@ -62,12 +66,55 @@
             --blob-op: 0.12;
         }
 
+        /* ============ SOBRESCRITURA COMPLETA DE MODO CLARO ============ */
+        /* Muchos elementos usan clases fijas de Tailwind pensadas solo para modo oscuro.
+           Estas reglas las corrigen automáticamente cuando el body tiene .light-theme */
+        body.light-theme { color-scheme: light; }
+        body:not(.light-theme) { color-scheme: dark; }
+
+        body.light-theme .text-white { color: var(--text-color) !important; }
+        body.light-theme .text-zinc-300 { color: #3a3a3c !important; }
+        body.light-theme .text-zinc-400 { color: #6e6e73 !important; }
+        body.light-theme .text-zinc-500 { color: #8e8e93 !important; }
+        body.light-theme .placeholder-zinc-400::placeholder { color: #8e8e93 !important; }
+        body.light-theme .hover\:text-white:hover { color: var(--text-color) !important; }
+
+        body.light-theme .bg-white\/5 { background-color: rgba(0,0,0,0.045) !important; }
+        body.light-theme .bg-white\/10 { background-color: rgba(0,0,0,0.065) !important; }
+        body.light-theme .bg-white\/15 { background-color: rgba(0,0,0,0.09) !important; }
+        body.light-theme .bg-white\/20 { background-color: rgba(0,0,0,0.11) !important; }
+        body.light-theme .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.07) !important; }
+        body.light-theme .hover\:bg-white\/20:hover { background-color: rgba(0,0,0,0.1) !important; }
+
+        body.light-theme .border-white\/5,
+        body.light-theme .border-white\/10,
+        body.light-theme .border-white\/20 { border-color: rgba(0,0,0,0.1) !important; }
+
+        body.light-theme .bg-black\/10 { background-color: rgba(255,255,255,0.55) !important; }
+        body.light-theme .bg-black\/65 { background-color: rgba(120,120,128,0.4) !important; }
+        body.light-theme .bg-black\/75 { background-color: rgba(120,120,128,0.5) !important; }
+
+        body.light-theme .bg-zinc-900 { background-color: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; }
+        body.light-theme .bg-zinc-950 { background-color: #f2f2f7 !important; }
+        body.light-theme .bg-zinc-950\/90 { background-color: rgba(242,242,247,0.94) !important; }
+
+        body.light-theme select,
+        body.light-theme input[type="text"] { color: var(--text-color); }
+        body.light-theme option { color: #1c1c1e; background-color: #ffffff; }
+
+        body.light-theme #view-player { background-color: rgba(242,242,247,0.94) !important; }
+        body.light-theme .book-card,
+        body.light-theme #modal-bookmarks .liquid-glass,
+        body.light-theme #modal-timer .liquid-glass { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+
+        body.light-theme #toast { color: #1c1c1e; }
+        body.light-theme ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-font-smoothing: antialiased;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-size: calc(1rem * var(--font-scale));
             -webkit-overflow-scrolling: touch;
             overflow-x: hidden;
             transition: background-color 0.4s ease, color 0.4s ease, font-size 0.2s ease;
@@ -143,7 +190,7 @@
         }
     </style>
 </head>
-<body class="h-full overflow-hidden select-none">
+<body class="h-full overflow-hidden select-none flex flex-col">
 
     <!-- Fondo líquido abstracto autogestionado -->
     <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
@@ -152,7 +199,7 @@
     </div>
 
     <!-- PANEL SUPERIOR GLOBAL (Herramientas del Sistema con adaptación nativa al notch de iOS) -->
-    <div class="w-full bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 flex justify-between items-center z-50 relative text-xs safe-padding-top">
+    <div class="w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 flex justify-between items-center z-50 relative text-xs safe-padding-top">
         <div class="flex items-center gap-3">
             <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>VOZALQUIMIA</span>
         </div>
@@ -178,7 +225,7 @@
     </div>
 
     <!-- CONTENEDOR DE CONTROL DE DISPOSITIVO (Centra el móvil o lo expande a PC) -->
-    <div id="app-workspace" class="flex items-center justify-center h-[calc(100vh-45px)] w-full p-2 md:p-6 transition-all duration-500">
+    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-2 md:p-6 transition-all duration-500">
         
         <!-- ESTE CONTENEDOR SE PUEDE TRANSFORMAR EN UN IPHONE O EN UNA INTERFAZ DE ESCRITORIO PC -->
         <div id="device-wrapper" class="w-full h-full flex flex-col md:flex-row gap-6 max-w-7xl">
@@ -320,7 +367,10 @@
                         <!-- Selector de Voces Neuronales en Español Latino y Ajustes -->
                         <div class="grid grid-cols-2 gap-3">
                             <div class="flex flex-col">
-                                <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Voz Latino Realista</label>
+                                <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1 flex items-center gap-1">
+                                    Voz
+                                    <button id="btn-voice-info" type="button" class="w-3.5 h-3.5 rounded-full bg-white/10 flex items-center justify-center text-[8px] leading-none" title="Cómo obtener mejores voces">i</button>
+                                </label>
                                 <select id="select-voices" class="py-2.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
                                     <!-- Las voces se auto-poblarán -->
                                 </select>
@@ -347,10 +397,10 @@
                         </div>
 
                         <!-- Mandos Físicos de audio -->
-                        <div class="flex justify-between items-center px-4 py-1">
+                        <div class="flex justify-between items-center px-4 py-1 safe-padding-bottom">
                             <!-- Marcador de Frases/Páginas -->
-                            <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Añadir Marcador">
-                                <i class="fa-regular fa-bookmark text-lg"></i>
+                            <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Añadir Marcador">
+                                <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-lg"></i>
                             </button>
 
                             <!-- Retroceder 15 Segundos -->
@@ -430,6 +480,9 @@
         </div>
     </div>
 
+    <!-- Reproductor de audio real (necesario para que funcione con la pantalla bloqueada en iPhone) -->
+    <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
+
     <!-- ================= MODAL SLEEP TIMER ================= -->
     <div id="modal-timer" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
@@ -471,6 +524,8 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         window.onload = function() {
+            restoreTheme();
+            restoreFontScale();
             initApp();
             initSpeechSynthesis();
             registerMediaSession();
@@ -535,6 +590,20 @@
             document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
             document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
             document.getElementById('btn-forward').addEventListener('click', () => skipSeconds(15));
+
+            // Cambiar velocidad en vivo (afecta al audio que está sonando en ese momento)
+            document.getElementById('select-rate').addEventListener('change', (e) => {
+                const rate = parseFloat(e.target.value);
+                if (!ttsAudioEl.paused) ttsAudioEl.playbackRate = rate;
+                if (activeUtterance) activeUtterance.rate = rate;
+            });
+
+            // Cambiar de motor de voz en vivo (reinicia la frase actual con la nueva voz)
+            document.getElementById('select-voices').addEventListener('change', () => {
+                if (isPlaying) {
+                    speakSentence(currentSentenceIndex);
+                }
+            });
             
             // Toggle Cover / Text
             const toggleCover = document.getElementById('toggle-cover');
@@ -620,11 +689,29 @@
 
         // Control de tamaño de fuente
         function adjustGlobalFont(delta) {
-            let currentScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale') || 1);
-            currentScale += delta;
+            let currentScale = parseFloat(document.documentElement.style.getPropertyValue('--font-scale')) || parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale')) || 1;
+            currentScale = Math.round((currentScale + delta) * 100) / 100;
             if (currentScale < 0.75) currentScale = 0.75;
-            if (currentScale > 1.45) currentScale = 1.45;
+            if (currentScale > 1.6) currentScale = 1.6;
             document.documentElement.style.setProperty('--font-scale', currentScale);
+            localStorage.setItem('voz_alquimia_font_scale', currentScale);
+            showToast(`Tamaño de letra: ${Math.round(currentScale * 100)}%`, "fa-text-height");
+        }
+
+        function restoreFontScale() {
+            const saved = localStorage.getItem('voz_alquimia_font_scale');
+            if (saved) {
+                document.documentElement.style.setProperty('--font-scale', saved);
+            }
+        }
+
+        function restoreTheme() {
+            const savedTheme = localStorage.getItem('voz_alquimia_theme');
+            const icon = document.getElementById('theme-icon');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                icon.className = "fa-solid fa-sun";
+            }
         }
 
         // Alternar Modo Claro / Oscuro
@@ -635,8 +722,10 @@
             
             if (body.classList.contains('light-theme')) {
                 icon.className = "fa-solid fa-sun";
+                localStorage.setItem('voz_alquimia_theme', 'light');
             } else {
                 icon.className = "fa-solid fa-moon";
+                localStorage.setItem('voz_alquimia_theme', 'dark');
             }
         }
 
@@ -684,50 +773,62 @@
                 const select = document.getElementById('select-voices');
                 select.innerHTML = '';
 
-                // Filtrar voces en español
+                // Opción recomendada: motor de audio online (voz real, funciona con pantalla bloqueada)
+                const onlineGroup = document.createElement('optgroup');
+                onlineGroup.label = "Recomendada";
+                const onlineOpt = document.createElement('option');
+                onlineOpt.value = "online";
+                onlineOpt.textContent = "🌐 Voz Online HD (funciona con pantalla bloqueada)";
+                onlineGroup.appendChild(onlineOpt);
+                select.appendChild(onlineGroup);
+
+                // Filtrar voces en español instaladas en el dispositivo
                 const spanishVoices = synthesisVoices.filter(voice => 
                     voice.lang.includes('es-') || voice.lang.startsWith('es')
                 );
 
-                // Algoritmo de clasificación de calidad: Priorizamos las voces Neural / Natural / Online / Siri por encima de todo
                 spanishVoices.sort((a, b) => {
                     const aLower = a.name.toLowerCase();
                     const bLower = b.name.toLowerCase();
-                    const isANeural = aLower.includes('neural') || aLower.includes('natural') || aLower.includes('online') || aLower.includes('siri') || aLower.includes('google');
-                    const isBNeural = bLower.includes('neural') || bLower.includes('natural') || bLower.includes('online') || bLower.includes('siri') || bLower.includes('google');
+                    const isANeural = aLower.includes('neural') || aLower.includes('natural') || aLower.includes('online') || aLower.includes('siri') || aLower.includes('google') || aLower.includes('mejorada') || aLower.includes('enhanced') || aLower.includes('premium');
+                    const isBNeural = bLower.includes('neural') || bLower.includes('natural') || bLower.includes('online') || bLower.includes('siri') || bLower.includes('google') || bLower.includes('mejorada') || bLower.includes('enhanced') || bLower.includes('premium');
                     
                     if (isANeural && !isBNeural) return -1;
                     if (!isANeural && isBNeural) return 1;
                     return 0;
                 });
 
-                if (spanishVoices.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.textContent = "Español Estándar";
-                    opt.value = "default";
-                    select.appendChild(opt);
-                } else {
+                if (spanishVoices.length > 0) {
+                    const systemGroup = document.createElement('optgroup');
+                    systemGroup.label = "Voces del sistema (sin pantalla bloqueada)";
                     spanishVoices.forEach((voice, index) => {
                         const opt = document.createElement('option');
                         let name = voice.name.replace("Microsoft", "MS").replace("Google", "Google").trim();
-                        let isHighQuality = voice.name.toLowerCase().includes('neural') || voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('online') || voice.name.toLowerCase().includes('siri');
+                        let isHighQuality = voice.name.toLowerCase().includes('neural') || voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('online') || voice.name.toLowerCase().includes('siri') || voice.name.toLowerCase().includes('mejorada') || voice.name.toLowerCase().includes('enhanced');
                         
                         let label = `${name} [${voice.lang}]`;
                         if (isHighQuality) {
-                            label = `🔥 Voz Neural - ${name}`;
+                            label = `🔥 ${name}`;
                         }
 
                         opt.textContent = label;
                         opt.value = index;
-                        select.appendChild(opt);
+                        systemGroup.appendChild(opt);
                     });
+                    select.appendChild(systemGroup);
                 }
+
+                select.value = "online";
             }
 
             loadVoices();
             if (window.speechSynthesis.onvoiceschanged !== undefined) {
                 window.speechSynthesis.onvoiceschanged = loadVoices;
             }
+
+            document.getElementById('btn-voice-info').addEventListener('click', () => {
+                showToast("Tip: en Ajustes > Accesibilidad > Contenido Hablado > Voces > Español, descarga una voz 'Mejorada' para más calidad offline. La Voz Online HD ya suena natural y funciona con pantalla bloqueada.", "fa-lightbulb text-yellow-300");
+            });
         }
 
         function showToast(message, iconClass = "fa-circle-info") {
@@ -815,8 +916,8 @@
                         }
                     }
 
-                    // Intentar extraer portada del EPUB de forma nativa o autogenerar con formato impecable
-                    let coverUrl = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
+                    // Intentar extraer la portada real embebida en el EPUB
+                    let coverUrl = await extractEpubCover(zip, opfDoc, manifestItems, opfFolder, title);
 
                     const newBook = {
                         id: Date.now().toString(),
@@ -838,6 +939,100 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Extrae la portada real de un EPUB probando los 3 métodos estándar:
+        // 1) <meta name="cover" content="ID"> apuntando a un item del manifest
+        // 2) <item properties="cover-image"> (EPUB3)
+        // 3) Un item del manifest cuyo id/href contenga la palabra "cover"
+        async function extractEpubCover(zip, opfDoc, manifestItems, opfFolder, title) {
+            const fallback = "https://placehold.co/400x600/0a84ff/ffffff?text=" + encodeURIComponent(title);
+            try {
+                let coverHref = null;
+
+                // Método 1: meta name="cover"
+                const metaCover = opfDoc.querySelector('meta[name="cover"]');
+                if (metaCover) {
+                    const coverId = metaCover.getAttribute('content');
+                    if (coverId && manifestItems[coverId]) {
+                        coverHref = manifestItems[coverId];
+                    }
+                }
+
+                // Método 2: EPUB3 properties="cover-image"
+                if (!coverHref) {
+                    const items = opfDoc.querySelectorAll('manifest > item');
+                    for (let item of items) {
+                        const props = item.getAttribute('properties') || '';
+                        if (props.includes('cover-image')) {
+                            coverHref = item.getAttribute('href');
+                            break;
+                        }
+                    }
+                }
+
+                // Método 3: buscar cualquier imagen cuyo id/href contenga "cover"
+                if (!coverHref) {
+                    const items = opfDoc.querySelectorAll('manifest > item');
+                    for (let item of items) {
+                        const mediaType = item.getAttribute('media-type') || '';
+                        const id = (item.getAttribute('id') || '').toLowerCase();
+                        const href = (item.getAttribute('href') || '').toLowerCase();
+                        if (mediaType.startsWith('image/') && (id.includes('cover') || href.includes('cover'))) {
+                            coverHref = item.getAttribute('href');
+                            break;
+                        }
+                    }
+                }
+
+                if (!coverHref) return fallback;
+
+                // Resolver la ruta relativa dentro del zip
+                let fullPath = opfFolder + coverHref;
+                let imageFile = zip.file(fullPath) || zip.file(coverHref) || zip.file(decodeURIComponent(fullPath));
+
+                if (!imageFile) return fallback;
+
+                const base64Data = await imageFile.async('base64');
+                const ext = coverHref.split('.').pop().toLowerCase();
+                const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+                const mime = mimeMap[ext] || 'image/jpeg';
+                const rawDataUrl = `data:${mime};base64,${base64Data}`;
+
+                // Comprimir para no saturar el almacenamiento local del navegador
+                const compressed = await compressCoverImage(rawDataUrl);
+                return compressed || rawDataUrl;
+            } catch (err) {
+                console.warn("No se pudo extraer la portada del EPUB:", err);
+                return fallback;
+            }
+        }
+
+        // Reduce una imagen de portada a un tamaño manejable (máx 400x600, JPEG calidad 0.82)
+        function compressCoverImage(dataUrl) {
+            return new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    img.onload = () => {
+                        const maxW = 400, maxH = 600;
+                        let { width, height } = img;
+                        const ratio = Math.min(maxW / width, maxH / height, 1);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.82));
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = dataUrl;
+                } catch (e) {
+                    resolve(null);
+                }
+            });
         }
 
         function parsePDFFile(file) {
@@ -991,6 +1186,7 @@
         }
 
         function loadAudiobookPlayer(index) {
+            clearTTSAudioCache();
             activeBookIndex = index;
             const book = currentBooks[index];
             activeChapterIndex = book.progressChapter || 0;
@@ -1055,6 +1251,7 @@
 
         function changeChapter(chapterIdx) {
             pauseAudio();
+            clearTTSAudioCache();
             activeChapterIndex = chapterIdx;
             currentSentenceIndex = 0;
             
@@ -1122,6 +1319,72 @@
             }
         }
 
+        // --- Motor de Voz Online HD (audio real, funciona con pantalla bloqueada) ---
+        const ttsAudioEl = document.getElementById('tts-audio-player');
+        let ttsAudioCache = {}; // key: "chapter-sentence" -> blob URL
+        let ttsPrefetchInFlight = {};
+
+        function splitTextIntoTTSChunks(text, maxLen = 190) {
+            const rawSentences = text.split(/(?<=[.!?])\s+/);
+            const chunks = [];
+            let current = "";
+            for (let s of rawSentences) {
+                if ((current + " " + s).trim().length < maxLen) {
+                    current += (current ? " " : "") + s;
+                } else {
+                    if (current) chunks.push(current);
+                    current = s;
+                }
+            }
+            if (current) chunks.push(current);
+            return chunks.length > 0 ? chunks : [text];
+        }
+
+        async function fetchOnlineTTSBlobUrl(text) {
+            const chunks = splitTextIntoTTSChunks(text);
+            const buffers = [];
+            for (const chunk of chunks) {
+                const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-us&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+                const res = await fetch(url);
+                if (res.ok) buffers.push(await res.arrayBuffer());
+            }
+            if (buffers.length === 0) throw new Error("Sin audio recibido");
+            const blob = new Blob(buffers, { type: 'audio/mp3' });
+            return URL.createObjectURL(blob);
+        }
+
+        async function getSentenceAudioUrl(chapterIdx, sentenceIdx, text) {
+            const key = `${chapterIdx}-${sentenceIdx}`;
+            if (ttsAudioCache[key]) return ttsAudioCache[key];
+            if (ttsPrefetchInFlight[key]) return ttsPrefetchInFlight[key];
+
+            const promise = fetchOnlineTTSBlobUrl(text).then(url => {
+                ttsAudioCache[key] = url;
+                delete ttsPrefetchInFlight[key];
+                return url;
+            });
+            ttsPrefetchInFlight[key] = promise;
+            return promise;
+        }
+
+        function prefetchNextSentence(chapterIdx, sentenceIdx) {
+            if (sentenceIdx >= textSentences.length) return;
+            const key = `${chapterIdx}-${sentenceIdx}`;
+            if (ttsAudioCache[key] || ttsPrefetchInFlight[key]) return;
+            getSentenceAudioUrl(chapterIdx, sentenceIdx, textSentences[sentenceIdx]).catch(() => {});
+        }
+
+        function clearTTSAudioCache() {
+            Object.values(ttsAudioCache).forEach(url => URL.revokeObjectURL(url));
+            ttsAudioCache = {};
+            ttsPrefetchInFlight = {};
+        }
+
+        function isOnlineVoiceSelected() {
+            const voiceSelect = document.getElementById('select-voices');
+            return voiceSelect.value === "online";
+        }
+
         function playAudio() {
             if (textSentences.length === 0) return;
             startSilentAudioHack();
@@ -1141,6 +1404,7 @@
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
             }
+            ttsAudioEl.pause();
             stopProgressTicker();
             updateMediaSessionState("paused");
         }
@@ -1167,13 +1431,22 @@
             currentBooks[activeBookIndex].progressSentence = currentSentenceIndex;
             saveLibraryToStorage();
 
+            if (isOnlineVoiceSelected()) {
+                speakSentenceOnline(index);
+            } else {
+                speakSentenceSystem(index);
+            }
+        }
+
+        function speakSentenceSystem(index) {
             window.speechSynthesis.cancel(); 
+            ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
             activeUtterance = new SpeechSynthesisUtterance(sentenceText);
             
             const voiceSelect = document.getElementById('select-voices');
-            if (voiceSelect.value !== "default" && synthesisVoices[voiceSelect.value]) {
+            if (synthesisVoices[voiceSelect.value]) {
                 activeUtterance.voice = synthesisVoices[voiceSelect.value];
             }
 
@@ -1193,6 +1466,37 @@
             };
 
             window.speechSynthesis.speak(activeUtterance);
+        }
+
+        async function speakSentenceOnline(index) {
+            window.speechSynthesis.cancel();
+            const sentenceText = textSentences[index];
+            const rateSelect = document.getElementById('select-rate');
+
+            try {
+                const url = await getSentenceAudioUrl(activeChapterIndex, index, sentenceText);
+                if (!isPlaying || currentSentenceIndex !== index) return; // el usuario pausó o saltó mientras cargaba
+
+                ttsAudioEl.src = url;
+                ttsAudioEl.playbackRate = parseFloat(rateSelect.value);
+                await ttsAudioEl.play();
+
+                // Precargar la siguiente frase mientras suena esta, para que no haya silencios
+                prefetchNextSentence(activeChapterIndex, index + 1);
+
+                ttsAudioEl.onended = () => {
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                };
+                ttsAudioEl.onerror = () => {
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                };
+            } catch (err) {
+                console.warn("Fallo la Voz Online HD, revisa tu conexión:", err);
+                if (isPlaying) {
+                    showToast("Sin conexión para Voz Online. Prueba una voz del sistema.", "fa-wifi text-red-400");
+                    pauseAudio();
+                }
+            }
         }
 
         function jumpToSentence(idx) {
@@ -1232,6 +1536,7 @@
             if (currentEl) {
                 currentEl.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 word-active";
             }
+            updateBookmarkButtonState();
         }
 
         function scrollToActiveSentence() {
@@ -1289,25 +1594,50 @@
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
+        function updateBookmarkButtonState() {
+            const btn = document.getElementById('btn-bookmark');
+            const icon = document.getElementById('btn-bookmark-icon');
+            if (activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+            const isBookmarked = book.bookmarks.some(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
+
+            if (isBookmarked) {
+                icon.className = "fa-solid fa-bookmark text-lg";
+                btn.classList.remove('text-zinc-400');
+                btn.classList.add('text-iosAccent', 'scale-110');
+                btn.style.color = 'var(--accent-color)';
+            } else {
+                icon.className = "fa-regular fa-bookmark text-lg";
+                btn.classList.remove('text-iosAccent', 'scale-110');
+                btn.classList.add('text-zinc-400');
+                btn.style.color = '';
+            }
+        }
+
         function addBookmark() {
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
             const bookmarkName = `${book.chapters[activeChapterIndex].title} - Marcador ${currentSentenceIndex + 1}`;
             
-            const exists = book.bookmarks.some(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
-            
-            if (!exists) {
-                book.bookmarks.push({
-                    name: bookmarkName,
-                    chapter: activeChapterIndex,
-                    sentence: currentSentenceIndex,
-                    timestamp: Date.now()
-                });
+            const existingIdx = book.bookmarks.findIndex(b => b.chapter === activeChapterIndex && b.sentence === currentSentenceIndex);
+
+            if (existingIdx !== -1) {
+                book.bookmarks.splice(existingIdx, 1);
                 saveLibraryToStorage();
-                showToast("Marcador Guardado", "fa-star text-yellow-400");
-            } else {
-                showToast("Ya existe un marcador aquí");
+                updateBookmarkButtonState();
+                showToast("Marcador quitado");
+                return;
             }
+
+            book.bookmarks.push({
+                name: bookmarkName,
+                chapter: activeChapterIndex,
+                sentence: currentSentenceIndex,
+                timestamp: Date.now()
+            });
+            saveLibraryToStorage();
+            updateBookmarkButtonState();
+            showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
 
         function openBookmarksModal() {
@@ -1349,6 +1679,7 @@
             book.bookmarks.splice(idx, 1);
             saveLibraryToStorage();
             openBookmarksModal();
+            updateBookmarkButtonState();
             showToast("Marcador eliminado");
         }
 
@@ -1432,19 +1763,7 @@
             try {
                 for (let i = 0; i < book.chapters.length; i++) {
                     const chapter = book.chapters[i];
-                    const rawSentences = chapter.text.split(/(?<=[.!?])\s+/);
-                    const chunks = [];
-                    let currentChunk = "";
-
-                    for (let sentence of rawSentences) {
-                        if ((currentChunk + " " + sentence).length < 200) {
-                            currentChunk += (currentChunk ? " " : "") + sentence;
-                        } else {
-                            if (currentChunk) chunks.push(currentChunk);
-                            currentChunk = sentence;
-                        }
-                    }
-                    if (currentChunk) chunks.push(currentChunk);
+                    const chunks = splitTextIntoTTSChunks(chapter.text, 200);
 
                     const audioBlobs = [];
                     
