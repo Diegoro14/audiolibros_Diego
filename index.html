@@ -482,6 +482,8 @@
 
     <!-- Reproductor de audio real (necesario para que funcione con la pantalla bloqueada en iPhone) -->
     <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
+    <!-- Audio silencioso para mantener Media Session activo con voces del sistema -->
+    <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
 
     <!-- ================= MODAL SLEEP TIMER ================= -->
     <div id="modal-timer" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
@@ -1336,7 +1338,18 @@
         let dummyAudioContext = null;
         let dummyAudioNode = null;
 
+        // Audio silencioso en base64 (1 segundo de silencio MP3)
+        // Se usa para mantener Media Session activo cuando se usan voces del sistema
+        const SILENT_MP3_DATA = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYgFtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t////////////////////////////////////////////////////////////AAAAAABhY2Y1Ny4xMQAAAAAAAAAAAAAAACQAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYgFtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t';
+
+        const silentKeepalive = document.getElementById('silent-keepalive');
+        silentKeepalive.src = SILENT_MP3_DATA;
+        silentKeepalive.volume = 0.01; // casi inaudible pero mantiene la sesión activa
+
         function startSilentAudioHack() {
+            // Intentar reproducir audio silencioso para mantener Media Session
+            silentKeepalive.play().catch(() => {});
+
             if (!dummyAudioContext) {
                 dummyAudioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const buffer = dummyAudioContext.createBuffer(1, 1, 22050);
@@ -1349,6 +1362,11 @@
             if (dummyAudioContext.state === 'suspended') {
                 dummyAudioContext.resume();
             }
+        }
+
+        function stopSilentAudioHack() {
+            silentKeepalive.pause();
+            silentKeepalive.currentTime = 0;
         }
 
         // --- Motor de Voz Online HD (audio real, funciona con pantalla bloqueada) ---
@@ -1373,15 +1391,36 @@
         }
 
         async function fetchOnlineTTSBlobUrl(text) {
-            const chunks = splitTextIntoTTSChunks(text);
+            const chunks = splitTextIntoTTSChunks(text, 170);
             const buffers = [];
+
+            // Intentar con el endpoint principal de Google
+            const endpoints = [
+                (q) => `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(q)}`,
+                (q) => `https://translate.google.com/translate_tts?ie=UTF-8&tl=es&client=tw-ob&q=${encodeURIComponent(q)}`,
+            ];
+
             for (const chunk of chunks) {
-                const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(chunk)}`;
-                const res = await fetch(url);
-                if (res.ok) {
-                    buffers.push(await res.arrayBuffer());
-                } else {
-                    console.warn("TTS chunk fallo con estado:", res.status);
+                let fetched = false;
+                for (const makeUrl of endpoints) {
+                    try {
+                        const url = makeUrl(chunk);
+                        const res = await fetch(url);
+                        if (res.ok) {
+                            const contentType = res.headers.get('content-type') || '';
+                            // Verificar que no sea HTML (Google a veces devuelve captcha)
+                            if (contentType.includes('audio') || contentType.includes('octet')) {
+                                buffers.push(await res.arrayBuffer());
+                                fetched = true;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                if (!fetched) {
+                    console.warn("TTS chunk fallo para:", chunk.substring(0, 50));
                 }
             }
             if (buffers.length === 0) throw new Error("Sin audio recibido");
@@ -1442,6 +1481,7 @@
                 window.speechSynthesis.cancel();
             }
             ttsAudioEl.pause();
+            stopSilentAudioHack();
             stopProgressTicker();
             updateMediaSessionState("paused");
         }
@@ -1476,7 +1516,7 @@
         }
 
         function speakSentenceSystem(index) {
-            window.speechSynthesis.cancel(); 
+            window.speechSynthesis.cancel();
             ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
@@ -1501,6 +1541,9 @@
                     speakSentence(currentSentenceIndex + 1);
                 }
             };
+
+            // Mantener audio silencioso reproduciéndose para Media Session en pantalla de bloqueo
+            silentKeepalive.play().catch(() => {});
 
             window.speechSynthesis.speak(activeUtterance);
         }
@@ -1786,6 +1829,15 @@
                 ttsAudioEl.addEventListener('timeupdate', () => {
                     updatePositionState();
                 });
+
+                // También sincronizar con el audio silencioso (voces del sistema)
+                silentKeepalive.addEventListener('play', () => {
+                    if (isPlaying) navigator.mediaSession.playbackState = 'playing';
+                });
+                silentKeepalive.addEventListener('pause', () => {
+                    if (!isPlaying) navigator.mediaSession.playbackState = 'paused';
+                });
+
                 ttsAudioEl.dataset.mediaSessionBound = "1";
             }
         }
