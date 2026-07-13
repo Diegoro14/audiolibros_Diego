@@ -27,7 +27,7 @@
     </script>
     
     <!-- Google Fonts para tipografía ultra legible -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome para íconos interactivos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Soporte EPUB & PDF -->
@@ -66,7 +66,7 @@
             --blob-op: 0.12;
         }
 
-        /* Corrección de modo claro para selectores (Siri y Velocidad) */
+        /* Corrección de modo claro para selectores y textos */
         body.light-theme { color-scheme: light; }
         body:not(.light-theme) { color-scheme: dark; }
 
@@ -88,9 +88,55 @@
         body.light-theme .bg-zinc-900 { background-color: #ffffff !important; border-color: rgba(0,0,0,0.1) !important; }
         body.light-theme .bg-zinc-950 { background-color: #f2f2f7 !important; }
 
-        /* Ajustes específicos de contraste para los desplegables de voz y velocidad en Modo Claro */
-        body.light-theme select {
-            background-color: rgba(0, 0, 0, 0.05) !important;
+        /* Estilos dinámicos adaptativos para los botones multimedia sin contorno rígido */
+        #btn-play-pause {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            border: none !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #btn-play-pause:hover {
+            background-color: rgba(255, 255, 255, 0.14);
+            transform: scale(1.05);
+        }
+        #btn-play-pause:active {
+            transform: scale(0.95);
+        }
+
+        #btn-rewind, #btn-forward {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: none !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #btn-rewind:hover, #btn-forward:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Modificaciones del reproductor en Modo Claro (Botones levemente más oscuros) */
+        body.light-theme #btn-play-pause {
+            background-color: rgba(0, 0, 0, 0.085) !important; 
+            color: #1c1c1e !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+        }
+        body.light-theme #btn-play-pause:hover {
+            background-color: rgba(0, 0, 0, 0.12) !important;
+        }
+        body.light-theme #btn-rewind, body.light-theme #btn-forward {
+            background-color: rgba(0, 0, 0, 0.055) !important; 
+            color: #1c1c1e !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important;
+        }
+        body.light-theme #btn-rewind:hover, body.light-theme #btn-forward:hover {
+            background-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* Ajustes específicos de contraste para los desplegables en Modo Claro */
+        body.light-theme select, 
+        body.light-theme #btn-speed-trigger {
+            background-color: rgba(0, 0, 0, 0.06) !important;
             color: #1c1c1e !important;
             border-color: rgba(0, 0, 0, 0.12) !important;
         }
@@ -98,6 +144,14 @@
         body.light-theme select optgroup {
             background-color: #ffffff !important;
             color: #1c1c1e !important;
+        }
+
+        /* Menú de velocidad flotante en modo claro */
+        body.light-theme #speed-flyout {
+            background: rgba(255, 255, 255, 0.96) !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #1c1c1e !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
         }
 
         /* Estilo ultra-suave y luminoso del difuminado de fondo en modo claro */
@@ -147,10 +201,29 @@
         }
 
         .safe-padding-top {
-            padding-top: max(0.75rem, env(safe-area-inset-top));
+            padding-top: max(16px, env(safe-area-inset-top));
         }
         .safe-padding-bottom {
             padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+        }
+
+        /* ===== SAFE AREA HARDWARE-LEVEL PROTECTION ===== */
+        /* Evita que cualquier contenido quede bajo la barra de estado (hora, señal, batería) */
+        /* iPhone 13 Pro Max (notch): safe-area-inset-top ~47px */
+        /* iPhone 14/15/16 Pro Max (Dynamic Island): safe-area-inset-top ~59px */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            .safe-padding-top {
+                padding-top: env(safe-area-inset-top);
+            }
+            .safe-padding-bottom {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+        /* Fallback robusto cuando env() no está disponible */
+        @supports not (padding-top: env(safe-area-inset-top)) {
+            .safe-padding-top {
+                padding-top: 16px;
+            }
         }
 
         .view-transition {
@@ -158,30 +231,162 @@
         }
 
         .word-active {
-            background-color: var(--accent-glow);
             color: var(--accent-color);
-            border-radius: 6px;
-            padding: 4px 8px;
-            transform: scale(1.04);
             font-weight: 600;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 1 !important;
+            transition: color 0.4s ease, opacity 0.4s ease;
         }
 
+        /* Texto Sincrónico en Pantalla Completa (Spotify Style) */
+        #wrapper-text {
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+        }
+        body.light-theme #wrapper-text {
+            background: rgba(242, 242, 247, 0.96);
+        }
+
+        /* Estilo unificado para flyouts (Voz, Velocidad, Apagado, Capítulos) */
+        .unified-flyout {
+            background: var(--glass-bg-darker);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+        body.light-theme .unified-flyout {
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #1c1c1e;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .unified-trigger {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        body.light-theme .unified-trigger {
+            background-color: rgba(0, 0, 0, 0.06) !important;
+            color: #1c1c1e !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+        }
+        .unified-trigger:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        body.light-theme .unified-trigger:hover {
+            background-color: rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .flyout-option {
+            transition: all 0.18s ease;
+        }
+        .flyout-option:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        body.light-theme .flyout-option:hover {
+            background-color: rgba(0, 0, 0, 0.06) !important;
+        }
+        /* Selección minimalista: solo check icon, sin fondo azul */
+        .flyout-option.active-opt {
+            background-color: transparent;
+            color: inherit;
+        }
+        body.light-theme .flyout-option.active-opt {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+
+        /* Estilo claro para overlay de texto completo */
+        body.light-theme #wrapper-text h2,
+        body.light-theme #wrapper-text span,
+        body.light-theme #wrapper-text p {
+            color: #1c1c1e !important;
+        }
+
+        /* Ajuste de Frame para simulación Pro Max extendido */
         .phone-frame {
-            width: 393px;
-            height: 852px;
+            width: 430px;
+            height: 932px;
             border: 12px solid #222;
-            border-radius: 48px;
+            border-radius: 52px;
             position: relative;
             box-shadow: 0 25px 60px -15px rgba(0,0,0,0.6);
             overflow: hidden;
             background: var(--bg-color);
         }
 
+        /* Eliminación absoluta de flechas en selectores de audio y velocidad */
+        select {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            background-image: none !important;
+            padding-right: 12px !important;
+            padding-left: 12px !important;
+            text-align: center;
+            text-align-last: center;
+            cursor: pointer;
+        }
+        select::-ms-expand {
+            display: none;
+        }
+
+        /* Scroll nativo de iOS */
+        .ios-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            overscroll-behavior-y: contain;
+        }
+
+        /* Estilo iOS premium para inputs de rango (Slider de Tono) */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.25);
+        }
+
+        /* Optimización Responsiva para iPhone Pro Max y móviles reales */
+        @media (max-width: 768px) {
+            #app-workspace {
+                padding: 0 !important;
+            }
+            #device-wrapper {
+                width: 100% !important;
+                height: 100dvh !important;
+                gap: 0 !important;
+            }
+            #app-phone-container {
+                width: 100% !important;
+                height: 100dvh !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+            }
+            /* Margen superior de seguridad para iPhone Pro Max (13+): Dynamic Island ~59px, Notch ~47px */
+            .safe-padding-top {
+                padding-top: max(59px, env(safe-area-inset-top)) !important;
+            }
+            .safe-padding-bottom {
+                padding-bottom: max(34px, env(safe-area-inset-bottom)) !important;
+            }
+        }
+
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
         }
         ::-webkit-scrollbar-track {
             background: transparent;
@@ -200,7 +405,8 @@
         <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-blue-600/15 blur-[140px] animate-pulse transition-opacity duration-700" style="animation-duration: 8s; opacity: var(--blob-op);"></div>
     </div>
 
-    <div class="w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 flex justify-between items-center z-50 relative text-xs safe-padding-top">
+    <!-- Barra de Herramientas de Simulación (Oculta automáticamente en Móviles) -->
+    <div class="hidden md:flex w-full flex-shrink-0 bg-black/10 backdrop-blur-md border-b border-white/5 pb-2 px-4 justify-between items-center z-50 relative text-xs safe-padding-top">
         <div class="flex items-center gap-3">
             <span class="font-bold tracking-wider text-xs"><i class="fa-solid fa-wand-magic-sparkles text-iosAccent mr-1"></i>VOZALQUIMIA</span>
         </div>
@@ -214,35 +420,42 @@
             </button>
             <button id="btn-toggle-device" class="px-3 h-8 rounded-lg bg-iosAccent text-white text-[11px] font-semibold flex items-center gap-1.5 hover:bg-blue-600 active:scale-95 transition-all">
                 <i class="fa-solid fa-mobile-screen-button"></i>
-                <span id="device-btn-text">Ver Móvil</span>
+                <span id="device-btn-text">Ver PC</span>
             </button>
         </div>
     </div>
 
     <!-- CONTENEDOR DE CONTROL DE DISPOSITIVO -->
-    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-2 md:p-6 transition-all duration-500">
-        <div id="device-wrapper" class="w-full h-full flex flex-col md:flex-row gap-6 max-w-7xl">
-            <div id="app-phone-container" class="flex-1 flex flex-col h-full bg-transparent overflow-hidden relative">
+    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-0 md:p-4 transition-all duration-500">
+        <div id="device-wrapper" class="flex items-center justify-center transition-all duration-300">
+            <div id="app-phone-container" class="phone-frame flex flex-col h-full overflow-hidden relative">
 
                 <!-- Notificaciones Flotantes -->
-                <div id="toast" class="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-full text-xs font-medium transition-all duration-300 opacity-0 pointer-events-none liquid-glass text-white shadow-lg flex items-center gap-2">
+                <div id="toast" class="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-full text-xs font-medium transition-all duration-300 opacity-0 pointer-events-none liquid-glass text-white shadow-lg flex items-center gap-2 w-[85%] justify-center">
                     <i class="fa-solid fa-circle-info" id="toast-icon"></i>
                     <span id="toast-text">Notificación</span>
                 </div>
 
-                <div id="view-library" class="view-transition flex flex-col flex-1 min-h-0 overflow-hidden px-4">
-                    <header class="flex justify-between items-center py-2">
+                <!-- VISTA BIBLIOTECA -->
+                <div id="view-library" class="view-transition flex flex-col flex-1 min-h-0 overflow-hidden px-4 safe-padding-top">
+                    <header class="flex justify-between items-center py-2 shrink-0">
                         <div>
                             <span class="text-[10px] font-semibold opacity-60 uppercase tracking-wider">Tu Colección</span>
                             <h1 class="text-2xl font-bold tracking-tight">Audiolibros</h1>
                         </div>
-                        <button id="btn-select-dir" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
-                            <i class="fa-solid fa-folder-open text-base text-iosAccent"></i>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <!-- Alternador de Tema Integrado para Móviles -->
+                            <button id="btn-toggle-theme-mobile" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-white" title="Cambiar Tema">
+                                <i class="fa-solid fa-moon"></i>
+                            </button>
+                            <button id="btn-select-dir" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Vincular Carpeta PC">
+                                <i class="fa-solid fa-folder-open text-base text-iosAccent"></i>
+                            </button>
+                        </div>
                     </header>
 
                     <!-- Zona de Carga de Archivos -->
-                    <div id="drop-zone" class="relative group mt-1 mb-3 p-3 rounded-2xl border-2 border-dashed border-white/20 hover:border-iosAccent/50 transition-all flex items-center gap-3 bg-white/5 cursor-pointer">
+                    <div id="drop-zone" class="relative group mt-1 mb-3 p-3 shrink-0 rounded-2xl border-2 border-dashed border-white/20 hover:border-iosAccent/50 transition-all flex items-center gap-3 bg-white/5 cursor-pointer">
                         <input type="file" id="file-input" accept=".epub,.pdf" class="hidden">
                         <div class="w-9 h-9 shrink-0 rounded-full bg-iosAccent/10 flex items-center justify-center text-iosAccent transition-transform group-hover:scale-110">
                             <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
@@ -254,34 +467,36 @@
                     </div>
 
                     <!-- Buscador Avanzado de Biblioteca -->
-                    <div class="relative mb-2">
+                    <div class="relative mb-3 shrink-0">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                             <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
                         </span>
                         <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[11px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
                     </div>
 
-                    <!-- Listado con Scroll Continuo e Infinito -->
-                    <div class="flex-1 min-h-0 overflow-y-auto pb-24">
-                        <div class="flex justify-between items-center mb-2">
+                    <!-- Área de scroll infinito -->
+                    <div class="flex-1 min-h-0 ios-scroll pb-24">
+                        <div class="flex justify-between items-center mb-2.5">
                             <h2 class="text-sm font-bold tracking-tight">Mis Libros</h2>
                             <span id="library-count" class="text-[10px] opacity-70 bg-white/5 px-2 py-0.5 rounded-full font-semibold">0 libros</span>
                         </div>
-                        <div id="books-grid" class="flex flex-col gap-2 pb-4">
-                            <div id="no-books-msg" class="col-span-full text-center py-12 opacity-60">
-                                <i class="fa-solid fa-book-open text-3xl mb-3"></i>
-                                <p class="text-xs">Aún no has importado ningún libro.</p>
+                        <div id="books-grid" class="flex flex-col gap-2.5 pb-12">
+                            <div id="no-books-msg" class="col-span-full text-center py-16 opacity-60">
+                                <i class="fa-solid fa-book-open text-4xl mb-3 text-iosAccent"></i>
+                                <p class="text-xs font-medium">Aún no has importado ningún libro.</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- REPRODUCTOR DE AUDIOLIBROS -->
                 <div id="view-player" class="view-transition hidden absolute inset-0 z-40 flex flex-col overflow-hidden">
                     <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-700" style="filter: blur(100px) brightness(0.35) saturate(1.8); transform: scale(1.35);"></div>
                     
-                    <header class="flex justify-between items-center px-6 py-4 safe-padding-top">
-                        <button id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
+                    <header class="flex justify-between items-center px-6 py-4 safe-padding-top shrink-0">
+                        <button id="btn-back" class="flex items-center gap-1.5 px-3 h-10 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
                             <i class="fa-solid fa-chevron-left text-sm"></i>
+                            <span class="text-xs font-semibold">Volver</span>
                         </button>
                         <div class="text-center flex-1 mx-3 overflow-hidden">
                             <span class="text-[10px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
@@ -293,16 +508,16 @@
                     </header>
 
                     <div class="flex-1 flex flex-col px-6 overflow-hidden">
-                        <div class="flex justify-center mb-2">
+                        <div class="flex justify-center mb-2.5 shrink-0">
                             <div class="p-1 rounded-full bg-white/5 flex gap-1 liquid-glass">
                                 <button id="toggle-cover" class="px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all">Portada</button>
                                 <button id="toggle-text" class="px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all">Texto Sincrónico</button>
                             </div>
                         </div>
 
-                        <!-- Miniatura de Portada Optimizada para NO RECORTAR y ser Proporcional -->
+                        <!-- Miniatura de Portada Alta Calidad -->
                         <div id="wrapper-cover" class="shrink-0 flex flex-col items-center justify-center transition-all duration-300 max-h-[52vh] md:max-h-[46vh] lg:max-h-[42vh]">
-                            <div class="relative w-full max-w-[230px] md:max-w-[260px] lg:max-w-[280px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-2 mx-auto bg-black/15 flex items-center justify-center">
+                            <div class="relative w-full max-w-[210px] md:max-w-[240px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.55)] overflow-hidden border border-white/10 group mb-2 mx-auto bg-black/15 flex items-center justify-center">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-contain">
                             </div>
                             <div class="text-center max-w-xs mb-1">
@@ -312,26 +527,27 @@
                             </div>
                         </div>
 
-                        <!-- Texto Sincronizado -->
-                        <div id="wrapper-text" class="hidden flex-1 flex flex-col overflow-hidden mb-3">
-                            <div id="lyrics-container" class="flex-1 overflow-y-auto px-1 py-4 space-y-4 text-center text-base md:text-lg font-medium leading-relaxed select-none">
+                        <!-- Texto Sincronizado en Pantalla Completa (Spotify Style) -->
+                        <div id="wrapper-text" class="hidden fixed inset-0 z-[60] flex flex-col overflow-hidden">
+                            <header class="flex items-center px-6 py-4 safe-padding-top shrink-0">
+                                <button id="btn-close-text" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver al Reproductor">
+                                    <i class="fa-solid fa-chevron-down text-sm"></i>
+                                </button>
+                                <div class="text-center flex-1 mx-3 overflow-hidden">
+                                    <span class="text-[10px] font-bold text-iosAccent uppercase tracking-widest">Lectura Sincronizada</span>
+                                    <h2 id="text-view-title" class="text-xs font-bold truncate">Título</h2>
+                                </div>
+                                <div class="w-10"></div>
+                            </header>
+                            <div id="lyrics-container" class="flex-1 ios-scroll px-6 py-6 space-y-5 text-center text-lg md:text-xl font-medium leading-relaxed select-none">
                                 <div class="opacity-40 py-12 text-sm">Carga un libro para iniciar la lectura sincronizada.</div>
                             </div>
                         </div>
 
-                        <!-- Selector de Capítulos -->
-                        <div class="mt-5 mb-1 px-1 shrink-0">
-                            <button id="btn-trigger-chapters" class="w-full py-2.5 px-4 rounded-xl liquid-glass text-xs font-semibold flex justify-between items-center hover:bg-white/10 active:scale-95 transition-all text-white bg-white/5 shadow-md">
-                                <span class="flex items-center gap-2">
-                                    <i class="fa-solid fa-book-open text-iosAccent"></i>
-                                    <span id="player-chapter-display">Seleccionar Capítulo</span>
-                                </span>
-                                <i class="fa-solid fa-chevron-right text-zinc-400 text-[10px]"></i>
-                            </button>
-                        </div>
                     </div>
 
-                    <div class="liquid-glass-dark px-6 pt-4 pb-4 md:pt-3 md:pb-3 md:space-y-2.5 space-y-3 rounded-t-[32px] shadow-2xl relative z-50">
+                    <!-- Panel de control de Audio inferior -->
+                    <div class="liquid-glass-dark px-6 pt-4 pb-4 md:pt-3 md:pb-3 md:space-y-2.5 space-y-3 rounded-t-[32px] shadow-2xl relative z-50 shrink-0">
                         <div class="space-y-1">
                             <div class="flex justify-between text-[10px] opacity-60 px-1 font-bold">
                                 <span id="time-current">0:00</span>
@@ -345,33 +561,100 @@
                             </div>
                         </div>
 
-                        <!-- Controles de Ajustes de Audio -->
-                        <div class="grid grid-cols-2 gap-2 md:gap-3">
-                            <div class="flex flex-col">
-                                <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1 flex items-center gap-1">
-                                    Voz iOS / Siri
-                                    <button id="btn-voice-info" type="button" class="w-3.5 h-3.5 rounded-full bg-white/10 flex items-center justify-center text-[8px] leading-none" title="Ayuda">i</button>
-                                </label>
-                                <select id="select-voices" class="py-2 md:py-1.5 px-2.5 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none focus:ring-1 focus:ring-iosAccent">
-                                    <!-- Voces cargadas dinámicamente -->
-                                </select>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="flex flex-col">
-                                    <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Velocidad</label>
-                                    <select id="select-rate" class="py-2 md:py-1.5 px-2 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none">
-                                        <option value="0.8">0.8x</option>
-                                        <option value="1.0" selected>1.0x (Norm)</option>
-                                        <option value="1.2">1.2x</option>
-                                        <option value="1.5">1.5x</option>
-                                        <option value="1.8">1.8x</option>
-                                    </select>
+                        <!-- Controles de Ajustes de Audio (Voz, Velocidad, Capítulos, Apagado) — 4 columnas unificadas -->
+                        <div class="grid grid-cols-4 gap-1.5 md:gap-2">
+                            <!-- Voz -->
+                            <div class="flex flex-col relative" id="voice-dropdown-container">
+                                <button id="btn-voice-trigger" class="unified-trigger py-2.5 md:py-1.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="voice-display-value" class="truncate flex-1 text-left text-[10px]">Voz Online HD</span>
+                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                </button>
+                                <div id="voice-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-0 w-56 rounded-xl p-2 z-[100] max-h-[280px] overflow-y-auto ios-scroll space-y-1">
+                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Voces Disponibles</div>
                                 </div>
-                                <div class="flex flex-col">
-                                    <label class="text-[9px] uppercase font-bold opacity-60 tracking-wider mb-1">Apagado</label>
-                                    <button id="btn-timer" class="py-2 md:py-1.5 px-1 rounded-lg bg-zinc-900 border border-white/10 text-[11px] text-white outline-none flex items-center justify-center gap-1">
-                                        <i class="fa-regular fa-clock"></i>
-                                        <span id="timer-label">Off</span>
+                            </div>
+
+                            <!-- Velocidad -->
+                            <div class="flex flex-col relative" id="speed-dropdown-container">
+                                <button id="btn-speed-trigger" class="unified-trigger py-2.5 md:py-1.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="speed-display-value" class="text-[10px]">1.0x</span>
+                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                </button>
+                                <div id="speed-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 rounded-xl p-2 z-[100] space-y-1">
+                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Velocidad</div>
+                                    <button class="speed-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="0.8">
+                                        <span>0.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="speed-opt-btn flyout-option active-opt w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="1.0">
+                                        <span>1.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]"></i>
+                                    </button>
+                                    <button class="speed-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="1.2">
+                                        <span>1.2x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="speed-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="1.5">
+                                        <span>1.5x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="speed-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="1.8">
+                                        <span>1.8x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="speed-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-value="2.0">
+                                        <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <!-- Modulador de Tono (Pitch Slider) -->
+                                    <div class="pt-2 mt-1 border-t border-white/15 space-y-1.5">
+                                        <div class="flex justify-between items-center text-[9px] uppercase font-bold opacity-60 tracking-wider px-1">
+                                            <span>Tono</span>
+                                            <span id="tone-value" class="text-iosAccent font-semibold text-[10px]">Normal</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 px-1">
+                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[10px]"></i>
+                                            <input type="range" id="slider-pitch" min="0.5" max="1.5" step="0.1" value="1.0" class="flex-1 h-1 bg-white/15 rounded-full appearance-none outline-none cursor-pointer accent-iosAccent">
+                                            <i class="fa-solid fa-volume-high text-iosAccent text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Capítulos -->
+                            <div class="flex flex-col relative" id="chapters-dropdown-container">
+                                <button id="btn-trigger-chapters" class="unified-trigger py-2.5 md:py-1.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-between transition-all w-full">
+                                    <span id="player-chapter-display" class="truncate flex-1 text-left text-[10px]">Capítulo</span>
+                                    <i class="fa-solid fa-chevron-down text-[8px] opacity-60 ml-1 shrink-0"></i>
+                                </button>
+                                <div id="chapters-flyout" class="unified-flyout hidden absolute bottom-full mb-2 right-0 w-60 rounded-xl p-2 z-[100] space-y-1">
+                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Capítulos</div>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                                            <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+                                        </span>
+                                        <input type="text" id="chapter-search" class="w-full py-1.5 pl-8 pr-3 rounded-lg bg-white/5 text-[11px] text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo...">
+                                    </div>
+                                    <div id="chapters-scroll-list" class="max-h-[260px] ios-scroll space-y-1 pr-1"></div>
+                                </div>
+                            </div>
+
+                            <!-- Apagado (Temporizador) -->
+                            <div class="flex flex-col relative" id="timer-dropdown-container">
+                                <button id="btn-timer" class="unified-trigger py-2.5 md:py-1.5 px-1.5 rounded-lg text-[11px] font-semibold outline-none flex items-center justify-center gap-1 transition-all w-full">
+                                    <i class="fa-regular fa-clock text-[10px]"></i>
+                                    <span id="timer-label" class="text-[10px]">Off</span>
+                                </button>
+                                <div id="timer-flyout" class="unified-flyout hidden absolute bottom-full mb-2 right-0 w-48 rounded-xl p-2 z-[100] space-y-1">
+                                    <div class="text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Apagado</div>
+                                    <button class="timer-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-minutes="10">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>10 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="timer-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-minutes="20">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>20 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="timer-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-minutes="30">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>30 min</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="timer-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center justify-between" data-minutes="60">
+                                        <span><i class="fa-regular fa-clock mr-2 opacity-60 text-[10px]"></i>1 hora</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]" style="visibility:hidden"></i>
+                                    </button>
+                                    <button id="btn-cancel-timer" class="flyout-option w-full p-2 rounded-lg bg-red-500/15 border border-red-500/25 text-red-400 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-red-500/25">
+                                        <i class="fa-solid fa-power-off text-[10px]"></i>Desactivar
                                     </button>
                                 </div>
                             </div>
@@ -382,19 +665,19 @@
                             <button id="btn-bookmark" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all duration-200" title="Marcador">
                                 <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-lg"></i>
                             </button>
-                            <button id="btn-rewind" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
+                            <button id="btn-rewind" class="w-12 h-12 rounded-full flex items-center justify-center">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-left text-base text-white"></i>
-                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-left text-base"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
                                 </span>
                             </button>
-                            <button id="btn-play-pause" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 transition-all hover:bg-zinc-100">
+                            <button id="btn-play-pause" class="w-16 h-16 rounded-full flex items-center justify-center">
                                 <i id="play-icon" class="fa-solid fa-play text-xl ml-0.5"></i>
                             </button>
-                            <button id="btn-forward" class="w-11 h-11 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 active:scale-90 transition-all">
+                            <button id="btn-forward" class="w-12 h-12 rounded-full flex items-center justify-center">
                                 <span class="relative">
-                                    <i class="fa-solid fa-arrow-rotate-right text-base text-white"></i>
-                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2 text-white">15</span>
+                                    <i class="fa-solid fa-arrow-rotate-right text-base"></i>
+                                    <span class="absolute text-[8px] font-bold top-1.5 left-1/2 -translate-x-1/2">15</span>
                                 </span>
                             </button>
                             <button id="btn-list-bookmarks" class="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all" title="Ver Marcadores">
@@ -407,57 +690,18 @@
         </div>
     </div>
 
-    <!-- Modal de Selección de Capítulos -->
-    <div id="modal-chapters" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-end justify-center p-0 md:p-6">
-        <div class="w-full max-w-lg md:rounded-2xl bg-zinc-900 border-t border-white/10 overflow-hidden shadow-2xl flex flex-col h-[75vh] md:h-[65vh]">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-zinc-950">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-list-ul text-iosAccent"></i>
-                    <h3 class="font-bold text-sm text-white">Capítulos del Libro</h3>
-                </div>
-                <button id="close-modal-chapters" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-3 bg-zinc-950 border-b border-white/5">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" id="chapter-search" class="w-full py-2 pl-9 pr-4 rounded-xl bg-white/5 text-xs text-white outline-none placeholder-zinc-400 focus:ring-1 focus:ring-iosAccent" placeholder="Buscar capítulo...">
-                </div>
-            </div>
-            <div id="chapters-scroll-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-        </div>
-    </div>
-
     <!-- Modal de Marcadores Guardados -->
     <div id="modal-bookmarks" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-sm"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Marcadores</h3>
                 <button id="close-modal-bookmarks" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="bookmarks-list" class="max-h-64 overflow-y-auto px-5 py-3 space-y-2"></div>
+            <div id="bookmarks-list" class="max-h-64 ios-scroll px-5 py-3 space-y-2"></div>
         </div>
     </div>
 
-    <!-- Modal de Temporizador -->
-    <div id="modal-timer" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
-        <div class="w-full max-w-sm rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-regular fa-clock mr-2"></i>Temporizador</h3>
-                <button id="close-modal-timer" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-5 grid grid-cols-2 gap-3 text-center text-xs">
-                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="10">10 Minutos</button>
-                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="20">20 Minutos</button>
-                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="30">30 Minutos</button>
-                <button class="btn-set-timer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-iosAccent hover:text-white active:scale-95 transition-all font-semibold" data-minutes="60">1 Hora</button>
-                <button id="btn-cancel-timer" class="col-span-2 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white active:scale-95 transition-all font-semibold">Desactivar Temporizador</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE CONFIRMACIÓN DE ACCIONES (Reemplazo Premium de confirm()) -->
+    <!-- MODAL DE CONFIRMACIÓN DE ACCIONES -->
     <div id="modal-confirm" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-xs rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl p-5 text-center">
             <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-3xl mb-3 animate-bounce"></i>
@@ -486,7 +730,18 @@
         
         let textSentences = [];
         let currentSentenceIndex = 0;
-        let playbackTimer = null;
+        
+        // Variables de motor de animación fluido (60FPS Spotify Style)
+        let sentenceOffsets = [];
+        let estimatedDurations = [];
+        let totalChapterDuration = 0;
+        let currentSentenceStartTime = 0;
+        let animationFrameId = null;
+
+        let activePitch = 1.0; // Tono de voz por defecto
+        let activeSpeedRate = 1.0; // Velocidad por defecto
+        let selectedVoiceValue = "online"; // Voz seleccionada (por defecto online)
+
         let timerCountdown = null;
         let remainingTimerSeconds = 0;
 
@@ -508,7 +763,7 @@
                             isPlaying = true;
                             document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
                             speakSentence(currentSentenceIndex);
-                            startProgressTicker();
+                            startSmoothProgressLoop();
                             updateMediaSessionState("playing");
                             if (!isOnlineVoiceSelected()) {
                                 const silentKeepalive = document.getElementById('silent-keepalive');
@@ -531,15 +786,26 @@
             restoreFontScale();
             initApp();
             initSpeechSynthesis();
+            
+            // Detección automática inicial del dispositivo móvil
+            if (window.innerWidth <= 768) {
+                isPcLayout = false;
+                const wrapper = document.getElementById('device-wrapper');
+                const phoneContainer = document.getElementById('app-phone-container');
+                wrapper.className = "flex items-center justify-center w-full h-full";
+                phoneContainer.className = "flex flex-col h-full overflow-hidden relative w-full h-[100dvh]";
+            }
         };
 
         // --- FUNCIONES DE PERSISTENCIA Y TEMA ---
         function restoreTheme() {
             const savedTheme = localStorage.getItem('voz_alquimia_theme');
             const icon = document.getElementById('theme-icon');
+            const iconMobile = document.querySelector('#btn-toggle-theme-mobile i');
             if (savedTheme === 'light') {
                 document.body.classList.add('light-theme');
                 icon.className = "fa-solid fa-sun";
+                if (iconMobile) iconMobile.className = "fa-solid fa-sun";
             }
         }
 
@@ -558,6 +824,7 @@
             document.getElementById('modal-confirm').classList.remove('hidden');
         }
 
+        // --- STREAMING_CHUNK: Initializing event listeners and speed popover... ---
         function initApp() {
             loadLibraryFromStorage();
 
@@ -587,6 +854,110 @@
                 }
             });
 
+            // Lógica para desplegar el menú de velocidad y tono
+            const btnSpeedTrigger = document.getElementById('btn-speed-trigger');
+            const speedFlyout = document.getElementById('speed-flyout');
+
+            btnSpeedTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllFlyouts(speedFlyout);
+                speedFlyout.classList.toggle('hidden');
+            });
+
+            // Detener propagación para que al hacer clic dentro del menú no se cierre solo
+            speedFlyout.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Lógica para desplegar el menú de VOCES
+            const btnVoiceTrigger = document.getElementById('btn-voice-trigger');
+            const voiceFlyout = document.getElementById('voice-flyout');
+
+            btnVoiceTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllFlyouts(voiceFlyout);
+                voiceFlyout.classList.toggle('hidden');
+            });
+
+            voiceFlyout.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Lógica para desplegar el menú de CAPÍTULOS
+            const btnTriggerChapters = document.getElementById('btn-trigger-chapters');
+            const chaptersFlyout = document.getElementById('chapters-flyout');
+
+            btnTriggerChapters.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllFlyouts(chaptersFlyout);
+                chaptersFlyout.classList.toggle('hidden');
+                if (!chaptersFlyout.classList.contains('hidden')) {
+                    renderChaptersFlyoutList(document.getElementById('chapter-search').value);
+                }
+            });
+
+            chaptersFlyout.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Lógica para desplegar el menú de TEMPORIZADOR (Apagado)
+            const btnTimer = document.getElementById('btn-timer');
+            const timerFlyout = document.getElementById('timer-flyout');
+
+            btnTimer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllFlyouts(timerFlyout);
+                timerFlyout.classList.toggle('hidden');
+            });
+
+            timerFlyout.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Cerrar todos los flyouts al hacer clic fuera
+            document.addEventListener('click', () => {
+                closeAllFlyouts();
+            });
+
+            // Escuchar botones de ritmo del audiolibro (estilo lista con check azul)
+            document.querySelectorAll('.speed-opt-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const clickedBtn = e.currentTarget;
+                    const value = clickedBtn.dataset.value;
+                    document.querySelectorAll('.speed-opt-btn').forEach(b => {
+                        const check = b.querySelector('.check-icon');
+                        const isMatch = b.dataset.value === value;
+                        if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
+                        b.classList.toggle('active-opt', isMatch);
+                    });
+
+                    activeSpeedRate = parseFloat(value);
+                    document.getElementById('speed-display-value').textContent = `${activeSpeedRate.toFixed(1)}x`;
+
+                    // Aplicar velocidad al reproductor en curso
+                    const ttsAudioEl = document.getElementById('tts-audio-player');
+                    if (!ttsAudioEl.paused) ttsAudioEl.playbackRate = activeSpeedRate;
+                    if (activeUtterance) activeUtterance.rate = activeSpeedRate;
+                    
+                    // Re-estimar los cálculos de duración en tiempo real
+                    recalculateDurationsAndOffsets();
+                });
+            });
+
+            // Slider de Modulación de Tono (Pitch)
+            document.getElementById('slider-pitch').addEventListener('input', (e) => {
+                activePitch = parseFloat(e.target.value);
+                let label = "Normal";
+                if (activePitch < 0.9) label = "Grave";
+                else if (activePitch > 1.1) label = "Agudo";
+                document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
+                
+                // Aplicar el cambio de tono instantáneamente a la síntesis en curso
+                if (activeUtterance) {
+                    activeUtterance.pitch = activePitch;
+                }
+            });
+
             // Buscadores
             document.getElementById('library-search').addEventListener('input', () => renderLibrary());
             document.getElementById('chapter-search').addEventListener('input', (e) => filterChapters(e.target.value));
@@ -611,24 +982,17 @@
             document.getElementById('btn-font-inc').addEventListener('click', () => adjustGlobalFont(0.05));
             document.getElementById('btn-font-dec').addEventListener('click', () => adjustGlobalFont(-0.05));
             document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
+            document.getElementById('btn-toggle-theme-mobile').addEventListener('click', toggleTheme);
             document.getElementById('btn-toggle-device').addEventListener('click', toggleDeviceView);
 
             document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
             document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
             document.getElementById('btn-forward').addEventListener('click', () => skipSeconds(15));
 
-            document.getElementById('select-rate').addEventListener('change', (e) => {
-                const rate = parseFloat(e.target.value);
-                const ttsAudioEl = document.getElementById('tts-audio-player');
-                if (!ttsAudioEl.paused) ttsAudioEl.playbackRate = rate;
-                if (activeUtterance) activeUtterance.rate = rate;
-            });
-
-            document.getElementById('select-voices').addEventListener('change', () => {
-                if (isPlaying) speakSentence(currentSentenceIndex);
-            });
+            // Listener para el viejo select de voces eliminado; las voces ahora se manejan desde el flyout
+            // (no se requiere listener aquí)
             
-            // Toggle de Portada / Letras
+            // Toggle de Portada / Letras (Texto Sincrónico en pantalla completa)
             const toggleCover = document.getElementById('toggle-cover');
             const toggleText = document.getElementById('toggle-text');
             const wrapperCover = document.getElementById('wrapper-cover');
@@ -637,45 +1001,48 @@
             toggleCover.addEventListener('click', () => {
                 toggleCover.className = "px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
                 toggleText.className = "px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
-                wrapperCover.classList.remove('hidden');
                 wrapperText.classList.add('hidden');
             });
 
             toggleText.addEventListener('click', () => {
                 toggleText.className = "px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
                 toggleCover.className = "px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
+                // Actualizar título del overlay
+                const bookTitleEl = document.getElementById('player-book-title');
+                document.getElementById('text-view-title').textContent = bookTitleEl ? bookTitleEl.textContent : 'Lectura';
+                // Mostrar overlay en pantalla completa
                 wrapperText.classList.remove('hidden');
-                wrapperCover.classList.add('hidden');
                 scrollToActiveSentence();
             });
 
-            document.getElementById('btn-trigger-chapters').addEventListener('click', () => {
-                document.getElementById('modal-chapters').classList.remove('hidden');
-                renderChaptersModalList();
-            });
-            document.getElementById('close-modal-chapters').addEventListener('click', () => {
-                document.getElementById('modal-chapters').classList.add('hidden');
+            // Botón para cerrar el texto en pantalla completa y volver al reproductor
+            document.getElementById('btn-close-text').addEventListener('click', () => {
+                wrapperText.classList.add('hidden');
+                toggleCover.className = "px-4 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white transition-all";
+                toggleText.className = "px-4 py-1 rounded-full text-[11px] font-bold text-zinc-400 transition-all";
             });
 
             document.getElementById('btn-select-dir').addEventListener('click', requestDirectoryAccess);
             document.getElementById('btn-export').addEventListener('click', exportAudiobookToFolder);
 
-            // Temporizador de Apagado
-            document.getElementById('btn-timer').addEventListener('click', () => {
-                document.getElementById('modal-timer').classList.remove('hidden');
-            });
-            document.getElementById('close-modal-timer').addEventListener('click', () => {
-                document.getElementById('modal-timer').classList.add('hidden');
-            });
-            document.querySelectorAll('.btn-set-timer').forEach(btn => {
+            // Temporizador de Apagado (flyout estilo lista con check azul)
+            document.querySelectorAll('.timer-opt-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    setSleepTimer(parseInt(e.target.dataset.minutes));
-                    document.getElementById('modal-timer').classList.add('hidden');
+                    const minutes = parseInt(e.currentTarget.dataset.minutes);
+                    // Actualizar checks visuales
+                    document.querySelectorAll('.timer-opt-btn').forEach(b => {
+                        const check = b.querySelector('.check-icon');
+                        const isMatch = parseInt(b.dataset.minutes) === minutes;
+                        if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
+                        b.classList.toggle('active-opt', isMatch);
+                    });
+                    setSleepTimer(minutes);
+                    document.getElementById('timer-flyout').classList.add('hidden');
                 });
             });
             document.getElementById('btn-cancel-timer').addEventListener('click', () => {
                 clearSleepTimer();
-                document.getElementById('modal-timer').classList.add('hidden');
+                document.getElementById('timer-flyout').classList.add('hidden');
             });
 
             // Gestión de Marcadores
@@ -705,13 +1072,23 @@
             }, { passive: true });
         }
 
-        // --- STREAMING_CHUNK: Procesando y comprimiendo imágenes con CANVAS (Reducción de un 98%) ---
+        // Cierra todos los flyouts abiertos, excepto el indicado (opcional)
+        function closeAllFlyouts(except) {
+            const flyouts = ['speed-flyout', 'voice-flyout', 'chapters-flyout', 'timer-flyout'];
+            flyouts.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el !== except) el.classList.add('hidden');
+            });
+        }
+
+        // --- STREAMING_CHUNK: Processing and compressing images with Canvas... ---
         function compressCoverImage(dataUrl) {
             return new Promise((resolve) => {
                 try {
                     const img = new Image();
                     img.onload = () => {
-                        const maxW = 120, maxH = 180;
+                        // Dimensiones para mantener la nitidez en pantallas Retina de iPhone Pro Max
+                        const maxW = 480, maxH = 720;
                         let { width, height } = img;
                         const ratio = Math.min(maxW / width, maxH / height, 1);
                         width = Math.round(width * ratio);
@@ -722,8 +1099,8 @@
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        // Compresión del 45% en JPEG para ahorrar memoria física
-                        resolve(canvas.toDataURL('image/jpeg', 0.45));
+                        // Calidad optimizada de compresión JPEG al 85% para mantener nitidez absoluta
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
                     };
                     img.onerror = () => resolve(null);
                     img.src = dataUrl;
@@ -746,13 +1123,16 @@
         function toggleTheme() {
             const body = document.body;
             const icon = document.getElementById('theme-icon');
+            const iconMobile = document.querySelector('#btn-toggle-theme-mobile i');
             body.classList.toggle('light-theme');
             
             if (body.classList.contains('light-theme')) {
                 icon.className = "fa-solid fa-sun";
+                if (iconMobile) iconMobile.className = "fa-solid fa-sun";
                 localStorage.setItem('voz_alquimia_theme', 'light');
             } else {
                 icon.className = "fa-solid fa-moon";
+                if (iconMobile) iconMobile.className = "fa-solid fa-moon";
                 localStorage.setItem('voz_alquimia_theme', 'dark');
             }
         }
@@ -774,8 +1154,8 @@
             } else {
                 wrapper.className = "flex items-center justify-center w-full h-full";
                 phoneContainer.className = "phone-frame flex flex-col h-full overflow-hidden relative";
-                phoneContainer.style.width = '393px';
-                phoneContainer.style.height = '852px';
+                phoneContainer.style.width = '430px'; 
+                phoneContainer.style.height = '932px';
                 btnText.textContent = "Ver PC";
             }
         }
@@ -787,14 +1167,13 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Inicializando y listando las voces nativas incluyendo Siri v2 ---
+        // --- STREAMING_CHUNK: Loading iOS/Siri system voices... ---
         function initSpeechSynthesis() {
             if (!('speechSynthesis' in window)) {
                 showToast("Navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
                 return;
             }
 
-            // Bucle inteligente recurrente para capturar las voces en móviles iOS/Safari
             let loadInterval = setInterval(() => {
                 synthesisVoices = window.speechSynthesis.getVoices();
                 if (synthesisVoices.length > 0) {
@@ -805,17 +1184,37 @@
 
             function loadVoices() {
                 synthesisVoices = window.speechSynthesis.getVoices();
-                const select = document.getElementById('select-voices');
-                select.innerHTML = '';
+                const flyout = document.getElementById('voice-flyout');
+                
+                // Conservar el encabezado
+                const header = flyout.querySelector('.text-\\[9px\\]');
+                flyout.innerHTML = '';
+                if (header) flyout.appendChild(header);
+                else {
+                    const h = document.createElement('div');
+                    h.className = "text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
+                    h.textContent = "Voces Disponibles";
+                    flyout.appendChild(h);
+                }
 
                 // Opción online priorizada
-                const onlineGroup = document.createElement('optgroup');
-                onlineGroup.label = "Recomendada";
-                const onlineOpt = document.createElement('option');
-                onlineOpt.value = "online";
-                onlineOpt.textContent = "🌐 Voz Online HD (Pantalla Bloqueada)";
-                onlineGroup.appendChild(onlineOpt);
-                select.appendChild(onlineGroup);
+                const onlineBtn = document.createElement('button');
+                onlineBtn.className = "voice-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center gap-2";
+                onlineBtn.dataset.value = "online";
+                onlineBtn.innerHTML = `<i class="fa-solid fa-wifi text-iosAccent text-[10px]"></i><span class="truncate flex-1">Voz Online HD</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]"></i>`;
+                onlineBtn.querySelector('.check-icon').style.visibility = (selectedVoiceValue === "online") ? 'visible' : 'hidden';
+                if (selectedVoiceValue === "online") onlineBtn.classList.add('active-opt');
+                onlineBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectVoice("online", "Voz Online HD");
+                });
+                flyout.appendChild(onlineBtn);
+
+                // Separador "Voces de Sistema"
+                const sysLabel = document.createElement('div');
+                sysLabel.className = "text-[9px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
+                sysLabel.textContent = "Voces de Sistema";
+                flyout.appendChild(sysLabel);
 
                 const indexedVoices = synthesisVoices.map((voice, originalIndex) => ({ voice, originalIndex }));
                 const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
@@ -833,30 +1232,53 @@
                     return a.voice.name.localeCompare(b.voice.name);
                 });
 
-                if (spanishVoices.length > 0) {
-                    const group = document.createElement('optgroup');
-                    group.label = "Voces de Sistema (iOS)";
-                    spanishVoices.forEach(({ voice, originalIndex }) => {
-                        const opt = document.createElement('option');
-                        let label = voice.name;
-                        if (isQualityVoice(voice.name)) label = `🔥 ${label}`;
-                        opt.textContent = label;
-                        opt.value = originalIndex;
-                        group.appendChild(opt);
+                spanishVoices.forEach(({ voice, originalIndex }) => {
+                    const opt = document.createElement('button');
+                    opt.className = "voice-opt-btn flyout-option w-full p-2 rounded-lg bg-white/5 text-[11px] font-semibold text-left flex items-center gap-2";
+                    opt.dataset.value = originalIndex;
+                    let label = voice.name;
+                    if (isQualityVoice(voice.name)) label = `🔥 ${label}`;
+                    opt.innerHTML = `<span class="truncate flex-1">${label}</span><i class="fa-solid fa-check check-icon text-iosAccent text-[10px]"></i>`;
+                    const isSelected = String(selectedVoiceValue) === String(originalIndex);
+                    opt.querySelector('.check-icon').style.visibility = isSelected ? 'visible' : 'hidden';
+                    if (isSelected) opt.classList.add('active-opt');
+                    opt.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectVoice(originalIndex, label.replace('🔥 ', ''));
                     });
-                    select.appendChild(group);
-                }
+                    flyout.appendChild(opt);
+                });
 
-                select.value = "online";
+                // Si no hay voces de sistema
+                if (spanishVoices.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = "text-[10px] opacity-50 text-center py-2";
+                    empty.textContent = "No se encontraron voces en español.";
+                    flyout.appendChild(empty);
+                }
+            }
+
+            function selectVoice(value, displayLabel) {
+                selectedVoiceValue = value;
+                // Acortar etiqueta para el botón
+                const shortLabel = displayLabel.length > 18 ? displayLabel.substring(0, 17) + '…' : displayLabel;
+                document.getElementById('voice-display-value').textContent = shortLabel;
+                // Actualizar checks visuales
+                document.querySelectorAll('.voice-opt-btn').forEach(b => {
+                    const check = b.querySelector('.check-icon');
+                    const isMatch = String(b.dataset.value) === String(value);
+                    if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
+                    b.classList.toggle('active-opt', isMatch);
+                });
+                // Cerrar flyout
+                document.getElementById('voice-flyout').classList.add('hidden');
+                // Si está reproduciendo, reiniciar la frase actual con la nueva voz
+                if (isPlaying) speakSentence(currentSentenceIndex);
             }
 
             if (window.speechSynthesis.onvoiceschanged !== undefined) {
                 window.speechSynthesis.onvoiceschanged = loadVoices;
             }
-
-            document.getElementById('btn-voice-info').addEventListener('click', () => {
-                showToast("Tip: Activa Siri o Paulina Mejorada en Ajustes de Accesibilidad de tu iPhone para máxima calidad sin internet.", "fa-lightbulb text-yellow-300");
-            });
         }
 
         function showToast(message, iconClass = "fa-circle-info") {
@@ -890,7 +1312,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Procesando archivos EPUB y extrayendo textos y portadas ---
+        // --- STREAMING_CHUNK: Parsing EPUB files and extracting images... ---
         function parseEPUBFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -991,19 +1413,6 @@
                     }
                 }
 
-                if (!coverHref) {
-                    const items = opfDoc.querySelectorAll('manifest > item');
-                    for (let item of items) {
-                        const mediaType = item.getAttribute('media-type') || '';
-                        const id = (item.getAttribute('id') || '').toLowerCase();
-                        const href = (item.getAttribute('href') || '').toLowerCase();
-                        if (mediaType.startsWith('image/') && (id.includes('cover') || href.includes('cover'))) {
-                            coverHref = item.getAttribute('href');
-                            break;
-                        }
-                    }
-                }
-
                 if (!coverHref) return fallback;
 
                 let fullPath = opfFolder + coverHref;
@@ -1024,7 +1433,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Procesando archivos PDF e inyectando Canvas para miniaturas ---
+        // --- STREAMING_CHUNK: Parsing PDF documents as books... ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -1120,7 +1529,7 @@
             localStorage.setItem('voz_alquimia_library', JSON.stringify(currentBooks));
         }
 
-        // --- STREAMING_CHUNK: Renderizando listado de la Biblioteca (Ajuste a scroll infinito) ---
+        // --- STREAMING_CHUNK: Rendering the book collection in library layout... ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             const counter = document.getElementById('library-count');
@@ -1145,9 +1554,9 @@
 
             noBooksMsg.classList.add('hidden');
 
-            filteredBooks.forEach((book, index) => {
+            filteredBooks.forEach((book) => {
                 const card = document.createElement('div');
-                card.className = "book-card flex items-center gap-3 p-2.5 rounded-xl liquid-glass cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all";
+                card.className = "book-card flex items-center gap-3.5 p-3 rounded-xl liquid-glass cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all";
                 card.dataset.index = book.originalIndex;
 
                 const totalSentences = book.chapters.reduce((sum, ch) => sum + (ch.text ? ch.text.split(/[.!?]+/).filter(s => s.trim()).length : 0), 0);
@@ -1158,18 +1567,18 @@
                         <img src="${book.cover}" alt="Portada" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-[13px] truncate text-white leading-tight">${book.title}</h4>
-                        <p class="text-[11px] opacity-60 truncate mt-0.5">${book.author}</p>
+                        <h4 class="font-bold text-[13px] truncate text-white leading-tight">${book.title}</h4>
+                        <p class="text-[11px] opacity-60 truncate mt-1">${book.author}</p>
                         ${book.saga ? `<p class="text-[10px] text-iosAccent truncate font-bold uppercase mt-0.5">${book.saga}</p>` : ''}
-                        <div class="flex items-center gap-2 mt-1.5">
+                        <div class="flex items-center gap-2 mt-2">
                             <div class="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
                                 <div class="h-full bg-iosAccent rounded-full transition-all" style="width: ${progressPercent}%"></div>
                             </div>
                             <span class="text-[9px] opacity-50 shrink-0">${book.chapters.length} caps</span>
                         </div>
                     </div>
-                    <button class="w-8 h-8 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all" onclick="deleteBook(event, ${book.originalIndex})">
-                        <i class="fa-solid fa-trash-can text-[11px]"></i>
+                    <button class="w-9 h-9 shrink-0 rounded-full bg-red-600/0 hover:bg-red-600/10 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-all" onclick="deleteBook(event, ${book.originalIndex})">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 `;
 
@@ -1182,7 +1591,6 @@
             });
         }
 
-        // Eliminación Segura usando Dialog Custom y No confirm() de sistema
         function deleteBook(event, originalIndex) {
             event.stopPropagation();
             const bookTitle = currentBooks[originalIndex].title;
@@ -1212,7 +1620,7 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Cargando el reproductor y ajustando la vista proporcional del Cover ---
+        // --- STREAMING_CHUNK: Loading player details and metadata... ---
         function loadAudiobookPlayer(index) {
             clearTTSAudioCache();
             activeBookIndex = index;
@@ -1224,7 +1632,6 @@
             document.getElementById('player-book-title').textContent = book.title;
             document.getElementById('player-book-author').textContent = book.author;
             
-            // Asigna la imagen y mantén la proporción mediante object-contain
             const playerCover = document.getElementById('player-cover-img');
             playerCover.src = book.cover;
             
@@ -1242,8 +1649,9 @@
             switchView('player');
         }
 
-        function renderChaptersModalList(query = '') {
+        function renderChaptersFlyoutList(query = '') {
             const book = currentBooks[activeBookIndex];
+            if (!book) return;
             const listContainer = document.getElementById('chapters-scroll-list');
             listContainer.innerHTML = '';
 
@@ -1251,26 +1659,23 @@
                 .filter(ch => ch.title.toLowerCase().includes(query.toLowerCase()));
 
             if (filtered.length === 0) {
-                listContainer.innerHTML = `<p class="text-zinc-500 text-xs text-center py-8">No se encontraron capítulos</p>`;
+                listContainer.innerHTML = `<p class="text-zinc-500 text-xs text-center py-4">Sin resultados</p>`;
                 return;
             }
 
             filtered.forEach(chapter => {
                 const isSelected = chapter.originalIdx === activeChapterIndex;
                 const item = document.createElement('button');
-                item.className = `w-full p-4 rounded-xl text-left text-xs font-semibold flex justify-between items-center transition-all ${
-                    isSelected 
-                    ? 'bg-iosAccent text-white shadow-lg' 
-                    : 'bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
-                }`;
+                item.className = `chapter-opt-btn flyout-option w-full p-2 rounded-lg text-left text-[11px] font-semibold flex items-center justify-between ${isSelected ? 'active-opt' : ''}`;
                 
                 item.innerHTML = `
-                    <span class="truncate pr-3">${chapter.title}</span>
-                    ${isSelected ? '<i class="fa-solid fa-volume-high text-xs"></i>' : '<i class="fa-regular fa-circle-play text-xs opacity-50"></i>'}
+                    <span class="truncate pr-2 flex-1">${chapter.title}</span>
+                    <i class="fa-solid fa-check check-icon text-iosAccent text-[10px] shrink-0" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
                 `;
 
-                item.addEventListener('click', () => {
-                    document.getElementById('modal-chapters').classList.add('hidden');
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.getElementById('chapters-flyout').classList.add('hidden');
                     changeChapter(chapter.originalIdx);
                 });
 
@@ -1278,8 +1683,13 @@
             });
         }
 
+        // Alias de retrocompatibilidad (algunas llamadas antiguas)
+        function renderChaptersModalList(query = '') {
+            renderChaptersFlyoutList(query);
+        }
+
         function filterChapters(query) {
-            renderChaptersModalList(query);
+            renderChaptersFlyoutList(query);
         }
 
         function changeChapter(chapterIdx) {
@@ -1295,6 +1705,7 @@
             setupChapterMedia(activeChapterIndex);
         }
 
+        // --- STREAMING_CHUNK: Setting up the dynamic chapter and text structure... ---
         function setupChapterMedia(chapterIdx) {
             const book = currentBooks[activeBookIndex];
             const chapter = book.chapters[chapterIdx];
@@ -1310,7 +1721,7 @@
             textSentences.forEach((sentence, idx) => {
                 if (sentence.trim() === '') return;
                 const sentenceNode = document.createElement('p');
-                sentenceNode.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 opacity-60 hover:opacity-100";
+                sentenceNode.className = "py-2 cursor-pointer transition-colors duration-300 px-2 opacity-50";
                 sentenceNode.id = `sentence-${idx}`;
                 sentenceNode.textContent = sentence.trim();
                 
@@ -1321,8 +1732,27 @@
                 lyricsContainer.appendChild(sentenceNode);
             });
 
-            updatePlaybackProgressUI();
+            recalculateDurationsAndOffsets();
+            updateSmoothProgress();
             highlightCurrentSentence();
+        }
+
+        // Estimación de velocidad por frase para un avance 100% progresivo (tipo Spotify / Apple Music)
+        function recalculateDurationsAndOffsets() {
+            estimatedDurations = textSentences.map(sentence => {
+                if (sentence.trim() === '') return 0;
+                // Ajuste dinámico de velocidad en caracteres por segundo de manera gradual
+                let est = (sentence.length * 0.065) / activeSpeedRate;
+                return Math.max(1.2, Math.min(est, 15)); 
+            });
+
+            sentenceOffsets = [];
+            let acc = 0;
+            for (let i = 0; i < estimatedDurations.length; i++) {
+                sentenceOffsets.push(acc);
+                acc += estimatedDurations[i];
+            }
+            totalChapterDuration = acc;
         }
 
         function togglePlayPause() {
@@ -1348,10 +1778,9 @@
             silentKeepalive.currentTime = 0;
         }
 
-        // --- STREAMING_CHUNK: Sistema de inyección CORS-Safe directa para Voz Online HD ---
+        // --- STREAMING_CHUNK: Managing TTS audio caching mechanisms... ---
         const ttsAudioEl = document.getElementById('tts-audio-player');
         let ttsAudioCache = {};
-        let ttsPrefetchInFlight = {};
 
         function splitTextIntoTTSChunks(text, maxLen = 150) {
             const rawSentences = text.split(/(?<=[.!?])\s+/);
@@ -1369,7 +1798,6 @@
             return chunks.length > 0 ? chunks : [text];
         }
 
-        // Enlace directo evitando llamadas de fetch asíncronas para anular CORS
         function getOnlineTTSUrlDirect(text) {
             return `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(text.substring(0, 150))}`;
         }
@@ -1384,12 +1812,11 @@
 
         function clearTTSAudioCache() {
             ttsAudioCache = {};
-            ttsPrefetchInFlight = {};
         }
 
+        // Detecta si la voz online es elegida para suspender el pitch (solo soportado nativamente)
         function isOnlineVoiceSelected() {
-            const voiceSelect = document.getElementById('select-voices');
-            return voiceSelect.value === "online";
+            return selectedVoiceValue === "online";
         }
 
         function playAudio() {
@@ -1403,9 +1830,10 @@
             updateMediaSessionState("playing");
 
             speakSentence(currentSentenceIndex);
-            startProgressTicker();
+            startSmoothProgressLoop();
         }
 
+        // --- STREAMING_CHUNK: Halting synthesis and audio engines... ---
         function pauseAudio() {
             isPlaying = false;
             document.getElementById('play-icon').className = "fa-solid fa-play text-xl ml-0.5";
@@ -1415,7 +1843,7 @@
             }
             ttsAudioEl.pause();
             stopSilentAudioHack();
-            stopProgressTicker();
+            stopSmoothProgressLoop();
             updateMediaSessionState("paused");
         }
 
@@ -1434,6 +1862,7 @@
             }
 
             currentSentenceIndex = index;
+            currentSentenceStartTime = performance.now(); // Marca el tiempo preciso de inicio de la frase
             highlightCurrentSentence();
             scrollToActiveSentence();
 
@@ -1455,13 +1884,14 @@
             const sentenceText = textSentences[index];
             activeUtterance = new SpeechSynthesisUtterance(sentenceText);
             
-            const voiceSelect = document.getElementById('select-voices');
-            if (synthesisVoices[voiceSelect.value]) {
-                activeUtterance.voice = synthesisVoices[voiceSelect.value];
+            if (selectedVoiceValue !== "online" && synthesisVoices[selectedVoiceValue]) {
+                activeUtterance.voice = synthesisVoices[selectedVoiceValue];
             }
 
-            const rateSelect = document.getElementById('select-rate');
-            activeUtterance.rate = parseFloat(rateSelect.value);
+            activeUtterance.rate = activeSpeedRate;
+            
+            // Inyectar el tono de voz configurado en el slide
+            activeUtterance.pitch = activePitch;
 
             activeUtterance.onend = function() {
                 if (isPlaying) {
@@ -1482,14 +1912,12 @@
         function speakSentenceOnline(index) {
             window.speechSynthesis.cancel();
             const sentenceText = textSentences[index];
-            const rateSelect = document.getElementById('select-rate');
 
             try {
-                // Inyección directa para bypass de bloqueos CORS
                 const directUrl = getOnlineTTSUrlDirect(sentenceText);
                 
                 ttsAudioEl.src = directUrl;
-                ttsAudioEl.playbackRate = parseFloat(rateSelect.value);
+                ttsAudioEl.playbackRate = activeSpeedRate;
                 ttsAudioEl.play().catch(() => {});
 
                 prefetchNextSentence(activeChapterIndex, index + 1);
@@ -1508,13 +1936,14 @@
 
         function jumpToSentence(idx) {
             currentSentenceIndex = idx;
+            currentSentenceStartTime = performance.now();
             if (isPlaying) {
                 speakSentence(idx);
             } else {
                 highlightCurrentSentence();
                 scrollToActiveSentence();
+                updateSmoothProgress();
             }
-            updatePlaybackProgressUI();
         }
 
         function skipSeconds(seconds) {
@@ -1536,12 +1965,12 @@
         function highlightCurrentSentence() {
             const paragraphs = document.querySelectorAll('#lyrics-container p');
             paragraphs.forEach(el => {
-                el.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 opacity-60";
+                el.className = "py-2 cursor-pointer transition-colors duration-300 px-2 opacity-50";
             });
 
             const currentEl = document.getElementById(`sentence-${currentSentenceIndex}`);
             if (currentEl) {
-                currentEl.className = "py-2 cursor-pointer transition-all duration-300 rounded px-2 word-active";
+                currentEl.className = "py-2 cursor-pointer transition-colors duration-300 px-2 word-active";
             }
             updateBookmarkButtonState();
         }
@@ -1563,36 +1992,56 @@
             }
         }
 
-        function startProgressTicker() {
-            stopProgressTicker();
-            playbackTimer = setInterval(() => {
-                updatePlaybackProgressUI();
-            }, 1000);
+        // --- STREAMING_CHUNK: Initializing smooth 60FPS animation frame loop... ---
+        function startSmoothProgressLoop() {
+            stopSmoothProgressLoop();
+            currentSentenceStartTime = performance.now();
+            
+            function tick() {
+                if (!isPlaying) return;
+                updateSmoothProgress();
+                animationFrameId = requestAnimationFrame(tick);
+            }
+            animationFrameId = requestAnimationFrame(tick);
         }
 
-        function stopProgressTicker() {
-            if (playbackTimer) {
-                clearInterval(playbackTimer);
-                playbackTimer = null;
+        function stopSmoothProgressLoop() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
             }
         }
 
-        function updatePlaybackProgressUI() {
-            if (textSentences.length === 0) return;
-            
-            const progress = currentSentenceIndex / textSentences.length;
+        function updateSmoothProgress() {
+            if (textSentences.length === 0 || totalChapterDuration === 0) return;
+
+            let chapterTime = 0;
+
+            if (isOnlineVoiceSelected()) {
+                // Para audio online, calculamos usando la posición de reproducción exacta del elemento de audio
+                let sentenceTime = ttsAudioEl.currentTime || 0;
+                chapterTime = (sentenceOffsets[currentSentenceIndex] || 0) + sentenceTime;
+            } else {
+                // Para voz del sistema (SpeechSynthesis), calculamos interpolando el rendimiento real en milisegundos
+                let elapsedMs = performance.now() - currentSentenceStartTime;
+                let sentenceTime = (elapsedMs / 1000);
+                let sentenceLimit = estimatedDurations[currentSentenceIndex] || 4.5;
+                let sentenceTimeClamped = Math.min(sentenceTime, sentenceLimit);
+                chapterTime = (sentenceOffsets[currentSentenceIndex] || 0) + sentenceTimeClamped;
+            }
+
+            // Normalización para no pasarse de la duración total calculada
+            chapterTime = Math.max(0, Math.min(chapterTime, totalChapterDuration));
+            const progressRatio = chapterTime / totalChapterDuration;
+
             const progressBar = document.getElementById('progress-bar');
             const progressHandle = document.getElementById('progress-handle');
 
-            progressBar.style.width = `${progress * 100}%`;
-            progressHandle.style.left = `${progress * 100}%`;
+            progressBar.style.width = `${progressRatio * 100}%`;
+            progressHandle.style.left = `${progressRatio * 100}%`;
 
-            const secsPerSentence = 4.5;
-            const currentSecs = Math.round(currentSentenceIndex * secsPerSentence);
-            const totalSecs = Math.round(textSentences.length * secsPerSentence);
-
-            document.getElementById('time-current').textContent = formatTime(currentSecs);
-            document.getElementById('time-total').textContent = formatTime(totalSecs);
+            document.getElementById('time-current').textContent = formatTime(chapterTime);
+            document.getElementById('time-total').textContent = formatTime(totalChapterDuration);
         }
 
         function formatTime(secs) {
@@ -1708,15 +2157,21 @@
             }, 1000);
         }
 
+        // --- STREAMING_CHUNK: Registering iOS Media Session controls... ---
         function clearSleepTimer() {
             if (timerCountdown) {
                 clearInterval(timerCountdown);
                 timerCountdown = null;
             }
             document.getElementById('timer-label').textContent = "Off";
+            // Limpiar checks visuales del temporizador
+            document.querySelectorAll('.timer-opt-btn').forEach(b => {
+                const check = b.querySelector('.check-icon');
+                if (check) check.style.visibility = 'hidden';
+                b.classList.remove('active-opt');
+            });
         }
 
-        // --- STREAMING_CHUNK: Registrando e integrando Media Session nativa ---
         function registerMediaSession() {
             if (!('mediaSession' in navigator)) return;
 
