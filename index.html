@@ -317,7 +317,7 @@
 
                         <!-- Contenedor Portada (Restringida de forma elegante para evitar excesos) -->
                         <div id="wrapper-cover" class="flex-1 flex flex-col items-center justify-center transition-all duration-300">
-                            <div class="relative w-36 h-48 rounded-2xl shadow-[0_20px_45px_rgba(0,0,0,0.6)] overflow-hidden border border-white/10 group mb-3">
+                            <div class="relative w-full max-w-[280px] aspect-[2/3] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-4 mx-auto">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="w-full h-full object-cover">
                             </div>
                             <div class="text-center max-w-xs mb-3">
@@ -782,41 +782,48 @@
                 onlineGroup.appendChild(onlineOpt);
                 select.appendChild(onlineGroup);
 
-                // Filtrar voces en español instaladas en el dispositivo
-                const spanishVoices = synthesisVoices.filter(voice => 
-                    voice.lang.includes('es-') || voice.lang.startsWith('es')
-                );
+                // Guardamos el índice ORIGINAL de cada voz (antes de separar/ordenar) para que
+                // seleccionar una voz apunte siempre a la voz correcta en synthesisVoices.
+                const indexedVoices = synthesisVoices.map((voice, originalIndex) => ({ voice, originalIndex }));
 
-                spanishVoices.sort((a, b) => {
-                    const aLower = a.name.toLowerCase();
-                    const bLower = b.name.toLowerCase();
-                    const isANeural = aLower.includes('neural') || aLower.includes('natural') || aLower.includes('online') || aLower.includes('siri') || aLower.includes('google') || aLower.includes('mejorada') || aLower.includes('enhanced') || aLower.includes('premium');
-                    const isBNeural = bLower.includes('neural') || bLower.includes('natural') || bLower.includes('online') || bLower.includes('siri') || bLower.includes('google') || bLower.includes('mejorada') || bLower.includes('enhanced') || bLower.includes('premium');
-                    
-                    if (isANeural && !isBNeural) return -1;
-                    if (!isANeural && isBNeural) return 1;
-                    return 0;
-                });
+                const isQualityVoice = (name) => {
+                    const n = name.toLowerCase();
+                    return n.includes('neural') || n.includes('natural') || n.includes('online') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium');
+                };
 
-                if (spanishVoices.length > 0) {
-                    const systemGroup = document.createElement('optgroup');
-                    systemGroup.label = "Voces del sistema (sin pantalla bloqueada)";
-                    spanishVoices.forEach((voice, index) => {
+                const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
+                const otherVoices = indexedVoices.filter(v => !v.voice.lang.toLowerCase().startsWith('es'));
+
+                const byQualityThenName = (a, b) => {
+                    const aQ = isQualityVoice(a.voice.name);
+                    const bQ = isQualityVoice(b.voice.name);
+                    if (aQ && !bQ) return -1;
+                    if (!aQ && bQ) return 1;
+                    return a.voice.name.localeCompare(b.voice.name);
+                };
+
+                spanishVoices.sort(byQualityThenName);
+                otherVoices.sort(byQualityThenName);
+
+                function appendVoiceGroup(label, list) {
+                    if (list.length === 0) return;
+                    const group = document.createElement('optgroup');
+                    group.label = label;
+                    list.forEach(({ voice, originalIndex }) => {
                         const opt = document.createElement('option');
-                        let name = voice.name.replace("Microsoft", "MS").replace("Google", "Google").trim();
-                        let isHighQuality = voice.name.toLowerCase().includes('neural') || voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('online') || voice.name.toLowerCase().includes('siri') || voice.name.toLowerCase().includes('mejorada') || voice.name.toLowerCase().includes('enhanced');
-                        
+                        let name = voice.name.replace("Microsoft", "MS").trim();
                         let label = `${name} [${voice.lang}]`;
-                        if (isHighQuality) {
-                            label = `🔥 ${name}`;
-                        }
+                        if (isQualityVoice(voice.name)) label = `🔥 ${name} [${voice.lang}]`;
 
                         opt.textContent = label;
-                        opt.value = index;
-                        systemGroup.appendChild(opt);
+                        opt.value = originalIndex;
+                        group.appendChild(opt);
                     });
-                    select.appendChild(systemGroup);
+                    select.appendChild(group);
                 }
+
+                appendVoiceGroup("Voces en Español (sin pantalla bloqueada)", spanishVoices);
+                appendVoiceGroup("Otros idiomas (sin pantalla bloqueada)", otherVoices);
 
                 select.value = "online";
             }
@@ -1064,12 +1071,20 @@
                         }
                     }
 
+                    // Generar portada real renderizando la primera página del PDF
+                    let coverUrl = "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF";
+                    try {
+                        coverUrl = await renderPDFPageAsCover(pdf, 1);
+                    } catch (coverErr) {
+                        console.warn("No se pudo generar portada del PDF:", coverErr);
+                    }
+
                     const newBook = {
                         id: Date.now().toString(),
                         title: file.name.replace('.pdf', ''),
                         author: "Documento Local PDF",
                         saga: "Independiente",
-                        cover: "https://placehold.co/400x600/a855f7/ffffff?text=Documento+PDF",
+                        cover: coverUrl,
                         chapters: chapters,
                         bookmarks: [],
                         progressChapter: 0,
@@ -1084,6 +1099,23 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Renderiza una página del PDF a imagen (para usar como portada del libro)
+        async function renderPDFPageAsCover(pdf, pageNumber) {
+            const page = await pdf.getPage(pageNumber);
+            const viewport = page.getViewport({ scale: 1.5 });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+            const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const compressed = await compressCoverImage(rawDataUrl);
+            return compressed || rawDataUrl;
         }
 
         function addBookToLibrary(book) {
@@ -1324,7 +1356,7 @@
         let ttsAudioCache = {}; // key: "chapter-sentence" -> blob URL
         let ttsPrefetchInFlight = {};
 
-        function splitTextIntoTTSChunks(text, maxLen = 190) {
+        function splitTextIntoTTSChunks(text, maxLen = 170) {
             const rawSentences = text.split(/(?<=[.!?])\s+/);
             const chunks = [];
             let current = "";
@@ -1344,9 +1376,13 @@
             const chunks = splitTextIntoTTSChunks(text);
             const buffers = [];
             for (const chunk of chunks) {
-                const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-us&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+                const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(chunk)}`;
                 const res = await fetch(url);
-                if (res.ok) buffers.push(await res.arrayBuffer());
+                if (res.ok) {
+                    buffers.push(await res.arrayBuffer());
+                } else {
+                    console.warn("TTS chunk fallo con estado:", res.status);
+                }
             }
             if (buffers.length === 0) throw new Error("Sin audio recibido");
             const blob = new Blob(buffers, { type: 'audio/mp3' });
@@ -1388,6 +1424,7 @@
         function playAudio() {
             if (textSentences.length === 0) return;
             startSilentAudioHack();
+            registerMediaSession();
 
             isPlaying = true;
             document.getElementById('play-icon').className = "fa-solid fa-pause text-xl";
@@ -1491,9 +1528,20 @@
                     if (isPlaying) speakSentence(currentSentenceIndex + 1);
                 };
             } catch (err) {
-                console.warn("Fallo la Voz Online HD, revisa tu conexión:", err);
-                if (isPlaying) {
-                    showToast("Sin conexión para Voz Online. Prueba una voz del sistema.", "fa-wifi text-red-400");
+                console.warn("Fallo la Voz Online HD:", err);
+                if (!isPlaying) return;
+
+                const voiceSelect = document.getElementById('select-voices');
+                const allOptions = Array.from(voiceSelect.options).filter(opt => opt.value !== "online");
+                const spanishOption = allOptions.find(opt => opt.parentElement.label.startsWith("Voces en Español"));
+                const fallbackOption = spanishOption || allOptions[0];
+
+                if (fallbackOption) {
+                    voiceSelect.value = fallbackOption.value;
+                    showToast("Voz Online HD no disponible ahora mismo. Cambié a voz del sistema.", "fa-triangle-exclamation text-yellow-400");
+                    speakSentence(currentSentenceIndex);
+                } else {
+                    showToast("Voz Online HD no disponible y no hay voces del sistema instaladas.", "fa-wifi text-red-400");
                     pauseAudio();
                 }
             }
@@ -1712,22 +1760,64 @@
         }
 
         function registerMediaSession() {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.setActionHandler('play', () => playAudio());
-                navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
-                navigator.mediaSession.setActionHandler('seekbackward', () => skipSeconds(-15));
-                navigator.mediaSession.setActionHandler('seekforward', () => skipSeconds(15));
+            if (!('mediaSession' in navigator)) return;
+
+            navigator.mediaSession.setActionHandler('play', () => playAudio());
+            navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
+            navigator.mediaSession.setActionHandler('seekbackward', () => skipSeconds(-15));
+            navigator.mediaSession.setActionHandler('seekforward', () => skipSeconds(15));
+            // Algunos iPhone muestran "anterior/siguiente" en vez de "retroceder/adelantar" —
+            // los mapeamos igual para que siempre haya un control funcional.
+            try {
+                navigator.mediaSession.setActionHandler('previoustrack', () => skipSeconds(-15));
+                navigator.mediaSession.setActionHandler('nexttrack', () => skipSeconds(15));
+                navigator.mediaSession.setActionHandler('stop', () => pauseAudio());
+            } catch (e) { /* algunos navegadores no soportan todos los handlers */ }
+
+            // Mantiene sincronizado el estado real del audio con la pantalla de bloqueo,
+            // incluso si iOS pausa/reanuda el elemento directamente sin pasar por nuestros botones.
+            if (!ttsAudioEl.dataset.mediaSessionBound) {
+                ttsAudioEl.addEventListener('play', () => {
+                    navigator.mediaSession.playbackState = 'playing';
+                });
+                ttsAudioEl.addEventListener('pause', () => {
+                    navigator.mediaSession.playbackState = 'paused';
+                });
+                ttsAudioEl.addEventListener('timeupdate', () => {
+                    updatePositionState();
+                });
+                ttsAudioEl.dataset.mediaSessionBound = "1";
             }
+        }
+
+        function updatePositionState() {
+            if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+            try {
+                const duration = ttsAudioEl.duration;
+                const position = ttsAudioEl.currentTime;
+                if (isFinite(duration) && duration > 0 && isFinite(position)) {
+                    navigator.mediaSession.setPositionState({
+                        duration: duration,
+                        playbackRate: ttsAudioEl.playbackRate || 1,
+                        position: Math.min(position, duration)
+                    });
+                }
+            } catch (e) { /* posición no disponible aún */ }
         }
 
         function updateMediaSessionState(state) {
             if ('mediaSession' in navigator && activeBookIndex !== null) {
                 const book = currentBooks[activeBookIndex];
+                const coverSrc = book.cover || '';
+                const isJpeg = coverSrc.startsWith('data:image/jpeg');
+                const isPng = coverSrc.startsWith('data:image/png') || coverSrc.includes('placehold.co');
+                const mime = isJpeg ? 'image/jpeg' : (isPng ? 'image/png' : 'image/jpeg');
+
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: book.title,
                     artist: book.author,
                     album: book.chapters[activeChapterIndex].title,
-                    artwork: [{ src: book.cover, sizes: '512x512', type: 'image/png' }]
+                    artwork: coverSrc ? [{ src: coverSrc, sizes: '400x600', type: mime }] : []
                 });
                 navigator.mediaSession.playbackState = state;
             }
@@ -1763,12 +1853,12 @@
             try {
                 for (let i = 0; i < book.chapters.length; i++) {
                     const chapter = book.chapters[i];
-                    const chunks = splitTextIntoTTSChunks(chapter.text, 200);
+                    const chunks = splitTextIntoTTSChunks(chapter.text, 170);
 
                     const audioBlobs = [];
                     
                     for (let j = 0; j < chunks.length; j++) {
-                        const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-us&client=tw-ob&q=${encodeURIComponent(chunks[j])}`;
+                        const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(chunks[j])}`;
                         try {
                             const res = await fetch(ttsUrl);
                             if (res.ok) {
