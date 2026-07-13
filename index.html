@@ -413,6 +413,22 @@
                 bottom: 226px; /* Optimización flotante exacta para móviles */
             }
         }
+
+        /* Sound Wave Bars */
+        .wave-bar {
+            border-radius: 9999px;
+            transition: height 0.08s ease-out, background-color 0.4s ease;
+            will-change: height;
+        }
+        body:not(.light-theme) .wave-bar {
+            background-color: #ffffff;
+        }
+        body.light-theme .wave-bar {
+            background-color: #3a3a3c;
+        }
+        #sound-wave-anim.paused .wave-bar {
+            height: 15% !important;
+        }
     </style>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
@@ -527,14 +543,22 @@
                     
                     <!-- Encabezado superior con mucho aire -->
                     <header class="flex flex-col gap-2.5 px-6 pt-6 pb-2 safe-padding-top shrink-0">
-                        <div class="flex justify-between items-center w-full">
+                        <div class="flex justify-between items-center w-full relative">
                             <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Volver a Biblioteca">
                                 <i class="fa-solid fa-chevron-left text-sm"></i>
                                 <span class="text-sm font-semibold">Volver</span>
                             </button>
-                            <div class="text-center flex-1 mx-3 overflow-hidden">
-                                <span class="text-[13px] font-bold text-iosAccent uppercase tracking-widest">Sincronizando</span>
-                                <h2 id="player-title" class="text-[15px] font-bold truncate">Título de Ejemplo</h2>
+                            <!-- Onda centrada absolutamente (notch iPhone 13 Pro Max) -->
+                            <div id="sound-wave-anim" class="absolute left-1/2 -translate-x-1/2 flex items-end gap-[3px] h-6 paused">
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
+                                <span class="wave-bar w-[3px]" style="height:15%"></span>
                             </div>
                             <button id="btn-export" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all text-emerald-400" title="Guardar Audio en PC">
                                 <i class="fa-solid fa-file-export text-sm"></i>
@@ -901,6 +925,8 @@
         let activeUtterance = null;
         let isPlaying = false;
         let synthesisVoices = [];
+        let bestOnlineVoiceIndex = null;
+        let onlineTtsFailed = false;
         let localDirectoryHandle = null; 
         
         let textSentences = [];
@@ -1405,48 +1431,77 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Cargando voces sintéticas del sistema de voz (Siri/iOS)... ---
+        // --- STREAMING_CHUNK: Cargando voces del sistema (Siri/iOS/Google)...
         function initSpeechSynthesis() {
             if (!('speechSynthesis' in window)) {
-                showToast("Navegador no soporta síntesis de voz nativa.", "fa-triangle-exclamation");
+                showToast("Navegador no soporta sintesis de voz nativa.", "fa-triangle-exclamation");
                 return;
             }
 
-            let loadInterval = setInterval(() => {
-                synthesisVoices = window.speechSynthesis.getVoices();
-                if (synthesisVoices.length > 0) {
-                    clearInterval(loadInterval);
-                    loadVoices();
+            function detectBestSpanishVoice() {
+                const isQ = (name) => {
+                    const n = name.toLowerCase();
+                    return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium') || n.includes('wavenet') || n.includes('jets');
+                };
+                const latamLangs = ['es-mx','es_mx','es-419','es_ar','es-ar','es-co','es_co','es-cl','es_cl','es-pe','es_pe','es-ve','es_ve','es-uy','es_uy','es-pr','es_pr','es-cu','es_cu','es-do','es_do','es-hn','es_hn','es-sv','es_sv','es-gt','es_gt','es-ni','es_ni','es-cr','es_cr','es-pa','es_pa','es-bo','es_bo','es-ec','es_ec','es-py','es_py'];
+                const isLatam = (lang) => latamLangs.includes(lang.toLowerCase());
+                const isFemale = (name) => {
+                    const n = name.toLowerCase();
+                    return n.includes('female') || n.includes('mujer') || n.includes('woman') || n.includes('-f') || n.includes('_f') || n.includes('samantha') || n.includes('victoria') || n.includes('karen') || n.includes('paulina') || n.includes('monica') || n.includes('sabina') || n.includes('lupe') || n.includes('elena') || n.includes('paulina');
+                };
+                let bestIdx = -1, bestScore = -1;
+                for (let i = 0; i < synthesisVoices.length; i++) {
+                    const v = synthesisVoices[i];
+                    const lang = v.lang.toLowerCase();
+                    if (!lang.startsWith('es')) continue;
+                    let score = 0;
+                    if (isQ(v.name)) score += 10;
+                    if (isLatam(lang)) score += 8;
+                    if (lang === 'es-mx' || lang === 'es_mx') score += 5;
+                    if (isFemale(v.name)) score += 6;
+                    if (v.localService === false) score += 3;
+                    if (v.name.toLowerCase().includes('google')) score += 4;
+                    if (v.name.toLowerCase().includes('siri')) score += 3;
+                    if (v.name.toLowerCase().includes('microsoft')) score += 2;
+                    if (score > bestScore) { bestScore = score; bestIdx = i; }
                 }
-            }, 200);
+                if (bestIdx === -1) {
+                    for (let i = 0; i < synthesisVoices.length; i++) {
+                        const v = synthesisVoices[i];
+                        if (!v.lang.toLowerCase().startsWith('es')) continue;
+                        let score = isQ(v.name) ? 10 : 0;
+                        if (v.localService === false) score += 3;
+                        if (score > bestScore) { bestScore = score; bestIdx = i; }
+                    }
+                }
+                if (bestIdx === -1 && synthesisVoices.length > 0) bestIdx = 0;
+                return bestIdx;
+            }
 
             function loadVoices() {
                 synthesisVoices = window.speechSynthesis.getVoices();
+                if (synthesisVoices.length === 0) return;
+                bestOnlineVoiceIndex = detectBestSpanishVoice();
                 restoreVoicePreference();
+                buildVoiceFlyout();
+            }
+
+            function buildVoiceFlyout() {
                 const flyout = document.getElementById('voice-flyout');
                 if (!flyout) return;
-                
-                const header = flyout.querySelector('.text-\\[9px\\]');
                 flyout.innerHTML = '';
-                if (header) flyout.appendChild(header);
-                else {
-                    const h = document.createElement('div');
-                    h.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
-                    h.textContent = "Voces Disponibles";
-                    flyout.appendChild(h);
-                }
 
-                // Opción online priorizada con check lineal minimalista
+                const header = document.createElement('div');
+                header.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
+                header.textContent = "Voces Disponibles";
+                flyout.appendChild(header);
+
                 const onlineBtn = document.createElement('button');
                 onlineBtn.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
                 onlineBtn.dataset.value = "online";
-                onlineBtn.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-wifi text-iosAccent text-[14px]"></i>
-                        <span>Voz Online HD</span>
-                    </div>
-                    <i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:${selectedVoiceValue === 'online' ? 'visible' : 'hidden'}"></i>
-                `;
+                const ovName = (bestOnlineVoiceIndex !== null && synthesisVoices[bestOnlineVoiceIndex])
+                    ? synthesisVoices[bestOnlineVoiceIndex].name : 'Automatica';
+                onlineBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-wifi text-iosAccent text-[14px]"></i><div class="flex flex-col items-start"><span>Voz Online HD</span><span class="text-[10px] opacity-50 font-normal">' + ovName + '</span></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'online' ? 'visible' : 'hidden') + '"></i>';
                 if (selectedVoiceValue === "online") onlineBtn.classList.add('active-opt');
                 onlineBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1454,67 +1509,75 @@
                 });
                 flyout.appendChild(onlineBtn);
 
-                const sysLabel = document.createElement('div');
-                sysLabel.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
-                sysLabel.textContent = "Voces de Sistema";
-                flyout.appendChild(sysLabel);
-
-                const indexedVoices = synthesisVoices.map((voice, originalIndex) => ({ voice, originalIndex }));
-                const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
-
-                const isQualityVoice = (name) => {
+                const isQ = (name) => {
                     const n = name.toLowerCase();
-                    return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium');
+                    return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium') || n.includes('wavenet') || n.includes('jets');
                 };
-
-                spanishVoices.sort((a, b) => {
-                    const aQ = isQualityVoice(a.voice.name);
-                    const bQ = isQualityVoice(b.voice.name);
-                    if (aQ && !bQ) return -1;
-                    if (!aQ && bQ) return 1;
+                const indexedVoices = synthesisVoices.map((voice, i) => ({ voice, originalIndex: i }));
+                const spanishVoices = indexedVoices.filter(v => v.voice.lang.toLowerCase().startsWith('es'));
+                const sortV = (arr) => arr.sort((a, b) => {
+                    const aQ = isQ(a.voice.name), bQ = isQ(b.voice.name);
+                    if (aQ && !bQ) return -1; if (!aQ && bQ) return 1;
                     return a.voice.name.localeCompare(b.voice.name);
                 });
+                sortV(spanishVoices);
 
-                spanishVoices.forEach(({ voice, originalIndex }) => {
-                    const opt = document.createElement('button');
-                    opt.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
-                    opt.dataset.value = originalIndex;
-                    let label = voice.name;
-                    if (isQualityVoice(voice.name)) label = `🔥 ${label}`;
-                    
-                    const isSelected = String(selectedVoiceValue) === String(originalIndex);
-                    opt.innerHTML = `
-                        <span class="truncate flex-1 text-left">${label}</span>
-                        <i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:${isSelected ? 'visible' : 'hidden'}"></i>
-                    `;
-                    if (isSelected) opt.classList.add('active-opt');
-                    opt.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        selectVoice(originalIndex, label.replace('🔥 ', ''));
-                    });
-                    flyout.appendChild(opt);
-                });
-
-                if (spanishVoices.length === 0) {
+                if (spanishVoices.length > 0) {
+                    const lbl = document.createElement('div');
+                    lbl.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
+                    lbl.textContent = "Voces de Sistema";
+                    flyout.appendChild(lbl);
+                    spanishVoices.forEach(({ voice, originalIndex }) => addVoiceOpt(flyout, voice, originalIndex, isQ(voice.name)));
+                }
+                if (spanishVoices.length === 0 && synthesisVoices.length === 0) {
                     const empty = document.createElement('div');
                     empty.className = "text-[14px] opacity-50 text-center py-2";
-                    empty.textContent = "No se encontraron voces en español.";
+                    empty.textContent = "No se encontraron voces disponibles.";
                     flyout.appendChild(empty);
                 }
             }
 
+            function voiceGenderIcon(name) {
+                const n = name.toLowerCase();
+                const female = n.includes('female') || n.includes('mujer') || n.includes('woman') || n.includes('-f') || n.includes('_f') || n.includes('samantha') || n.includes('victoria') || n.includes('karen') || n.includes('paulina') || n.includes('monica') || n.includes('sabina') || n.includes('lupe') || n.includes('elena');
+                return female ? '\u2640' : '\u2642';
+            }
+            function voiceRegionLabel(lang) {
+                const l = lang.toLowerCase();
+                if (l.includes('mx') || l.includes('419')) return 'LATAM';
+                if (l.includes('ar')) return 'ARG';
+                if (l.includes('co')) return 'COL';
+                if (l.includes('cl')) return 'CHL';
+                if (l.includes('pe')) return 'PER';
+                if (l.includes('ve')) return 'VEN';
+                if (l.includes('es-es') || l.includes('es_es')) return 'ESPA\u00D1A';
+                return l.replace('es-', '').toUpperCase() || 'ES';
+            }
+            function addVoiceOpt(flyout, voice, originalIndex, isQuality) {
+                const opt = document.createElement('button');
+                opt.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
+                opt.dataset.value = originalIndex;
+                let label = voice.name;
+                if (isQuality) label = '\uD83D\uDD25 ' + label;
+                const gender = voiceGenderIcon(voice.name);
+                const region = voiceRegionLabel(voice.lang);
+                const isSel = String(selectedVoiceValue) === String(originalIndex);
+                opt.innerHTML = '<span class="truncate flex-1 text-left flex items-center gap-1.5">' + label + '<span class="text-[10px] opacity-40 shrink-0">' + gender + ' ' + region + '</span></span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (isSel ? 'visible' : 'hidden') + '"></i>';
+                if (isSel) opt.classList.add('active-opt');
+                opt.addEventListener('click', (e) => { e.stopPropagation(); selectVoice(originalIndex, voice.name); });
+                flyout.appendChild(opt);
+            }
+
             function selectVoice(value, displayLabel) {
                 selectedVoiceValue = value;
-                const shortLabel = displayLabel.length > 18 ? displayLabel.substring(0, 17) + '…' : displayLabel;
+                const shortLabel = displayLabel.length > 18 ? displayLabel.substring(0, 17) + '\u2026' : displayLabel;
                 document.getElementById('voice-display-value').textContent = shortLabel;
-                
                 document.querySelectorAll('.voice-opt-btn').forEach(b => {
                     const check = b.querySelector('.check-icon');
                     const isMatch = String(b.dataset.value) === String(value);
                     if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
                     b.classList.toggle('active-opt', isMatch);
                 });
-
                 try {
                     if (value === "online") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'online' }));
@@ -1522,24 +1585,19 @@
                         const voiceObj = synthesisVoices[value];
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'system', name: voiceObj ? voiceObj.name : displayLabel }));
                     }
-                } catch (e) {
-                    console.warn("No se pudo guardar preferencia de voz:", e);
-                }
-                
+                } catch (e) { console.warn("No se pudo guardar preferencia de voz:", e); }
                 document.getElementById('voice-flyout').classList.add('hidden');
-                showToast(`Voz: ${shortLabel}`, "fa-circle-user text-iosAccent");
+                showToast('Voz: ' + shortLabel, "fa-circle-user text-iosAccent");
+                onlineTtsFailed = false;
                 if (isPlaying) speakSentence(currentSentenceIndex);
             }
 
-            // Recupera la voz elegida la última vez (Online HD o una voz de sistema específica)
-            // para que quede seleccionada automáticamente y no haya que volver a elegirla.
             function restoreVoicePreference() {
                 try {
                     const raw = localStorage.getItem('audiolibros_diego_voice_pref');
                     if (!raw) return;
                     const pref = JSON.parse(raw);
                     const disp = document.getElementById('voice-display-value');
-
                     if (pref.type === 'online') {
                         selectedVoiceValue = 'online';
                         if (disp) disp.textContent = 'Voz Online HD';
@@ -1548,20 +1606,33 @@
                         if (idx !== -1) {
                             selectedVoiceValue = idx;
                             if (disp) {
-                                const label = pref.name.length > 18 ? pref.name.substring(0, 17) + '…' : pref.name;
-                                disp.textContent = label;
+                                const l = pref.name.length > 18 ? pref.name.substring(0, 17) + '\u2026' : pref.name;
+                                disp.textContent = l;
                             }
                         }
                     }
-                } catch (e) {
-                    console.warn("No se pudo restaurar preferencia de voz:", e);
-                }
+                } catch (e) { console.warn("No se pudo restaurar preferencia de voz:", e); }
             }
 
-            if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                window.speechSynthesis.onvoiceschanged = loadVoices;
+            synthesisVoices = window.speechSynthesis.getVoices();
+            if (synthesisVoices.length > 0) {
+                loadVoices();
+            } else {
+                let loadAttempts = 0;
+                const loadInterval = setInterval(() => {
+                    synthesisVoices = window.speechSynthesis.getVoices();
+                    loadAttempts++;
+                    if (synthesisVoices.length > 0 || loadAttempts > 50) {
+                        clearInterval(loadInterval);
+                        if (synthesisVoices.length > 0) loadVoices();
+                    }
+                }, 100);
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = () => { clearInterval(loadInterval); loadVoices(); };
+                }
             }
         }
+
 
         function showToast(message, iconClass = "fa-circle-info") {
             const toast = document.getElementById('toast');
@@ -1937,7 +2008,6 @@
             activeChapterIndex = book.progressChapter || 0;
             currentSentenceIndex = book.progressSentence || 0;
 
-            document.getElementById('player-title').textContent = book.title;
             document.getElementById('player-book-title').textContent = book.title;
             document.getElementById('player-book-author').textContent = book.author;
             
@@ -2095,8 +2165,7 @@
         }
 
         const ttsAudioEl = document.getElementById('tts-audio-player');
-        let ttsAudioCache = {};
-
+        // Audio cache removed - all voices use browser SpeechSynthesis API
         function splitTextIntoTTSChunks(text, maxLen = 150) {
             const rawSentences = text.split(/(?<=[.!?])\s+/);
             const chunks = [];
@@ -2113,21 +2182,7 @@
             return chunks.length > 0 ? chunks : [text];
         }
 
-        function getOnlineTTSUrlDirect(text) {
-            return `https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es&client=gtx&q=${encodeURIComponent(text.substring(0, 150))}`;
-        }
-
-        function prefetchNextSentence(chapterIdx, sentenceIdx) {
-            if (sentenceIdx >= textSentences.length) return;
-            const text = textSentences[sentenceIdx];
-            const key = `${chapterIdx}-${sentenceIdx}`;
-            if (ttsAudioCache[key]) return;
-            ttsAudioCache[key] = getOnlineTTSUrlDirect(text);
-        }
-
-        function clearTTSAudioCache() {
-            ttsAudioCache = {};
-        }
+        function clearTTSAudioCache() { /* no-op: voices use SpeechSynthesis */ }
 
         function isOnlineVoiceSelected() {
             return selectedVoiceValue === "online";
@@ -2139,6 +2194,7 @@
             registerMediaSession();
 
             isPlaying = true;
+            startWaveAnimation();
             const icon = document.getElementById('play-icon');
             if (icon) icon.className = "fa-solid fa-pause text-2xl";
             
@@ -2151,6 +2207,7 @@
 
         function pauseAudio() {
             isPlaying = false;
+            stopWaveAnimation();
             const icon = document.getElementById('play-icon');
             if (icon) icon.className = "fa-solid fa-play text-2xl ml-0.5";
             
@@ -2204,22 +2261,30 @@
             if (ttsAudioEl) ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
+            if (!sentenceText || sentenceText.trim() === '') {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
+            }
+
             activeUtterance = new SpeechSynthesisUtterance(sentenceText);
-            
+
             if (selectedVoiceValue !== "online" && synthesisVoices[selectedVoiceValue]) {
                 activeUtterance.voice = synthesisVoices[selectedVoiceValue];
+            } else {
+                const esVoice = synthesisVoices.find(v => v.lang.toLowerCase().startsWith('es'));
+                if (esVoice) activeUtterance.voice = esVoice;
+                else if (synthesisVoices.length > 0) activeUtterance.voice = synthesisVoices[0];
             }
 
             activeUtterance.rate = activeSpeedRate;
             activeUtterance.pitch = activePitch;
+            activeUtterance.volume = 1.0;
 
             activeUtterance.onend = function() {
-                if (isPlaying) {
-                    speakSentence(currentSentenceIndex + 1);
-                }
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
             };
-
             activeUtterance.onerror = function(event) {
+                console.warn('Error en voz del sistema:', event.error);
                 if (isPlaying && event.error !== 'interrupted' && event.error !== 'canceled') {
                     speakSentence(currentSentenceIndex + 1);
                 }
@@ -2230,33 +2295,72 @@
             window.speechSynthesis.speak(activeUtterance);
         }
 
+
+        function getOnlineTTSUrl(text) {
+            return 'https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es-419&client=tw-ob&q=' + encodeURIComponent(text.substring(0, 200));
+        }
+
         function speakSentenceOnline(index) {
             window.speechSynthesis.cancel();
             const sentenceText = textSentences[index];
-
-            try {
-                const directUrl = getOnlineTTSUrlDirect(sentenceText);
-                
-                if (ttsAudioEl) {
-                    ttsAudioEl.src = directUrl;
-                    ttsAudioEl.load(); 
-                    ttsAudioEl.playbackRate = activeSpeedRate;
-                    ttsAudioEl.play().catch(() => {});
-
-                    prefetchNextSentence(activeChapterIndex, index + 1);
-
-                    ttsAudioEl.onended = () => {
-                        if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                    };
-                    ttsAudioEl.onerror = () => {
-                        if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                    };
-                }
-            } catch (err) {
-                console.warn(err);
+            if (!sentenceText || sentenceText.trim() === '') {
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
             }
+
+            // Si Google TTS ya fallo antes, ir directo a voz del sistema
+            if (onlineTtsFailed || !ttsAudioEl) {
+                onlineFallback(sentenceText);
+                return;
+            }
+
+            let fallbackDone = false;
+            const doFallback = () => {
+                if (fallbackDone) return;
+                fallbackDone = true;
+                onlineTtsFailed = true;
+                onlineFallback(sentenceText);
+            };
+
+            ttsAudioEl.onended = () => {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.onerror = () => doFallback();
+            ttsAudioEl.src = getOnlineTTSUrl(sentenceText);
+            ttsAudioEl.load();
+            ttsAudioEl.playbackRate = activeSpeedRate;
+            ttsAudioEl.play().catch(() => doFallback());
         }
+
+        function onlineFallback(text) {
+            window.speechSynthesis.cancel();
+            if (ttsAudioEl) ttsAudioEl.pause();
+            activeUtterance = new SpeechSynthesisUtterance(text);
+            if (bestOnlineVoiceIndex !== null && synthesisVoices[bestOnlineVoiceIndex]) {
+                activeUtterance.voice = synthesisVoices[bestOnlineVoiceIndex];
+            } else {
+                const esVoice = synthesisVoices.find(v => v.lang.toLowerCase().startsWith('es'));
+                if (esVoice) activeUtterance.voice = esVoice;
+                else if (synthesisVoices.length > 0) activeUtterance.voice = synthesisVoices[0];
+            }
+            activeUtterance.rate = activeSpeedRate;
+            activeUtterance.pitch = activePitch;
+            activeUtterance.volume = 1.0;
+            activeUtterance.onend = function() {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            activeUtterance.onerror = function(event) {
+                if (isPlaying && event.error !== 'interrupted' && event.error !== 'canceled') {
+                    speakSentence(currentSentenceIndex + 1);
+                }
+            };
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
+            window.speechSynthesis.speak(activeUtterance);
+        }
+
+
+
 
         function jumpToSentence(idx) {
             currentSentenceIndex = idx;
@@ -2570,30 +2674,14 @@
             try {
                 for (let i = 0; i < book.chapters.length; i++) {
                     const chapter = book.chapters[i];
-                    const chunks = splitTextIntoTTSChunks(chapter.text, 150);
-                    const audioBlobs = [];
-                    
-                    for (let j = 0; j < chunks.length; j++) {
-                        const ttsUrl = getOnlineTTSUrlDirect(chunks[j]);
-                        try {
-                            const res = await fetch(ttsUrl);
-                            if (res.ok) {
-                                audioBlobs.push(await res.arrayBuffer());
-                            }
-                        } catch (e) {}
-                    }
-
-                    if (audioBlobs.length > 0) {
-                        const finalBlob = new Blob(audioBlobs, { type: 'audio/mp3' });
-                        const fileName = `${book.title}_Cap_${i + 1}_${chapter.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
-                        
-                        const fileHandle = await localDirectoryHandle.getFileHandle(fileName, { create: true });
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(finalBlob);
-                        await writable.close();
-                    }
+                    const textContent = chapter.text;
+                    const fileName = `${book.title}_Cap_${i + 1}.txt`;
+                    const fileHandle = await localDirectoryHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(textContent);
+                    await writable.close();
                 }
-                showToast("¡Audiolibro sincronizado en tu PC con éxito!", "fa-circle-check text-green-400");
+                showToast("Capitulos exportados como texto a tu PC.", "fa-circle-check text-green-400");
             } catch (error) {
                 showToast("Error exportando audiolibros", "fa-triangle-exclamation text-red-400");
             }
@@ -2662,6 +2750,54 @@
             };
             reader.readAsText(file);
         }
+    
+        // --- Sound Wave Animation Engine (organic speech-like rhythm) ---
+        let waveAnimFrame = null;
+        let waveBars = null;
+        let wavePhase = 0;
+
+        function startWaveAnimation() {
+            const container = document.getElementById('sound-wave-anim');
+            if (!container) return;
+            container.classList.remove('paused');
+            waveBars = container.querySelectorAll('.wave-bar');
+            if (waveBars.length === 0) return;
+            wavePhase = 0;
+            animateWave();
+        }
+
+        function stopWaveAnimation() {
+            if (waveAnimFrame) { cancelAnimationFrame(waveAnimFrame); waveAnimFrame = null; }
+            const container = document.getElementById('sound-wave-anim');
+            if (container) container.classList.add('paused');
+            // Collapse bars smoothly
+            if (waveBars) {
+                waveBars.forEach(bar => { bar.style.height = '15%'; });
+            }
+        }
+
+        function animateWave() {
+            if (!isPlaying || !waveBars) return;
+            wavePhase += 0.12 + (activeSpeedRate - 1) * 0.04;
+
+            for (let i = 0; i < waveBars.length; i++) {
+                // Simulate speech pattern: mix of frequencies for natural look
+                const base = Math.sin(wavePhase + i * 0.8) * 0.5 + 0.5;
+                const fast = Math.sin(wavePhase * 2.3 + i * 1.2) * 0.3;
+                const slow = Math.sin(wavePhase * 0.5 + i * 0.3) * 0.2;
+                const pop = Math.random() * 0.15; // Random pops like real speech
+
+                let h = Math.max(0.08, Math.min(1, base + fast + slow + pop));
+                // Center bars tend taller (speech formant shape)
+                const center = 1 - Math.abs(i - (waveBars.length - 1) / 2) / ((waveBars.length - 1) / 2);
+                h = h * (0.5 + center * 0.5);
+
+                waveBars[i].style.height = (h * 100) + '%';
+            }
+
+            waveAnimFrame = requestAnimationFrame(animateWave);
+        }
+
     </script>
 </body>
 </html>
