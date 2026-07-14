@@ -440,6 +440,16 @@ body.light-theme .piper-progress-bar { background: #007aff; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<!-- Import map para cargar @piper-plus/g2p como módulo ES -->
+<script type="importmap">
+{
+    "imports": {
+        "@piper-plus/g2p": "https://cdn.jsdelivr.net/npm/@piper-plus/g2p@0.4.1/src/es/index.js",
+        "@piper-plus/g2p/encode": "https://cdn.jsdelivr.net/npm/@piper-plus/g2p@0.4.1/src/encode.js",
+        "@piper-plus/g2p/pua-map": "https://cdn.jsdelivr.net/npm/@piper-plus/g2p@0.4.1/src/pua-map.js"
+    }
+}
+</script>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
 
@@ -686,16 +696,21 @@ body.light-theme .piper-progress-bar { background: #007aff; }
                                     <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="2.0">
                                         <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <!-- Modulador de Tono (Pitch Slider) -->
+                                    <!-- Modulador de Tono (Botones Graves / Agudos) -->
                                     <div class="pt-2 mt-1 border-t border-white/15 space-y-1.5">
-                                        <div class="flex justify-between items-center text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
+                                        <div class="text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
                                             <span>Tono</span>
-                                            <span id="tone-value" class="text-iosAccent font-semibold text-[14px]">Normal</span>
                                         </div>
-                                        <div class="flex items-center gap-2 px-1">
-                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[14px]"></i>
-                                            <input type="range" id="slider-pitch" min="0.5" max="1.5" step="0.1" value="1.0" class="flex-1 h-1 bg-white/15 rounded-full appearance-none outline-none cursor-pointer accent-iosAccent">
-                                            <i class="fa-solid fa-volume-high text-iosAccent text-[14px]"></i>
+                                        <div class="flex items-center justify-between gap-1 px-0">
+                                            <button id="btn-pitch-down" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Disminuir tono (Graves)">
+                                                <i class="fa-solid fa-volume-low text-zinc-400 text-[13px]"></i>
+                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Graves</span>
+                                            </button>
+                                            <span id="tone-value" class="text-iosAccent font-semibold text-[13px] min-w-[48px] text-center">Normal</span>
+                                            <button id="btn-pitch-up" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Aumentar tono (Agudos)">
+                                                <i class="fa-solid fa-volume-high text-iosAccent text-[13px]"></i>
+                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Agudos</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -806,6 +821,51 @@ body.light-theme .piper-progress-bar { background: #007aff; }
     <!-- Elementos de Audio de Respaldo -->
     <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
     <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
+
+    <!-- Módulo ES: integra @piper-plus/g2p para fonetización de calidad
+         100% idéntica a piper-cli (sin WASM, sin dependencia de espeak-ng). -->
+    <script type="module">
+        import { SpanishG2P } from '@piper-plus/g2p';
+        import { Encoder } from '@piper-plus/g2p/encode';
+        import { unmapToken } from '@piper-plus/g2p/pua-map';
+
+        // Exponer en window para que el script clásico lo use
+        let g2pInstance = null;
+        let encoderInstance = null;
+
+        window.piperG2P = {
+            ready: false,
+            init(phonemeIdMap) {
+                if (!g2pInstance) {
+                    g2pInstance = new SpanishG2P();
+                    encoderInstance = new Encoder(phonemeIdMap);
+                    this.ready = true;
+                    console.log('[Piper G2P] Inicializado (piper-plus/g2p)');
+                }
+            },
+            // Convierte texto a lista de IDs de fonemas, listo para el modelo Piper.
+            // Replica exactamente el comportamiento de piper-cli (con PADs entre fonemas).
+            textToIds(text) {
+                if (!this.ready) return null;
+                const result = g2pInstance.phonemize(text);
+                // Expandir PUA chars (ch -> tʃ, rr -> rr) a sus componentes IPA
+                const expanded = [];
+                for (const t of result.tokens) {
+                    const u = unmapToken(t);
+                    if (u !== t) {
+                        for (const ch of u) expanded.push(ch);
+                    } else {
+                        expanded.push(t);
+                    }
+                }
+                const encoded = encoderInstance.encode(expanded);
+                return { ids: encoded.phonemeIds, phonemes: expanded.join('') };
+            }
+        };
+        // Señal para el script clásico de que el módulo está cargado
+        window.dispatchEvent(new Event('piper-g2p-loaded'));
+        console.log('[Piper G2P] Módulo cargado, esperando init.');
+    </script>
 
     <script>
         // --- STREAMING_CHUNK
@@ -1158,6 +1218,12 @@ async function loadPiperModel() {
         piperConfig = configData;
         piperPhonemeMap = configData.phoneme_id_map;
 
+        // Inicializar el G2P de piper-plus (piper-cli compatible)
+        // una vez que tenemos el phoneme_id_map del modelo.
+        if (window.piperG2P && !window.piperG2P.ready) {
+            window.piperG2P.init(piperPhonemeMap);
+        }
+
         updatePiperUI('loading', 'Inicializando motor...');
         piperSession = await ort.InferenceSession.create(modelBuffer.buffer, {
             executionProviders: ['wasm'],
@@ -1180,15 +1246,33 @@ async function loadPiperModel() {
 
 async function piperSynthesize(text) {
     if (!piperLoaded || !piperSession) throw new Error('Piper no cargada');
-    const phonemeStr = spanishPhonemize(text);
-    if (!phonemeStr) return null;
-    const ids = phonemesToIds(phonemeStr);
-    if (!ids || ids.length < 3) return null;
+    // Usar el G2P de piper-plus/g2p (calidad 100% idéntica a piper-cli).
+    // Incluye: seseo, lenición, diptongos, acentos, asimilación de nasales,
+    // expansión de PUA chars (ch -> tʃ, rr -> rr), y PADs entre fonemas.
+    // Fallback al fonetizador manual si el módulo no cargó (no debería pasar).
+    let ids, phonemeStr;
+    if (window.piperG2P && window.piperG2P.ready) {
+        const r = window.piperG2P.textToIds(text);
+        if (!r || !r.ids || r.ids.length < 3) return null;
+        ids = r.ids;
+        phonemeStr = r.phonemes;
+    } else {
+        // Fallback (solo si el módulo ES no cargó)
+        phonemeStr = spanishPhonemize(text);
+        if (!phonemeStr) return null;
+        ids = phonemesToIds(phonemeStr);
+        if (!ids || ids.length < 3) return null;
+    }
 
     const inputIds = BigInt64Array.from(ids, x => BigInt(x));
     const inputTensor = new ort.Tensor('int64', inputIds, [1, ids.length]);
     const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]);
-    const scales = new Float32Array([piperConfig.inference.noise_scale, piperConfig.inference.length_scale, piperConfig.inference.noise_w]);
+    // length_scale ligeramente más alto (1.05) para audiolibros: habla más
+    // despacio y claro, sin sonar arrastrado. noise_w más bajo reduce el
+    // temblor natural y mejora la claridad.
+    const lenScale = (piperConfig.inference.length_scale || 1.0) * 1.05;
+    const noiseW = (piperConfig.inference.noise_w || 0.8) * 0.7;
+    const scales = new Float32Array([piperConfig.inference.noise_scale, lenScale, noiseW]);
     const scalesTensor = new ort.Tensor('float32', scales, [3]);
 
     const inputNames = piperSession.inputNames;
@@ -1210,11 +1294,21 @@ function playPiperAudio(audioSamples) {
     if (piperAudioCtx.state === 'suspended') piperAudioCtx.resume();
     const buffer = piperAudioCtx.createBuffer(1, audioSamples.length, piperConfig.audio.sample_rate);
     const ch = buffer.getChannelData(0);
-    for (let i = 0; i < audioSamples.length; i++) ch[i] = audioSamples[i];
+    // Normalizar el audio para que el pico máximo esté en 0.9
+    // (evita saturación y mantiene volumen consistente entre oraciones).
+    let maxAbs = 0;
+    for (let i = 0; i < audioSamples.length; i++) {
+        const a = Math.abs(audioSamples[i]);
+        if (a > maxAbs) maxAbs = a;
+    }
+    const norm = maxAbs > 0.001 ? Math.min(0.9 / maxAbs, 4.0) : 1.0;
+    // Gain de 1.3 (antes 1.8 causaba saturación en oraciones largas)
+    const finalGain = norm * 1.3;
+    for (let i = 0; i < audioSamples.length; i++) ch[i] = audioSamples[i] * finalGain;
     const src = piperAudioCtx.createBufferSource();
     src.buffer = buffer;
     const gain = piperAudioCtx.createGain();
-    gain.gain.value = 1.8;
+    gain.gain.value = 1.0;
     src.connect(gain);
     gain.connect(piperAudioCtx.destination);
     src.start(0);
@@ -1228,7 +1322,14 @@ async function speakSentencePiper(text) {
     }
     try {
         const audio = await piperSynthesize(text);
-        if (audio) { await playPiperAudio(audio); return true; }
+        if (audio) {
+            await playPiperAudio(audio);
+            // Pequeña pausa (120ms) después de cada oración para mejorar la
+            // comprensión en audiolibros. Sin esto, las oraciones se pegaban
+            // y era difícil distinguir dónde terminaba una y empezaba la otra.
+            await new Promise(r => setTimeout(r, 120));
+            return true;
+        }
     } catch (e) { console.error('[Piper] Error:', e); }
     return false;
 }
@@ -1658,19 +1759,41 @@ function updatePiperProgress(pct) {
                 });
             });
 
-            // Slider de Modulación de Tono (Pitch)
-            const sliderPitch = document.getElementById('slider-pitch');
-            if (sliderPitch) {
-                sliderPitch.addEventListener('input', (e) => {
-                    activePitch = parseFloat(e.target.value);
-                    let label = "Normal";
-                    if (activePitch < 0.9) label = "Grave";
-                    else if (activePitch > 1.1) label = "Agudo";
-                    document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
-                    
-                    if (activeUtterance) {
-                        activeUtterance.pitch = activePitch;
-                    }
+            // Botones de Modulación de Tono (Pitch) — Graves / Agudos
+            function updatePitchDisplay() {
+                let label = "Normal";
+                if (activePitch < 0.9) label = "Grave";
+                else if (activePitch > 1.1) label = "Agudo";
+                const toneEl = document.getElementById('tone-value');
+                if (toneEl) toneEl.textContent = label === "Normal" ? "Normal" : `${label} (${activePitch.toFixed(1)}x)`;
+                // Actualizar colores de los botones según el estado
+                const btnDown = document.getElementById('btn-pitch-down');
+                const btnUp = document.getElementById('btn-pitch-up');
+                if (btnDown) {
+                    const icon = btnDown.querySelector('i');
+                    if (icon) icon.className = activePitch < 1.0 ? 'fa-solid fa-volume-low text-iosAccent text-[13px]' : 'fa-solid fa-volume-low text-zinc-400 text-[13px]';
+                }
+                if (btnUp) {
+                    const icon = btnUp.querySelector('i');
+                    if (icon) icon.className = activePitch > 1.0 ? 'fa-solid fa-volume-high text-iosAccent text-[13px]' : 'fa-solid fa-volume-high text-zinc-500 text-[13px]';
+                }
+            }
+
+            const btnPitchDown = document.getElementById('btn-pitch-down');
+            if (btnPitchDown) {
+                btnPitchDown.addEventListener('click', () => {
+                    activePitch = Math.max(0.5, parseFloat((activePitch - 0.1).toFixed(1)));
+                    if (activeUtterance) activeUtterance.pitch = activePitch;
+                    updatePitchDisplay();
+                });
+            }
+
+            const btnPitchUp = document.getElementById('btn-pitch-up');
+            if (btnPitchUp) {
+                btnPitchUp.addEventListener('click', () => {
+                    activePitch = Math.min(1.5, parseFloat((activePitch + 0.1).toFixed(1)));
+                    if (activeUtterance) activeUtterance.pitch = activePitch;
+                    updatePitchDisplay();
                 });
             }
 
@@ -3103,6 +3226,14 @@ function updatePiperProgress(pct) {
             
             document.getElementById('timer-label').textContent = `${minutes} min`;
             showToast(`Apagado programado en ${minutes} min`, "fa-clock text-iosAccent");
+
+            // Re-asignar el check a la opción seleccionada (clearSleepTimer lo resetea a Off)
+            document.querySelectorAll('.timer-opt-btn').forEach(b => {
+                const check = b.querySelector('.check-icon');
+                const isMatch = parseInt(b.dataset.minutes) === minutes;
+                if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
+                b.classList.toggle('active-opt', isMatch);
+            });
 
             timerCountdown = setInterval(() => {
                 remainingTimerSeconds--;
