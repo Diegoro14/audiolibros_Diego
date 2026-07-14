@@ -880,9 +880,11 @@ let piperLoading = false;
 let piperError = null;
 let piperAudioCtx = null;
 
-// --- EDGE TTS ENGINE (Jorge Neural, es-MX) via REST API ---
+// --- EDGE TTS ENGINE (Jorge Neural, es-MX) ---
 let edgeWs = null;
-const EDGE_TTS_API = 'https://api-edgetts.azurewebsites.net/api/edgetts';
+const EDGE_TTS_WSS = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
+const EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const EDGE_TTS_REST = 'https://api-edgetts.azurewebsites.net/api/edgetts';
 const EDGE_VOICE_NAME = 'es-MX-JorgeNeural';
 
 const PIPER_MODEL_BASE = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high';
@@ -3042,21 +3044,35 @@ function updatePiperProgress(pct) {
             window.speechSynthesis.speak(activeUtterance);
         }
 
-        // --- EDGE TTS: Motor de voz neural Jorge (es-MX) via REST API ---
-        function edgePitchHz(pitch) {
-            return Math.round((pitch - 1.0) * 100);
+        // --- EDGE TTS: Motor de voz neural Jorge (es-MX) ---
+        // Estrategia dual: WebSocket directo (sin CORS, funciona desde file://)
+        // si falla en 3s, intenta REST API (funciona desde http/https)
+
+        function edgeGenUUID() {
+            if (crypto.randomUUID) return crypto.randomUUID();
+            const b = new Uint8Array(16);
+            crypto.getRandomValues(b);
+            b[6] = (b[6] & 0x0f) | 0x40;
+            b[8] = (b[8] & 0x3f) | 0x80;
+            const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+            return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
         }
+        function edgePitchHz(pitch) { return Math.round((pitch - 1.0) * 100); }
         function edgeRatePercent(rate) {
             const r = Math.round((rate - 1.0) * 100);
             return (r >= 0 ? '+' : '') + r + '%';
         }
+        function edgeEscapeXml(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+        }
         function edgeCleanup() {
-            // Mantenido para compatibilidad con pauseAudio
+            if (edgeWs) { try { edgeWs.close(); } catch(e) {} edgeWs = null; }
         }
 
         function speakSentenceEdge(index) {
             window.speechSynthesis.cancel();
             if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
+            edgeCleanup();
             if (ttsAudioEl) ttsAudioEl.pause();
 
             const text = textSentences[index];
@@ -3065,17 +3081,106 @@ function updatePiperProgress(pct) {
                 return;
             }
 
-            const pitchVal = edgePitchHz(activePitch);
+            const pitchHz = edgePitchHz(activePitch);
             const rateVal = edgeRatePercent(activeSpeedRate);
 
-            fetch(EDGE_TTS_API, {
+            // Intentar WebSocket primero (funciona desde file://, sin CORS)
+            speakEdgeWebSocket(text, pitchHz, rateVal, 0);
+        }
+
+        function speakEdgeWebSocket(text, pitchHz, rateVal, attempt) {
+            if (attempt >= 2) {
+                // WebSocket fallo 2 veces, intentar REST API
+                speakEdgeRest(text, pitchHz, rateVal);
+                return;
+            }
+
+            const reqId = edgeGenUUID();
+            const audioChunks = [];
+            let resolved = false;
+            let wsTimeout;
+
+            const finish = (success) => {
+                if (resolved) return;
+                resolved = true;
+                clearTimeout(wsTimeout);
+                if (!success) {
+                    console.warn('[Edge TTS] WebSocket fallo, reintentando o usando REST...');
+                    speakEdgeRest(text, pitchHz, rateVal);
+                }
+            };
+
+            wsTimeout = setTimeout(() => {
+                console.warn('[Edge TTS] WebSocket timeout, intentando REST API...');
+                finish(false);
+            }, 3000);
+
+            let ws;
+            try {
+                ws = new WebSocket(
+                    EDGE_TTS_WSS + '?TrustedClientToken=' + EDGE_TTS_TOKEN + '&ConnectionId=' + reqId
+                );
+            } catch(e) {
+                clearTimeout(wsTimeout);
+                speakEdgeRest(text, pitchHz, rateVal);
+                return;
+            }
+            edgeWs = ws;
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                // Config: formato de audio MP3 24khz
+                ws.send(
+                    'Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n' +
+                    '{"context":{"synthesis":{"audio":{"metadataoptions":' +
+                    '{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},' +
+                    '"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\n'
+                );
+                // SSML con voz Jorge y ajustes de tono/velocidad
+                const ssml =
+                    "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='es-MX'>" +
+                    "<voice name='" + EDGE_VOICE_NAME + "'>" +
+                    "<prosody pitch='" + pitchHz + "Hz' rate='" + rateVal + "' volume='+0%'>" +
+                    edgeEscapeXml(text) +
+                    "</prosody></voice></speak>";
+                ws.send('X-RequestId:' + reqId + '\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n' + ssml + '\n');
+            };
+
+            ws.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    if (event.data.includes('Path:turn.end')) {
+                        clearTimeout(wsTimeout);
+                        edgeCleanup();
+                        if (audioChunks.length > 0) {
+                            edgePlayAudioChunks(audioChunks);
+                        } else {
+                            if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                        }
+                        resolved = true;
+                    }
+                } else {
+                    const view = new DataView(event.data);
+                    if (event.data.byteLength < 2) return;
+                    const textHeaderLen = view.getUint16(0);
+                    const audioData = event.data.slice(2 + textHeaderLen);
+                    if (audioData.byteLength > 0) audioChunks.push(audioData);
+                }
+            };
+
+            ws.onerror = () => { finish(false); };
+            ws.onclose = () => { edgeWs = null; if (!resolved) finish(false); };
+        }
+
+        function speakEdgeRest(text, pitchHz, rateVal) {
+            // REST API: funciona desde http/https (no desde file:// por CORS)
+            fetch(EDGE_TTS_REST, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: text,
                     voice: EDGE_VOICE_NAME,
                     rate: rateVal,
-                    pitch: pitchVal + 'Hz',
+                    pitch: pitchHz + 'Hz',
                     volume: '+0%'
                 })
             })
@@ -3086,27 +3191,37 @@ function updatePiperProgress(pct) {
             .then(blob => {
                 if (blob.size < 100) throw new Error('Audio vacio');
                 const url = URL.createObjectURL(blob);
-                ttsAudioEl.onended = () => {
-                    URL.revokeObjectURL(url);
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
-                ttsAudioEl.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                };
-                ttsAudioEl.src = url;
-                ttsAudioEl.load();
-                const sk = document.getElementById('silent-keepalive');
-                if (sk) sk.play().catch(() => {});
-                ttsAudioEl.play().catch(() => {
-                    URL.revokeObjectURL(url);
-                    edgeFallbackToSystem(text);
-                });
+                edgePlayBlobUrl(url);
             })
             .catch(err => {
-                console.warn('[Edge TTS] Error:', err);
-                showToast('Edge TTS sin conexion, voz local', 'fa-triangle-exclamation text-yellow-400');
+                console.warn('[Edge TTS] REST tambien fallo:', err);
+                showToast('Edge TTS no disponible', 'fa-triangle-exclamation text-yellow-400');
                 edgeFallbackToSystem(text);
+            });
+        }
+
+        function edgePlayAudioChunks(chunks) {
+            const blob = new Blob(chunks, { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            edgePlayBlobUrl(url);
+        }
+
+        function edgePlayBlobUrl(url) {
+            ttsAudioEl.onended = () => {
+                URL.revokeObjectURL(url);
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.onerror = () => {
+                URL.revokeObjectURL(url);
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.src = url;
+            ttsAudioEl.load();
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
+            ttsAudioEl.play().catch(() => {
+                URL.revokeObjectURL(url);
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
             });
         }
 
