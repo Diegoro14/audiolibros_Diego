@@ -863,84 +863,247 @@ async function piperCachePut(key, data) {
     } catch(e) { console.warn('Piper cache write failed:', e); }
 }
 
-// --- Spanish (MX) Phonemizer (eSpeak-compatible) ---
+// --- Spanish (MX) Phonemizer (IPA Unicode for Piper es_MX-claude-high) ---
+// CORREGIDO: El modelo Piper espera fonemas IPA Unicode (ɲ, ʝ, ɾ, tʃ, ŋ, ˈ)
+// NO notación espeak ASCII (J, L, R, tS, N). Los fonemas ASCII no existen
+// en el phoneme_id_map del modelo y producen audio irreconocible.
+// Salida calibrada contra `espeak-ng -v es-419 --ipa` (la voz con la que
+// Piper fue entrenado). Incluye lenición y diptongos entre palabras.
 function spanishPhonemize(text) {
-    text = text.toLowerCase().normalize('NFD');
+    // 1) Preservar ñ y vocales acentuadas antes de NFD
+    //    (NFD descompone ñ -> n+\u0303, á -> a+\u0301, etc.)
+    text = text.toLowerCase()
+               .replace(/\u00f1/g, '\u0001NY\u0001')
+               .replace(/\u00e1/g, '\u0001A1\u0001')
+               .replace(/\u00e9/g, '\u0001E1\u0001')
+               .replace(/\u00ed/g, '\u0001I1\u0001')
+               .replace(/\u00f3/g, '\u0001O1\u0001')
+               .replace(/\u00fa/g, '\u0001U1\u0001')
+               .replace(/\u00fc/g, '\u0001UD\u0001');
+    // 2) NFD para separar otros diacríticos
+    text = text.normalize('NFD');
+    // 3) Quitar diacríticos combinantes que no nos interesan
     let result = '';
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
-        if (ch === '\u0301') { continue; }
-        const map = {'\u00e1':'a','\u00e9':'e','\u00ed':'i','\u00f3':'o','\u00fa':'u','\u00fc':'u'};
-        result += map[ch] || ch;
+        if (ch >= '\u0300' && ch <= '\u036f') continue;
+        result += ch;
     }
-    text = result.replace(/[^a-z\u00f1\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    // 4) Restaurar ñ y acentos como marca \u0002 después de la vocal
+    text = result
+        .replace(/\u0001NY\u0001/g, '\u00f1')
+        .replace(/\u0001A1\u0001/g, 'a\u0002')
+        .replace(/\u0001E1\u0001/g, 'e\u0002')
+        .replace(/\u0001I1\u0001/g, 'i\u0002')
+        .replace(/\u0001O1\u0001/g, 'o\u0002')
+        .replace(/\u0001U1\u0001/g, 'u\u0002')
+        .replace(/\u0001UD\u0001/g, 'u');
+    // 5) Limpiar: conservar solo a-z, ñ, marca de acento \u0002, espacios
+    text = text.replace(/[^a-z\u00f1\u0002\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    return text.split(' ').map(w => w ? phonemizeWord(w) : '').filter(Boolean).join(' ');
+    // 6) Fonetizar todas las palabras en secuencia, pasando el contexto
+    //    (lastPh) de una palabra a la siguiente para activar la lenición
+    //    entre palabras (ej: "me gusta" -> la 'g' se vuelve fricativa).
+    const words = text.split(' ').filter(Boolean);
+    let out = [];
+    let runningLastPh = null;
+    for (const w of words) {
+        const { phonemes, lastPh } = phonemizeWord(w, runningLastPh);
+        if (phonemes) {
+            out.push(phonemes);
+            runningLastPh = lastPh;
+        }
+    }
+    return out.join(' ');
 }
 
-function phonemizeWord(word) {
-    let ph = [];
-    let i = 0;
+function phonemizeWord(word, incomingLastPh) {
+    // Detectar posición de la tilde original (marca \u0002 después de vocal)
+    const stressedVowelIdx = word.indexOf('\u0002') - 1;
+    word = word.replace(/\u0002/g, '');
+
+    // Fonemas IPA Unicode que SÍ existen en el phoneme_id_map del modelo
+    // es_MX-claude-high (verificado contra el .onnx.json en HuggingFace):
+    //   ɲ=U+0272(id82)  ʝ=U+029D(id115)  ɾ=U+027E(id92)  ŋ=U+014B(id44)
+    //   ʃ=U+0283(id96)  ˈ=U+02C8(id120)  r=id30(trill)   ɡ=U+0261(id66)
+    //   β=U+03B2(id125) ð=U+00F0(id41)   ɣ=U+0263(id68)  t=id32  x=id36
+    //   ɪ=U+026A(id74)  ʊ=U+028A(id100)  ɛ=U+025B(id61)
     const V = 'aeiou';
+    const VOPEN = new Set(['a','e','o']);  // vocales abiertas (para diptongos decrecientes)
+    const VPH = new Set(['a','e','i','o','u','\u026A','\u028A']);
+    let ph = [];
+    let vowOrigIdx = [];
+    let lastPh = incomingLastPh || null;  // contexto de palabra anterior (para lenición)
+    let prevLetter = null;
+    const lenitionB = (last) => (last === null || last === 'n' || last === 'm' || last === 'l') ? 'b' : '\u03B2';
+    const lenitionD = (last) => (last === null || last === 'n' || last === 'l') ? 'd' : '\u00F0';
+    const lenitionG = (last) => (last === null || last === '\u014B' || last === 'n') ? '\u0261' : '\u0263';
+    // Para la 'r' inicial: si la palabra anterior terminó en vocal, espeak usa
+    // la vibrante simple ɾ (no la trill). En posición inicial absoluta usa r (trill).
+    const initialR = (last) => (last === null) ? 'r' : '\u027E';
+    let i = 0;
     while (i < word.length) {
         const c = word[i], n = word[i+1] || '', n2 = word[i+2] || '';
-        if (c==='c'&&n==='h') { ph.push('tS'); i+=2; }
-        else if (c==='l'&&n==='l') { ph.push('j'); i+=2; }
-        else if (c==='r'&&n==='r') { ph.push('R'); i+=2; }
-        else if (c==='q'&&n==='u') { ph.push('k'); i+=2; }
-        else if (c==='g'&&n==='u'&&(n2==='e'||n2==='i')) { ph.push('g'); i++; }
-        else if (c==='h') { i++; }
-        else if (c==='a') { ph.push('a'); i++; }
-        else if (c==='e') { ph.push('e'); i++; }
-        else if (c==='i') { ph.push('i'); i++; }
-        else if (c==='o') { ph.push('o'); i++; }
-        else if (c==='u') { ph.push('u'); i++; }
-        else if (c==='b'||c==='v') { ph.push('b'); i++; }
-        else if (c==='c') { ph.push((n==='e'||n==='i')?'s':'k'); i++; }
-        else if (c==='d') { ph.push('d'); i++; }
-        else if (c==='f') { ph.push('f'); i++; }
-        else if (c==='g') { ph.push((n==='e'||n==='i')?'x':'g'); i++; }
-        else if (c==='j') { ph.push('x'); i++; }
-        else if (c==='k') { ph.push('k'); i++; }
-        else if (c==='l') { ph.push('l'); i++; }
-        else if (c==='m') { ph.push('m'); i++; }
-        else if (c==='n') { ph.push((n==='k'||n==='g')?'\u014b':'n'); i++; }
-        else if (c==='\u00f1') { ph.push('\u00f2'); i++; }
-        else if (c==='p') { ph.push('p'); i++; }
-        else if (c==='r') { ph.push('r'); i++; }
-        else if (c==='s') { ph.push('s'); i++; }
-        else if (c==='t') { ph.push('t'); i++; }
-        else if (c==='w') { ph.push('w'); i++; }
-        else if (c==='x') { ph.push('x'); i++; }
-        else if (c==='y') { ph.push(i===word.length-1&&V.includes(word[i-1])?'i':'j'); i++; }
-        else if (c==='z') { ph.push('s'); i++; }
-        else { i++; }
-    }
-    // Add stress marker ˈ before stressed vowel
-    let vPositions = [];
-    for (let p = 0; p < ph.length; p++) { if (V.includes(ph[p])) vPositions.push(p); }
-    if (vPositions.length > 1) {
-        let stressIdx;
-        const last = word[word.length-1];
-        if (V.includes(last)||last==='n'||last==='s') {
-            stressIdx = vPositions.length >= 2 ? vPositions[vPositions.length-2] : vPositions[0];
-        } else {
-            stressIdx = vPositions[vPositions.length-1];
+        let pushed = null;
+        if (c==='c'&&n==='h') { ph.push('t'); ph.push('\u0283'); pushed='\u0283'; i+=2; }
+        else if (c==='l'&&n==='l') {
+            if (lastPh && VPH.has(lastPh)) { ph.push('j'); ph.push('j'); pushed='j'; }
+            else { ph.push('\u029D'); pushed='\u029D'; }
+            i+=2;
         }
-        ph.splice(stressIdx, 0, '\u02C8');
+        else if (c==='r'&&n==='r') { ph.push('r'); pushed='r'; i+=2; }
+        else if (c==='q'&&n==='u') { ph.push('k'); pushed='k'; i+=2; }
+        else if (c==='g'&&n==='u'&&(n2==='e'||n2==='i')) { ph.push(lenitionG(lastPh)); pushed=ph[ph.length-1]; i++; }
+        else if (c==='h') { i++; continue; }
+        else if (c==='a') { ph.push('a'); vowOrigIdx.push(i); pushed='a'; i++; }
+        else if (c==='e') { ph.push('e'); vowOrigIdx.push(i); pushed='e'; i++; }
+        else if (c==='i') {
+            // Diptongo decreciente: vocal abierta (a/e/o) + i -> ɪ
+            if (prevLetter && VOPEN.has(prevLetter) && stressedVowelIdx !== i) {
+                ph.push('\u026A'); pushed='\u026A';
+            }
+            // Diptongo creciente: i + vocal -> j
+            else if (n && V.includes(n) && stressedVowelIdx !== i) {
+                ph.push('j'); pushed='j';
+            }
+            else { ph.push('i'); vowOrigIdx.push(i); pushed='i'; }
+            i++;
+        }
+        else if (c==='o') { ph.push('o'); vowOrigIdx.push(i); pushed='o'; i++; }
+        else if (c==='u') {
+            // Diptongo decreciente: vocal abierta (a/e/o) + u -> ʊ
+            if (prevLetter && VOPEN.has(prevLetter) && stressedVowelIdx !== i
+                && !(prevLetter==='q' || (prevLetter==='g'))) {
+                ph.push('\u028A'); pushed='\u028A';
+            }
+            // Diptongo creciente: u + vocal -> w
+            else if (n && V.includes(n) && stressedVowelIdx !== i
+                && !(prevLetter==='q' || (prevLetter==='g' && (n==='e'||n==='i')))) {
+                ph.push('w'); pushed='w';
+            } else {
+                ph.push('u'); vowOrigIdx.push(i); pushed='u';
+            }
+            i++;
+        }
+        else if (c==='b'||c==='v') { ph.push(lenitionB(lastPh)); pushed=ph[ph.length-1]; i++; }
+        else if (c==='c') { ph.push((n==='e'||n==='i')?'s':'k'); pushed=ph[ph.length-1]; i++; }
+        else if (c==='d') { ph.push(lenitionD(lastPh)); pushed=ph[ph.length-1]; i++; }
+        else if (c==='f') { ph.push('f'); pushed='f'; i++; }
+        else if (c==='g') {
+            if (n==='e'||n==='i') { ph.push('x'); pushed='x'; }
+            else { ph.push(lenitionG(lastPh)); pushed=ph[ph.length-1]; }
+            i++;
+        }
+        else if (c==='j') { ph.push('x'); pushed='x'; i++; }
+        else if (c==='k') { ph.push('k'); pushed='k'; i++; }
+        else if (c==='l') { ph.push('l'); pushed='l'; i++; }
+        else if (c==='m') { ph.push('m'); pushed='m'; i++; }
+        else if (c==='n') {
+            if (n==='k'||n==='g'||n==='\u00f1') { ph.push('\u014B'); pushed='\u014B'; }
+            else if (n==='b'||n==='v'||n==='p') { ph.push('m'); pushed='m'; }
+            else if (n==='f') { ph.push('m'); pushed='m'; }
+            else { ph.push('n'); pushed='n'; }
+            i++;
+        }
+        else if (c==='\u00f1') { ph.push('\u0272'); pushed='\u0272'; i++; }
+        else if (c==='p') { ph.push('p'); pushed='p'; i++; }
+        else if (c==='r') {
+            // r simple: ɾ tap en posición interna; r (trill) al inicio de palabra
+            // (incluso después de otra palabra, como hace espeak-ng)
+            if (i === 0) { ph.push('r'); pushed='r'; }
+            else { ph.push('\u027E'); pushed='\u027E'; }
+            i++;
+        }
+        else if (c==='s') { ph.push('s'); pushed='s'; i++; }
+        else if (c==='t') { ph.push('t'); pushed='t'; i++; }
+        else if (c==='w') { ph.push('w'); pushed='w'; i++; }
+        else if (c==='x') { ph.push('k'); ph.push('s'); pushed='s'; i++; }
+        else if (c==='y') {
+            if (i===word.length-1 && lastPh && VPH.has(lastPh)) { ph.push('i'); vowOrigIdx.push(i); pushed='i'; }
+            else { ph.push('j'); pushed='j'; }
+            i++;
+        }
+        else if (c==='z') { ph.push('s'); pushed='s'; i++; }
+        else { i++; continue; }
+        lastPh = pushed;
+        prevLetter = c;
     }
-    return ph.join('');
+    // Marca de acento ˈ antes de la vocal tónica
+    const atoneMonosyllables = new Set([
+        'el','la','los','las','al','del',
+        'de','a','en','con','por','para','sin','sobre','tras','y','o','u','e','ni','que','se','me','te','le','les','lo','nos','os',
+        'su','sus','mi','mis','tu','tus'
+    ]);
+    const isAtoneMono = (vowOrigIdx.length === 1 && stressedVowelIdx < 0 && atoneMonosyllables.has(word));
+    if (vowOrigIdx.length >= 1 && !isAtoneMono) {
+        let stressOrig;
+        if (stressedVowelIdx >= 0) {
+            stressOrig = stressedVowelIdx;
+        } else if (vowOrigIdx.length === 1) {
+            stressOrig = vowOrigIdx[0];
+        } else {
+            const last = word[word.length-1];
+            if (V.includes(last) || last === 'n' || last === 's') {
+                stressOrig = vowOrigIdx[vowOrigIdx.length-2];
+            } else {
+                stressOrig = vowOrigIdx[vowOrigIdx.length-1];
+            }
+        }
+        let count = 0;
+        let stressPh = -1;
+        for (let p = 0; p < ph.length; p++) {
+            if (VPH.has(ph[p])) {
+                if (count < vowOrigIdx.length && vowOrigIdx[count] === stressOrig) { stressPh = p; break; }
+                count++;
+            }
+        }
+        if (stressPh >= 0) ph.splice(stressPh, 0, '\u02C8');
+        // Regla de espeak-ng: 'e' tónica + nasal + consonante -> ɛ (e abierta)
+        // Solo cuando la nasal cierra la sílaba de la 'e' (siguiente letra es consonante).
+        // Ej: tengo (e+n+g), comienzo (e+n+z), firmamento (e+n+t), intensamente (e+n+s)
+        // NO aplica: suena (e+n+vocal), bien (e+n+fin de palabra)
+        if (stressPh >= 0 && ph[stressPh + 1] === 'e') {
+            const nasal = ph[stressPh + 2];
+            const afterNasal = ph[stressPh + 3];
+            const isNasal = (nasal === 'n' || nasal === 'm' || nasal === '\u014B');
+            // afterNasal debe ser consonante (no vocal ni undefined ni marca de acento)
+            const isConsonant = afterNasal && !VPH.has(afterNasal) && afterNasal !== '\u02C8';
+            if (isNasal && isConsonant) {
+                ph[stressPh + 1] = '\u025B';
+            }
+        }
+    }
+    return { phonemes: ph.join(''), lastPh };
 }
 
 function phonemesToIds(phonemeStr) {
     if (!piperPhonemeMap) return null;
+    // CRÍTICO: piper-cli inserta un PAD (id=0) después de CADA fonema
+    // (incluyendo BOS). Sin estos PADs, el modelo produce audio sin sentido
+    // (suena como un idioma incomprensible). Esto replica exactamente
+    // phonemes_to_ids() de piper/phoneme_ids.py.
+    //   Estructura: [BOS, PAD, (fonema, PAD)*, EOS]
+    const BOS = piperPhonemeMap['^'] || [1];
+    const EOS = piperPhonemeMap['$'] || [2];
+    const PAD = piperPhonemeMap['_'] || [0];
+    const SPACE = piperPhonemeMap[' '] || [3];
     const ids = [];
-    if (piperPhonemeMap['^']) ids.push(piperPhonemeMap['^'][0]); else ids.push(1);
+    // BOS + PAD
+    ids.push(BOS[0]);
+    ids.push(PAD[0]);
+    // Cada fonema va seguido de PAD
     for (const ch of phonemeStr) {
-        if (piperPhonemeMap[ch]) ids.push(piperPhonemeMap[ch][0]);
-        else if (ch === ' ') ids.push(piperPhonemeMap[' '] ? piperPhonemeMap[' '][0] : 3);
+        if (piperPhonemeMap[ch]) {
+            ids.push(piperPhonemeMap[ch][0]);
+            ids.push(PAD[0]);
+        } else if (ch === ' ') {
+            ids.push(SPACE[0]);
+            ids.push(PAD[0]);
+        }
+        // else: ignorar caracteres desconocidos (igual que piper-cli)
     }
-    if (piperPhonemeMap['$']) ids.push(piperPhonemeMap['$'][0]); else ids.push(2);
+    // EOS (sin PAD después)
+    ids.push(EOS[0]);
     return ids;
 }
 
