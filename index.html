@@ -429,7 +429,17 @@
         #sound-wave-anim.paused .wave-bar {
             height: 15% !important;
         }
-    </style>
+    
+/* Piper TTS */
+.piper-progress-bar { height: 3px; background: var(--accent-color, #0a84ff); transition: width 0.3s; border-radius: 2px; }
+body.light-theme .piper-progress-bar { background: #007aff; }
+.piper-status { font-size: 11px; opacity: 0.6; text-align: center; padding: 4px 8px; }
+.piper-status.loading { color: #ff9f0a; }
+.piper-status.ready { color: #30d158; }
+.piper-status.error { color: #ff453a; }
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
 
@@ -645,7 +655,7 @@
                                     <span id="voice-display-value" class="truncate flex-1 text-left text-[14px]">Voz Online HD</span>
                                     <i class="fa-solid fa-chevron-down text-[12px] opacity-60 ml-1 shrink-0"></i>
                                 </button>
-                                <div id="voice-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-0 w-56 rounded-xl p-2 z-[100] max-h-[280px] overflow-y-auto ios-scroll space-y-1">
+                                <div id="voice-flyout" class="unified-flyout hidden absolute bottom-full mb-2 left-0 w-[22rem] rounded-xl p-3 z-[100] max-h-[440px] overflow-y-auto ios-scroll space-y-1.5">
                                     <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Voces Disponibles</div>
                                 </div>
                             </div>
@@ -798,7 +808,278 @@
     <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
 
     <script>
-        // --- STREAMING_CHUNK: Base de Datos de Almacenamiento Seguro Multi-Capa (IndexedDB + LocalStorage) ... ---
+        // --- STREAMING_CHUNK
+// ============================================================
+// PIPER TTS ENGINE — es_MX-claude-high (Offline Neural TTS)
+// ============================================================
+let piperSession = null;
+let piperConfig = null;
+let piperPhonemeMap = null;
+let piperLoaded = false;
+let piperLoading = false;
+let piperError = null;
+let piperAudioCtx = null;
+
+const PIPER_MODEL_BASE = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high';
+const PIPER_MODEL_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx';
+const PIPER_CONFIG_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx.json';
+const PIPER_CORS_PROXIES = [
+    url => url,
+    url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+    url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
+];
+const PIPER_DB_NAME = 'PiperTTS';
+const PIPER_STORE = 'models';
+const PIPER_DB_KEY = 'es_MX-claude-high';
+
+function openPiperDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(PIPER_DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(PIPER_STORE);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+    });
+}
+async function piperCacheGet(key) {
+    try {
+        const db = await openPiperDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(PIPER_STORE, 'readonly');
+            const req = tx.objectStore(PIPER_STORE).get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    } catch(e) { return null; }
+}
+async function piperCachePut(key, data) {
+    try {
+        const db = await openPiperDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(PIPER_STORE, 'readwrite');
+            tx.objectStore(PIPER_STORE).put(data, key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch(e) { console.warn('Piper cache write failed:', e); }
+}
+
+// --- Spanish (MX) Phonemizer (eSpeak-compatible) ---
+function spanishPhonemize(text) {
+    text = text.toLowerCase().normalize('NFD');
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '\u0301') { continue; }
+        const map = {'\u00e1':'a','\u00e9':'e','\u00ed':'i','\u00f3':'o','\u00fa':'u','\u00fc':'u'};
+        result += map[ch] || ch;
+    }
+    text = result.replace(/[^a-z\u00f1\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return '';
+    return text.split(' ').map(w => w ? phonemizeWord(w) : '').filter(Boolean).join(' ');
+}
+
+function phonemizeWord(word) {
+    let ph = [];
+    let i = 0;
+    const V = 'aeiou';
+    while (i < word.length) {
+        const c = word[i], n = word[i+1] || '', n2 = word[i+2] || '';
+        if (c==='c'&&n==='h') { ph.push('tS'); i+=2; }
+        else if (c==='l'&&n==='l') { ph.push('j'); i+=2; }
+        else if (c==='r'&&n==='r') { ph.push('R'); i+=2; }
+        else if (c==='q'&&n==='u') { ph.push('k'); i+=2; }
+        else if (c==='g'&&n==='u'&&(n2==='e'||n2==='i')) { ph.push('g'); i++; }
+        else if (c==='h') { i++; }
+        else if (c==='a') { ph.push('a'); i++; }
+        else if (c==='e') { ph.push('e'); i++; }
+        else if (c==='i') { ph.push('i'); i++; }
+        else if (c==='o') { ph.push('o'); i++; }
+        else if (c==='u') { ph.push('u'); i++; }
+        else if (c==='b'||c==='v') { ph.push('b'); i++; }
+        else if (c==='c') { ph.push((n==='e'||n==='i')?'s':'k'); i++; }
+        else if (c==='d') { ph.push('d'); i++; }
+        else if (c==='f') { ph.push('f'); i++; }
+        else if (c==='g') { ph.push((n==='e'||n==='i')?'x':'g'); i++; }
+        else if (c==='j') { ph.push('x'); i++; }
+        else if (c==='k') { ph.push('k'); i++; }
+        else if (c==='l') { ph.push('l'); i++; }
+        else if (c==='m') { ph.push('m'); i++; }
+        else if (c==='n') { ph.push((n==='k'||n==='g')?'\u014b':'n'); i++; }
+        else if (c==='\u00f1') { ph.push('\u00f2'); i++; }
+        else if (c==='p') { ph.push('p'); i++; }
+        else if (c==='r') { ph.push('r'); i++; }
+        else if (c==='s') { ph.push('s'); i++; }
+        else if (c==='t') { ph.push('t'); i++; }
+        else if (c==='w') { ph.push('w'); i++; }
+        else if (c==='x') { ph.push('x'); i++; }
+        else if (c==='y') { ph.push(i===word.length-1&&V.includes(word[i-1])?'i':'j'); i++; }
+        else if (c==='z') { ph.push('s'); i++; }
+        else { i++; }
+    }
+    // Add stress marker ˈ before stressed vowel
+    let vPositions = [];
+    for (let p = 0; p < ph.length; p++) { if (V.includes(ph[p])) vPositions.push(p); }
+    if (vPositions.length > 1) {
+        let stressIdx;
+        const last = word[word.length-1];
+        if (V.includes(last)||last==='n'||last==='s') {
+            stressIdx = vPositions.length >= 2 ? vPositions[vPositions.length-2] : vPositions[0];
+        } else {
+            stressIdx = vPositions[vPositions.length-1];
+        }
+        ph.splice(stressIdx, 0, '\u02C8');
+    }
+    return ph.join('');
+}
+
+function phonemesToIds(phonemeStr) {
+    if (!piperPhonemeMap) return null;
+    const ids = [];
+    if (piperPhonemeMap['^']) ids.push(piperPhonemeMap['^'][0]); else ids.push(1);
+    for (const ch of phonemeStr) {
+        if (piperPhonemeMap[ch]) ids.push(piperPhonemeMap[ch][0]);
+        else if (ch === ' ') ids.push(piperPhonemeMap[' '] ? piperPhonemeMap[' '][0] : 3);
+    }
+    if (piperPhonemeMap['$']) ids.push(piperPhonemeMap['$'][0]); else ids.push(2);
+    return ids;
+}
+
+async function fetchWithCORS(url, onProgress) {
+    for (let i = 0; i < PIPER_CORS_PROXIES.length; i++) {
+        const proxyUrl = PIPER_CORS_PROXIES[i](url);
+        try {
+            updatePiperUI('loading', i === 0 ? 'Conectando...' : 'Reintentando (proxy ' + i + ')...');
+            const resp = await fetch(proxyUrl);
+            if (!resp.ok) { console.warn('[Piper] Attempt ' + (i+1) + ' failed: HTTP ' + resp.status); continue; }
+            const buf = await resp.arrayBuffer();
+            if (buf.byteLength < 100) { console.warn('[Piper] Attempt ' + (i+1) + ' too small'); continue; }
+            return new Uint8Array(buf);
+        } catch(e) {
+            console.warn('[Piper] Attempt ' + (i+1) + ' error:', e.message);
+        }
+    }
+    throw new Error('No se pudo descargar (CORS bloqueado)');
+}
+
+async function loadPiperModel() {
+    if (piperLoaded || piperLoading) return;
+    if (typeof ort === 'undefined') {
+        updatePiperUI('error', 'ONNX Runtime no cargó');
+        console.error('[Piper] ort global not found - ONNX Runtime script failed to load');
+        return;
+    }
+    piperLoading = true;
+    piperError = null;
+    updatePiperUI('loading', 'Descargando modelo Piper...');
+
+    try {
+        let modelBuffer = await piperCacheGet(PIPER_DB_KEY + '_model');
+        let configData = await piperCacheGet(PIPER_DB_KEY + '_config');
+
+        if (modelBuffer && configData) {
+            updatePiperUI('loading', 'Cargando desde cach\u00e9...');
+        } else {
+            // Download config
+            updatePiperUI('loading', 'Descargando config...');
+            let configBuf = await fetchWithCORS(PIPER_CONFIG_URL);
+            configData = JSON.parse(new TextDecoder().decode(configBuf));
+            await piperCachePut(PIPER_DB_KEY + '_config', configData);
+
+            // Download model
+            updatePiperUI('loading', 'Descargando modelo (63 MB)...');
+            modelBuffer = await fetchWithCORS(PIPER_MODEL_URL);
+            updatePiperUI('loading', 'Guardando en cach\u00e9...');
+            await piperCachePut(PIPER_DB_KEY + '_model', modelBuffer);
+        }
+
+        piperConfig = configData;
+        piperPhonemeMap = configData.phoneme_id_map;
+
+        updatePiperUI('loading', 'Inicializando motor...');
+        piperSession = await ort.InferenceSession.create(modelBuffer.buffer, {
+            executionProviders: ['wasm'],
+            graphOptimizationLevel: 'all'
+        });
+
+        piperLoaded = true;
+        piperLoading = false;
+        updatePiperUI('ready', 'Lista \u2714');
+        updatePiperProgress(100);
+        console.log('[Piper] Model loaded successfully!');
+    } catch (err) {
+        console.error('[Piper] Error:', err);
+        piperError = err.message;
+        piperLoading = false;
+        piperLoaded = false;
+        updatePiperUI('error', err.message.substring(0, 40));
+    }
+}
+
+async function piperSynthesize(text) {
+    if (!piperLoaded || !piperSession) throw new Error('Piper no cargada');
+    const phonemeStr = spanishPhonemize(text);
+    if (!phonemeStr) return null;
+    const ids = phonemesToIds(phonemeStr);
+    if (!ids || ids.length < 3) return null;
+
+    const inputIds = new BigInt64Array(ids);
+    const inputTensor = new ort.Tensor('int64', inputIds, [1, ids.length]);
+    const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]);
+    const scales = new Float32Array([piperConfig.inference.noise_scale, piperConfig.inference.length_scale, piperConfig.inference.noise_w]);
+    const scalesTensor = new ort.Tensor('float32', scales, [1, 3]);
+
+    const inputNames = piperSession.inputNames;
+    const outputNames = piperSession.outputNames;
+    const feeds = {};
+    feeds[inputNames[0]] = inputTensor;
+    if (inputNames.length > 1) feeds[inputNames[1]] = lengthTensor;
+    if (inputNames.length > 2) feeds[inputNames[2]] = scalesTensor;
+
+    const results = await piperSession.run(feeds);
+    return results[outputNames[0]].data;
+}
+
+function playPiperAudio(audioSamples) {
+    if (!audioSamples || audioSamples.length === 0) return Promise.resolve();
+    if (!piperAudioCtx) {
+        piperAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 22050 });
+    }
+    if (piperAudioCtx.state === 'suspended') piperAudioCtx.resume();
+    const buffer = piperAudioCtx.createBuffer(1, audioSamples.length, piperConfig.audio.sample_rate);
+    const ch = buffer.getChannelData(0);
+    for (let i = 0; i < audioSamples.length; i++) ch[i] = audioSamples[i];
+    const src = piperAudioCtx.createBufferSource();
+    src.buffer = buffer;
+    const gain = piperAudioCtx.createGain();
+    gain.gain.value = 1.8;
+    src.connect(gain);
+    gain.connect(piperAudioCtx.destination);
+    src.start(0);
+    return new Promise(r => { src.onended = r; });
+}
+
+async function speakSentencePiper(text) {
+    if (!piperLoaded) {
+        await loadPiperModel();
+        if (!piperLoaded) return false;
+    }
+    try {
+        const audio = await piperSynthesize(text);
+        if (audio) { await playPiperAudio(audio); return true; }
+    } catch (e) { console.error('[Piper] Error:', e); }
+    return false;
+}
+
+function updatePiperUI(state, msg) {
+    const el = document.getElementById('piper-status');
+    if (el) { el.textContent = msg; el.className = 'piper-status ' + state; }
+}
+function updatePiperProgress(pct) {
+    const el = document.getElementById('piper-progress');
+    if (el) el.style.width = pct + '%';
+}
+
+// --- STREAMING_CHUNK: Base de Datos de Almacenamiento Seguro Multi-Capa (IndexedDB + LocalStorage) ... ---
         const DB_NAME = "AudiolibrosDiegoDB";
         const DB_VERSION = 1;
         const STORE_NAME = "library";
@@ -1439,6 +1720,22 @@
             }
 
             function detectBestSpanishVoice() {
+                // PRIORIDAD 1: Paulina Mejorada/Premium (iOS Siri)
+                for (let i = 0; i < synthesisVoices.length; i++) {
+                    const n = synthesisVoices[i].name.toLowerCase();
+                    if (n.includes('paulina') && (n.includes('premium') || n.includes('mejorada') || n.includes('enhanced'))) {
+                        console.log('Voz auto: Paulina (Mejorada/Premium)');
+                        return i;
+                    }
+                }
+                // PRIORIDAD 2: Paulina estandar
+                for (let i = 0; i < synthesisVoices.length; i++) {
+                    if (synthesisVoices[i].name.toLowerCase().includes('paulina')) {
+                        console.log('Voz auto: Paulina (Estandar)');
+                        return i;
+                    }
+                }
+                // PRIORIDAD 3: Mejor voz espanol por puntuacion
                 const isQ = (name) => {
                     const n = name.toLowerCase();
                     return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium') || n.includes('wavenet') || n.includes('jets');
@@ -1447,7 +1744,7 @@
                 const isLatam = (lang) => latamLangs.includes(lang.toLowerCase());
                 const isFemale = (name) => {
                     const n = name.toLowerCase();
-                    return n.includes('female') || n.includes('mujer') || n.includes('woman') || n.includes('-f') || n.includes('_f') || n.includes('samantha') || n.includes('victoria') || n.includes('karen') || n.includes('paulina') || n.includes('monica') || n.includes('sabina') || n.includes('lupe') || n.includes('elena') || n.includes('paulina');
+                    return n.includes('female') || n.includes('mujer') || n.includes('woman') || n.includes('-f') || n.includes('_f') || n.includes('samantha') || n.includes('victoria') || n.includes('karen') || n.includes('paulina') || n.includes('monica') || n.includes('sabina') || n.includes('lupe') || n.includes('elena');
                 };
                 let bestIdx = -1, bestScore = -1;
                 for (let i = 0; i < synthesisVoices.length; i++) {
@@ -1475,6 +1772,7 @@
                     }
                 }
                 if (bestIdx === -1 && synthesisVoices.length > 0) bestIdx = 0;
+                console.log('Voz auto: ' + (synthesisVoices[bestIdx] ? synthesisVoices[bestIdx].name : 'ninguna'));
                 return bestIdx;
             }
 
@@ -1492,22 +1790,40 @@
                 flyout.innerHTML = '';
 
                 const header = document.createElement('div');
-                header.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10";
+                header.className = "text-[14px] font-bold opacity-60 uppercase tracking-wider px-2 py-2 border-b border-white/10";
                 header.textContent = "Voces Disponibles";
                 flyout.appendChild(header);
 
                 const onlineBtn = document.createElement('button');
-                onlineBtn.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
+                onlineBtn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
                 onlineBtn.dataset.value = "online";
                 const ovName = (bestOnlineVoiceIndex !== null && synthesisVoices[bestOnlineVoiceIndex])
                     ? synthesisVoices[bestOnlineVoiceIndex].name : 'Automatica';
-                onlineBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-wifi text-iosAccent text-[14px]"></i><div class="flex flex-col items-start"><span>Voz Online HD</span><span class="text-[10px] opacity-50 font-normal">' + ovName + '</span></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'online' ? 'visible' : 'hidden') + '"></i>';
+                onlineBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-wifi text-iosAccent text-[14px]"></i><div class="flex flex-col items-start"><span>Voz Online HD</span><span class="text-[11px] opacity-50 font-normal">' + ovName + '</span></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'online' ? 'visible' : 'hidden') + '"></i>';
                 if (selectedVoiceValue === "online") onlineBtn.classList.add('active-opt');
                 onlineBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     selectVoice("online", "Voz Online HD");
                 });
                 flyout.appendChild(onlineBtn);
+
+                // --- Piper TTS Option ---
+                const piperBtn = document.createElement('button');
+                piperBtn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
+                piperBtn.dataset.value = "piper";
+                const piperStatusText = piperLoaded ? 'Lista' : (piperLoading ? 'Cargando...' : (piperError ? 'Error' : 'Toca para descargar'));
+                const piperStatusClass = piperLoaded ? 'ready' : (piperLoading ? 'loading' : (piperError ? 'error' : ''));
+                piperBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-microchip text-iosAccent text-[14px]"></i><div class="flex flex-col items-start flex-1 min-w-0"><span>Piper Claude (MX)</span><div class="flex items-center gap-2 w-full"><span class="text-[11px] opacity-50 font-normal">Voz neural offline - 63 MB</span><span id="piper-status" class="piper-status ' + piperStatusClass + '">' + piperStatusText + '</span></div><div class="w-full h-[3px] bg-white/10 rounded mt-1 overflow-hidden" style="display:' + (piperLoading ? 'block' : 'none') + '"><div id="piper-progress" class="piper-progress-bar" style="width:0%"></div></div></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'piper' ? 'visible' : 'hidden') + '"></i>';
+                if (selectedVoiceValue === "piper") piperBtn.classList.add('active-opt');
+                piperBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectVoice("piper", "Piper Claude (MX)");
+                    if (!piperLoaded && !piperLoading) {
+                        loadPiperModel();
+                    }
+                });
+                flyout.appendChild(piperBtn);
+
 
                 const isQ = (name) => {
                     const n = name.toLowerCase();
@@ -1524,7 +1840,7 @@
 
                 if (spanishVoices.length > 0) {
                     const lbl = document.createElement('div');
-                    lbl.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 mt-1 border-b border-white/10";
+                    lbl.className = "text-[14px] font-bold opacity-60 uppercase tracking-wider px-2 py-2 mt-1 border-b border-white/10";
                     lbl.textContent = "Voces de Sistema";
                     flyout.appendChild(lbl);
                     spanishVoices.forEach(({ voice, originalIndex }) => addVoiceOpt(flyout, voice, originalIndex, isQ(voice.name)));
@@ -1555,14 +1871,14 @@
             }
             function addVoiceOpt(flyout, voice, originalIndex, isQuality) {
                 const opt = document.createElement('button');
-                opt.className = "voice-opt-btn flyout-option w-full text-[15px] font-semibold";
+                opt.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
                 opt.dataset.value = originalIndex;
                 let label = voice.name;
                 if (isQuality) label = '\uD83D\uDD25 ' + label;
                 const gender = voiceGenderIcon(voice.name);
                 const region = voiceRegionLabel(voice.lang);
                 const isSel = String(selectedVoiceValue) === String(originalIndex);
-                opt.innerHTML = '<span class="truncate flex-1 text-left flex items-center gap-1.5">' + label + '<span class="text-[10px] opacity-40 shrink-0">' + gender + ' ' + region + '</span></span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (isSel ? 'visible' : 'hidden') + '"></i>';
+                opt.innerHTML = '<div class="flex-1 text-left min-w-0"><div class="leading-tight">' + label + '</div><div class="text-[11px] opacity-50 mt-0.5 font-normal">' + gender + ' ' + region + '</div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px] shrink-0" style="visibility:' + (isSel ? 'visible' : 'hidden') + '"></i>';
                 if (isSel) opt.classList.add('active-opt');
                 opt.addEventListener('click', (e) => { e.stopPropagation(); selectVoice(originalIndex, voice.name); });
                 flyout.appendChild(opt);
@@ -2213,6 +2529,11 @@
             
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
             }
             if (ttsAudioEl) ttsAudioEl.pause();
             stopSilentAudioHack();
@@ -2249,6 +2570,13 @@
             // Guardamos el progreso en segundo plano y arrancamos el audio ya mismo.
             storageAdapter.save(book).catch(err => console.warn("No se pudo guardar progreso:", err));
 
+            if (selectedVoiceValue === "piper") {
+                speakSentencePiper(sentences[currentSentenceIndex]).then(ok => {
+                    if (ok) { onSentenceEnd(); }
+                    else { console.warn('[Piper] Fallback to system'); speakSentenceSystem(currentSentenceIndex); }
+                });
+                return;
+            }
             if (isOnlineVoiceSelected()) {
                 speakSentenceOnline(index);
             } else {
@@ -2258,6 +2586,11 @@
 
         function speakSentenceSystem(index) {
             window.speechSynthesis.cancel();
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
             if (ttsAudioEl) ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
@@ -2302,6 +2635,11 @@
 
         function speakSentenceOnline(index) {
             window.speechSynthesis.cancel();
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
             const sentenceText = textSentences[index];
             if (!sentenceText || sentenceText.trim() === '') {
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
@@ -2334,6 +2672,11 @@
 
         function onlineFallback(text) {
             window.speechSynthesis.cancel();
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
             if (ttsAudioEl) ttsAudioEl.pause();
             activeUtterance = new SpeechSynthesisUtterance(text);
             if (bestOnlineVoiceIndex !== null && synthesisVoices[bestOnlineVoiceIndex]) {
