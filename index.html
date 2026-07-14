@@ -1026,7 +1026,7 @@ async function piperSynthesize(text) {
     const inputTensor = new ort.Tensor('int64', inputIds, [1, ids.length]);
     const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]);
     const scales = new Float32Array([piperConfig.inference.noise_scale, piperConfig.inference.length_scale, piperConfig.inference.noise_w]);
-    const scalesTensor = new ort.Tensor('float32', scales, [1, 3]);
+    const scalesTensor = new ort.Tensor('float32', scales, [3]);
 
     const inputNames = piperSession.inputNames;
     const outputNames = piperSession.outputNames;
