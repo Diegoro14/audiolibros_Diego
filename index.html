@@ -1223,6 +1223,55 @@ function updatePiperProgress(pct) {
         let activeSpeedRate = 1.0; 
         let selectedVoiceValue = "online"; 
 
+        // Constantes de Edge TTS declaradas temprano para evitar errores de
+        // referencia si se restaura una preferencia de voz Edge guardada
+        // durante la carga inicial de la página.
+        const EDGE_TRUSTED_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+        const EDGE_WSS_URL = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
+        const EDGE_VOICES = [
+            { name: "es-MX-JorgeNeural",     label: "Jorge (México)",        gender: "M" },
+            { name: "es-MX-DaliaNeural",      label: "Dalia (México)",        gender: "F" },
+            { name: "es-AR-TomasNeural",      label: "Tomás (Argentina)",     gender: "M" },
+            { name: "es-AR-ElenaNeural",      label: "Elena (Argentina)",     gender: "F" },
+            { name: "es-CO-GonzaloNeural",    label: "Gonzalo (Colombia)",    gender: "M" },
+            { name: "es-CO-SalomeNeural",     label: "Salomé (Colombia)",     gender: "F" },
+            { name: "es-CL-LorenzoNeural",    label: "Lorenzo (Chile)",       gender: "M" },
+            { name: "es-CL-CatalinaNeural",   label: "Catalina (Chile)",      gender: "F" },
+            { name: "es-PE-AlexNeural",       label: "Alex (Perú)",           gender: "M" },
+            { name: "es-PE-CamilaNeural",     label: "Camila (Perú)",         gender: "F" },
+            { name: "es-VE-SebastianNeural",  label: "Sebastián (Venezuela)", gender: "M" },
+            { name: "es-VE-PaolaNeural",      label: "Paola (Venezuela)",     gender: "F" },
+            { name: "es-EC-LuisNeural",       label: "Luis (Ecuador)",        gender: "M" },
+            { name: "es-EC-AndreaNeural",     label: "Andrea (Ecuador)",      gender: "F" },
+            { name: "es-UY-MateoNeural",      label: "Mateo (Uruguay)",       gender: "M" },
+            { name: "es-UY-ValentinaNeural",  label: "Valentina (Uruguay)",   gender: "F" },
+            { name: "es-PY-MarioNeural",      label: "Mario (Paraguay)",      gender: "M" },
+            { name: "es-PY-TaniaNeural",      label: "Tania (Paraguay)",      gender: "F" },
+            { name: "es-BO-MarceloNeural",    label: "Marcelo (Bolivia)",     gender: "M" },
+            { name: "es-BO-SofiaNeural",      label: "Sofía (Bolivia)",       gender: "F" },
+            { name: "es-GT-AndresNeural",     label: "Andrés (Guatemala)",    gender: "M" },
+            { name: "es-GT-MartaNeural",      label: "Marta (Guatemala)",     gender: "F" },
+            { name: "es-CR-JuanNeural",       label: "Juan (Costa Rica)",     gender: "M" },
+            { name: "es-CR-MariaNeural",      label: "María (Costa Rica)",    gender: "F" },
+            { name: "es-PA-RobertoNeural",    label: "Roberto (Panamá)",      gender: "M" },
+            { name: "es-PA-MargaritaNeural",  label: "Margarita (Panamá)",    gender: "F" },
+            { name: "es-DO-EmilioNeural",     label: "Emilio (Rep. Dominicana)", gender: "M" },
+            { name: "es-DO-RamonaNeural",     label: "Ramona (Rep. Dominicana)", gender: "F" },
+            { name: "es-HN-CarlosNeural",     label: "Carlos (Honduras)",     gender: "M" },
+            { name: "es-HN-KarlaNeural",      label: "Karla (Honduras)",      gender: "F" },
+            { name: "es-NI-FedericoNeural",   label: "Federico (Nicaragua)",  gender: "M" },
+            { name: "es-NI-YolandaNeural",    label: "Yolanda (Nicaragua)",   gender: "F" },
+            { name: "es-SV-RodrigoNeural",    label: "Rodrigo (El Salvador)", gender: "M" },
+            { name: "es-SV-LorenaNeural",     label: "Lorena (El Salvador)",  gender: "F" },
+            { name: "es-CU-ManuelNeural",     label: "Manuel (Cuba)",         gender: "M" },
+            { name: "es-CU-BelkysNeural",     label: "Belkys (Cuba)",         gender: "F" },
+            { name: "es-PR-VictorNeural",     label: "Víctor (Puerto Rico)",  gender: "M" },
+            { name: "es-PR-KarinaNeural",     label: "Karina (Puerto Rico)",  gender: "F" },
+            { name: "es-ES-AlvaroNeural",     label: "Álvaro (España)",       gender: "M" },
+            { name: "es-ES-ElviraNeural",     label: "Elvira (España)",       gender: "F" },
+            { name: "es-ES-XimenaNeural",     label: "Ximena (España)",       gender: "F" },
+        ];
+
         let timerCountdown = null;
         let remainingTimerSeconds = 0;
 
@@ -1279,6 +1328,29 @@ function updatePiperProgress(pct) {
                 dummyUtterance.volume = 0; 
                 window.speechSynthesis.speak(dummyUtterance);
             }
+
+            // --- Desbloqueo del AudioContext de Piper (Web Audio API) ---
+            // iOS exige que el AudioContext se cree/reanude DENTRO de la pila
+            // sincrónica de un gesto del usuario. Si se crea más tarde, dentro
+            // de una cadena async (como al terminar de descargar el modelo o
+            // correr la inferencia ONNX), iOS lo deja "suspended" para siempre
+            // y el audio se reproduce en silencio absoluto. Por eso lo creamos
+            // y reanudamos aquí mismo, en cada tap de play/pausa.
+            try {
+                if (!piperAudioCtx) {
+                    piperAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 22050 });
+                }
+                if (piperAudioCtx.state === 'suspended') {
+                    piperAudioCtx.resume();
+                }
+                // Empuja un buffer silencioso de 1 sample para "despertar" el
+                // hardware de audio del lado de iOS dentro del mismo gesto.
+                const warmupBuffer = piperAudioCtx.createBuffer(1, 1, piperAudioCtx.sampleRate);
+                const warmupSrc = piperAudioCtx.createBufferSource();
+                warmupSrc.buffer = warmupBuffer;
+                warmupSrc.connect(piperAudioCtx.destination);
+                warmupSrc.start(0);
+            } catch (e) { console.warn('No se pudo desbloquear AudioContext de Piper:', e); }
         }
 
         document.addEventListener('visibilitychange', () => {
@@ -1824,6 +1896,12 @@ function updatePiperProgress(pct) {
                 });
                 flyout.appendChild(piperBtn);
 
+                // --- Voces Microsoft Edge (Online, no oficial) ---
+                const edgeLbl = document.createElement('div');
+                edgeLbl.className = "text-[14px] font-bold opacity-60 uppercase tracking-wider px-2 py-2 mt-1 border-b border-white/10";
+                edgeLbl.textContent = "Voces Microsoft Edge";
+                flyout.appendChild(edgeLbl);
+                EDGE_VOICES.forEach(v => addEdgeVoiceOpt(flyout, v));
 
                 const isQ = (name) => {
                     const n = name.toLowerCase();
@@ -1884,6 +1962,19 @@ function updatePiperProgress(pct) {
                 flyout.appendChild(opt);
             }
 
+            function addEdgeVoiceOpt(flyout, voiceInfo) {
+                const value = "edge:" + voiceInfo.name;
+                const opt = document.createElement('button');
+                opt.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
+                opt.dataset.value = value;
+                const genderIcon = voiceInfo.gender === 'F' ? '\u2640' : '\u2642';
+                const isSel = String(selectedVoiceValue) === value;
+                opt.innerHTML = '<div class="flex-1 text-left min-w-0"><div class="leading-tight">' + voiceInfo.label + '</div><div class="text-[11px] opacity-50 mt-0.5 font-normal">' + genderIcon + ' Neural \u00b7 Online</div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px] shrink-0" style="visibility:' + (isSel ? 'visible' : 'hidden') + '"></i>';
+                if (isSel) opt.classList.add('active-opt');
+                opt.addEventListener('click', (e) => { e.stopPropagation(); edgeTtsFailed = false; selectVoice(value, voiceInfo.label); });
+                flyout.appendChild(opt);
+            }
+
             function selectVoice(value, displayLabel) {
                 selectedVoiceValue = value;
                 const shortLabel = displayLabel.length > 18 ? displayLabel.substring(0, 17) + '\u2026' : displayLabel;
@@ -1897,6 +1988,10 @@ function updatePiperProgress(pct) {
                 try {
                     if (value === "online") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'online' }));
+                    } else if (typeof value === 'string' && value.startsWith('edge:')) {
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'edge', name: value.substring(5) }));
+                    } else if (value === "piper") {
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'piper' }));
                     } else {
                         const voiceObj = synthesisVoices[value];
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'system', name: voiceObj ? voiceObj.name : displayLabel }));
@@ -1917,6 +2012,13 @@ function updatePiperProgress(pct) {
                     if (pref.type === 'online') {
                         selectedVoiceValue = 'online';
                         if (disp) disp.textContent = 'Voz Online HD';
+                    } else if (pref.type === 'edge' && pref.name) {
+                        selectedVoiceValue = 'edge:' + pref.name;
+                        const info = EDGE_VOICES.find(v => v.name === pref.name);
+                        if (disp) disp.textContent = info ? info.label : pref.name;
+                    } else if (pref.type === 'piper') {
+                        selectedVoiceValue = 'piper';
+                        if (disp) disp.textContent = 'Piper Claude (MX)';
                     } else if (pref.type === 'system' && pref.name) {
                         const idx = synthesisVoices.findIndex(v => v.name === pref.name);
                         if (idx !== -1) {
@@ -2579,6 +2681,8 @@ function updatePiperProgress(pct) {
             }
             if (isOnlineVoiceSelected()) {
                 speakSentenceOnline(index);
+            } else if (getSelectedEdgeVoiceName()) {
+                speakSentenceEdge(index);
             } else {
                 speakSentenceSystem(index);
             }
@@ -2631,6 +2735,153 @@ function updatePiperProgress(pct) {
 
         function getOnlineTTSUrl(text) {
             return 'https://translate.googleapis.com/translate_tts?ie=UTF-8&tl=es-419&client=tw-ob&q=' + encodeURIComponent(text.substring(0, 200));
+        }
+
+        // =====================================================================
+        // EDGE TTS ENGINE — Voces neurales de Microsoft Edge (no oficial)
+        // Protocolo WebSocket reverse-engineered (mismo que usan los proyectos
+        // open-source "edge-tts"). No es una URL GET directa: Microsoft exige
+        // una conexión WebSocket + un token de seguridad (Sec-MS-GEC) que
+        // cambia cada 5 minutos. Aquí se genera ese token en el propio
+        // navegador con SubtleCrypto y se arma el audio en memoria (nunca en
+        // disco) para respetar el requisito de "PWA ligera".
+        // =====================================================================
+
+        async function edgeGenerateSecMsGec() {
+            // Réplica del algoritmo del proyecto edge-tts: ticks Win32 (epoch 1601),
+            // redondeados al bloque de 5 minutos, hasheados junto al token confiable.
+            const WIN_EPOCH = 11644473600; // segundos entre 1601-01-01 y 1970-01-01
+            const S_PER_5MIN = 300;
+            let ticks = (Date.now() / 1000) + WIN_EPOCH;
+            ticks -= (ticks % S_PER_5MIN);
+            const ticks100ns = Math.floor(ticks * 10000000);
+            const strToHash = ticks100ns.toString() + EDGE_TRUSTED_TOKEN;
+            const enc = new TextEncoder().encode(strToHash);
+            const digest = await crypto.subtle.digest('SHA-256', enc);
+            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function edgeEscapeSSML(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // Sintetiza una frase completa contra el endpoint no oficial de Edge y
+        // devuelve un Blob de audio (mp3) armado 100% en memoria — nunca se
+        // escribe en IndexedDB ni en el almacenamiento del iPhone.
+        function edgeSynthesize(text, voiceName, rate, pitch) {
+            return new Promise(async (resolve, reject) => {
+                let ws;
+                try {
+                    const gec = await edgeGenerateSecMsGec();
+                    const connectionId = crypto.randomUUID().replace(/-/g, '');
+                    const url = EDGE_WSS_URL +
+                        '?TrustedClientToken=' + EDGE_TRUSTED_TOKEN +
+                        '&Sec-MS-GEC=' + gec +
+                        '&Sec-MS-GEC-Version=1-130.0.2849.68' +
+                        '&ConnectionId=' + connectionId;
+                    ws = new WebSocket(url);
+                } catch (e) { reject(e); return; }
+
+                const audioChunks = [];
+                const requestId = crypto.randomUUID().replace(/-/g, '');
+                const ratePct = Math.round(((rate || 1) - 1) * 100);
+                const pitchPct = Math.round(((pitch || 1) - 1) * 50);
+                const timeout = setTimeout(() => { try { ws.close(); } catch (e) {} reject(new Error('Edge TTS timeout')); }, 12000);
+
+                ws.binaryType = 'arraybuffer';
+                ws.onopen = () => {
+                    const nowIso = new Date().toISOString();
+                    const speechConfig = '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":false,"wordBoundaryEnabled":false},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
+                    ws.send('X-Timestamp:' + nowIso + '\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n' + speechConfig);
+
+                    const ssml = '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="es-MX">' +
+                        '<voice name="' + voiceName + '">' +
+                        '<prosody rate="' + (ratePct >= 0 ? '+' : '') + ratePct + '%" pitch="' + (pitchPct >= 0 ? '+' : '') + pitchPct + 'Hz">' +
+                        edgeEscapeSSML(text) + '</prosody></voice></speak>';
+                    ws.send('X-RequestId:' + requestId + '\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:' + nowIso + '\r\nPath:ssml\r\n\r\n' + ssml);
+                };
+
+                ws.onmessage = (event) => {
+                    if (typeof event.data === 'string') {
+                        if (event.data.includes('Path:turn.end')) {
+                            clearTimeout(timeout);
+                            try { ws.close(); } catch (e) {}
+                            if (audioChunks.length === 0) { reject(new Error('Edge TTS: sin audio recibido')); return; }
+                            resolve(new Blob(audioChunks, { type: 'audio/mpeg' }));
+                        }
+                        return;
+                    }
+                    // Mensaje binario: cabecera de texto + separador "\r\n\r\n" + datos de audio
+                    const buf = new Uint8Array(event.data);
+                    const headerLen = (buf[0] << 8) + buf[1];
+                    const audioData = buf.slice(2 + headerLen);
+                    if (audioData.length > 0) audioChunks.push(audioData);
+                };
+                ws.onerror = () => { clearTimeout(timeout); reject(new Error('Edge TTS: fallo de conexión WebSocket')); };
+                ws.onclose = (ev) => {
+                    clearTimeout(timeout);
+                    if (audioChunks.length > 0) resolve(new Blob(audioChunks, { type: 'audio/mpeg' }));
+                };
+            });
+        }
+
+        let edgeTtsLastBlobUrl = null;
+        let edgeTtsFailed = false;
+
+        function getSelectedEdgeVoiceName() {
+            if (typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
+                return selectedVoiceValue.substring(5);
+            }
+            return null;
+        }
+
+        async function speakSentenceEdge(index) {
+            window.speechSynthesis.cancel();
+            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch (e) {} piperAudioCtx = null; }
+            if (ttsAudioEl) ttsAudioEl.pause();
+
+            const sentenceText = textSentences[index];
+            if (!sentenceText || sentenceText.trim() === '') {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
+            }
+
+            // Si esta voz de Edge ya falló antes en esta sesión, no reintentamos
+            // en cada frase: caemos directo a la voz del sistema (evita que la
+            // interfaz "se sienta rota" con reintentos silenciosos constantes).
+            if (edgeTtsFailed) { onlineFallback(sentenceText); return; }
+
+            const voiceName = getSelectedEdgeVoiceName();
+            if (!voiceName) { onlineFallback(sentenceText); return; }
+
+            try {
+                const blob = await edgeSynthesize(sentenceText, voiceName, activeSpeedRate, activePitch);
+                if (!isPlaying) return; // el usuario pausó mientras sintetizábamos
+
+                if (edgeTtsLastBlobUrl) { URL.revokeObjectURL(edgeTtsLastBlobUrl); edgeTtsLastBlobUrl = null; }
+                const blobUrl = URL.createObjectURL(blob);
+                edgeTtsLastBlobUrl = blobUrl;
+
+                ttsAudioEl.onended = () => {
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                };
+                ttsAudioEl.onerror = () => {
+                    edgeTtsFailed = true;
+                    showToast('Voz Edge no disponible, usando voz del sistema', 'fa-triangle-exclamation text-yellow-400');
+                    onlineFallback(sentenceText);
+                };
+                ttsAudioEl.src = blobUrl;
+                ttsAudioEl.load();
+                // El pitch ya se aplicó vía SSML; playbackRate no se toca aquí porque
+                // el ritmo ya viene "horneado" en el audio generado por Edge.
+                ttsAudioEl.playbackRate = 1.0;
+                await ttsAudioEl.play();
+            } catch (err) {
+                console.warn('[EdgeTTS] Error:', err.message);
+                edgeTtsFailed = true;
+                showToast('Voz Edge no disponible, usando voz del sistema', 'fa-triangle-exclamation text-yellow-400');
+                onlineFallback(sentenceText);
+            }
         }
 
         function speakSentenceOnline(index) {
