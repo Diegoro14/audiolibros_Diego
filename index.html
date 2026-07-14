@@ -880,6 +880,11 @@ let piperLoading = false;
 let piperError = null;
 let piperAudioCtx = null;
 
+// --- EDGE TTS ENGINE (Jorge Neural, es-MX) via REST API ---
+let edgeWs = null;
+const EDGE_TTS_API = 'https://api-edgetts.azurewebsites.net/api/edgetts';
+const EDGE_VOICE_NAME = 'es-MX-JorgeNeural';
+
 const PIPER_MODEL_BASE = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high';
 const PIPER_MODEL_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx';
 const PIPER_CONFIG_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx.json';
@@ -2116,6 +2121,18 @@ function updatePiperProgress(pct) {
                 });
                 flyout.appendChild(onlineBtn);
 
+                // --- Edge TTS: Jorge Neural (es-MX) ---
+                const edgeBtn = document.createElement('button');
+                edgeBtn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
+                edgeBtn.dataset.value = "edge";
+                edgeBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-brands fa-microsoft text-iosAccent text-[14px]"></i><div class="flex flex-col items-start"><span>Jorge Neural (MX)</span><span class="text-[11px] opacity-50 font-normal">Voz neural Edge TTS - Gratis</span></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'edge' ? 'visible' : 'hidden') + '"></i>';
+                if (selectedVoiceValue === "edge") edgeBtn.classList.add('active-opt');
+                edgeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectVoice("edge", "Jorge Neural (MX)");
+                });
+                flyout.appendChild(edgeBtn);
+
                 // --- Piper TTS Option ---
                 const piperBtn = document.createElement('button');
                 piperBtn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
@@ -2205,6 +2222,8 @@ function updatePiperProgress(pct) {
                 try {
                     if (value === "online") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'online' }));
+                    } else if (value === "edge") {
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'edge' }));
                     } else if (value === "piper") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'piper' }));
                     } else {
@@ -2227,6 +2246,9 @@ function updatePiperProgress(pct) {
                     if (pref.type === 'online') {
                         selectedVoiceValue = 'online';
                         if (disp) disp.textContent = 'Voz Online HD';
+                    } else if (pref.type === 'edge') {
+                        selectedVoiceValue = 'edge';
+                        if (disp) disp.textContent = 'Jorge Neural (MX)';
                     } else if (pref.type === 'piper') {
                         selectedVoiceValue = 'piper';
                         if (disp) disp.textContent = 'Piper Claude (MX)';
@@ -2848,6 +2870,7 @@ function updatePiperProgress(pct) {
                 piperAudioCtx = null;
             };
             }
+            edgeCleanup();
             if (ttsAudioEl) ttsAudioEl.pause();
             stopSilentAudioHack();
             stopSmoothProgressLoop();
@@ -2888,6 +2911,10 @@ function updatePiperProgress(pct) {
                     if (ok) { if (isPlaying) speakSentence(currentSentenceIndex + 1); }
                     else { console.warn('[Piper] Fallback to system'); speakSentenceSystem(currentSentenceIndex); }
                 });
+                return;
+            }
+            if (selectedVoiceValue === "edge") {
+                speakSentenceEdge(index);
                 return;
             }
             if (isOnlineVoiceSelected()) {
@@ -3012,6 +3039,92 @@ function updatePiperProgress(pct) {
             };
             const sk = document.getElementById('silent-keepalive');
             if (sk) sk.play().catch(() => {});
+            window.speechSynthesis.speak(activeUtterance);
+        }
+
+        // --- EDGE TTS: Motor de voz neural Jorge (es-MX) via REST API ---
+        function edgePitchHz(pitch) {
+            return Math.round((pitch - 1.0) * 100);
+        }
+        function edgeRatePercent(rate) {
+            const r = Math.round((rate - 1.0) * 100);
+            return (r >= 0 ? '+' : '') + r + '%';
+        }
+        function edgeCleanup() {
+            // Mantenido para compatibilidad con pauseAudio
+        }
+
+        function speakSentenceEdge(index) {
+            window.speechSynthesis.cancel();
+            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
+            if (ttsAudioEl) ttsAudioEl.pause();
+
+            const text = textSentences[index];
+            if (!text || !text.trim()) {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
+            }
+
+            const pitchVal = edgePitchHz(activePitch);
+            const rateVal = edgeRatePercent(activeSpeedRate);
+
+            fetch(EDGE_TTS_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    voice: EDGE_VOICE_NAME,
+                    rate: rateVal,
+                    pitch: pitchVal + 'Hz',
+                    volume: '+0%'
+                })
+            })
+            .then(resp => {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.blob();
+            })
+            .then(blob => {
+                if (blob.size < 100) throw new Error('Audio vacio');
+                const url = URL.createObjectURL(blob);
+                ttsAudioEl.onended = () => {
+                    URL.revokeObjectURL(url);
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                };
+                ttsAudioEl.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                };
+                ttsAudioEl.src = url;
+                ttsAudioEl.load();
+                const sk = document.getElementById('silent-keepalive');
+                if (sk) sk.play().catch(() => {});
+                ttsAudioEl.play().catch(() => {
+                    URL.revokeObjectURL(url);
+                    edgeFallbackToSystem(text);
+                });
+            })
+            .catch(err => {
+                console.warn('[Edge TTS] Error:', err);
+                showToast('Edge TTS sin conexion, voz local', 'fa-triangle-exclamation text-yellow-400');
+                edgeFallbackToSystem(text);
+            });
+        }
+
+        function edgeFallbackToSystem(text) {
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
+            activeUtterance = new SpeechSynthesisUtterance(text);
+            const esVoice = synthesisVoices.find(v => v.lang.toLowerCase().startsWith('es'));
+            if (esVoice) activeUtterance.voice = esVoice;
+            else if (synthesisVoices.length > 0) activeUtterance.voice = synthesisVoices[0];
+            activeUtterance.rate = activeSpeedRate;
+            activeUtterance.pitch = activePitch;
+            activeUtterance.volume = 1.0;
+            activeUtterance.onend = () => { if (isPlaying) speakSentence(currentSentenceIndex + 1); };
+            activeUtterance.onerror = (e) => {
+                if (isPlaying && e.error !== 'interrupted' && e.error !== 'canceled')
+                    speakSentence(currentSentenceIndex + 1);
+            };
             window.speechSynthesis.speak(activeUtterance);
         }
 
@@ -3177,6 +3290,18 @@ function updatePiperProgress(pct) {
             showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
 
+        function formatBookmarkDate(ts) {
+            const d = new Date(ts);
+            const day = d.getDate();
+            const month = d.getMonth() + 1;
+            const year = d.getFullYear();
+            let hours = d.getHours();
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'pm' : 'am';
+            hours = hours % 12 || 12;
+            return `${day}/${month}/${year} ${hours}:${minutes}${ampm}`;
+        }
+
         function renderBookmarksList() {
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
@@ -3193,7 +3318,7 @@ function updatePiperProgress(pct) {
                     item.innerHTML = `
                         <div class="flex-1 min-w-0 pr-3 text-left">
                             <p class="font-bold truncate">${b.name}</p>
-                            <p class="text-[13px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
+                            <p class="text-[13px] opacity-60">Guardado: ${formatBookmarkDate(b.timestamp)}</p>
                         </div>
                         <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none shrink-0" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
                     `;
