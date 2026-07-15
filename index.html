@@ -696,21 +696,16 @@ body.light-theme .piper-progress-bar { background: #007aff; }
                                     <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="2.0">
                                         <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <!-- Modulador de Tono (Botones Graves / Agudos) -->
+                                    <!-- Modulador de Tono (Pitch Slider) -->
                                     <div class="pt-2 mt-1 border-t border-white/15 space-y-1.5">
-                                        <div class="text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
+                                        <div class="flex justify-between items-center text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
                                             <span>Tono</span>
+                                            <span id="tone-value" class="text-iosAccent font-semibold text-[14px]">Normal</span>
                                         </div>
-                                        <div class="flex items-center justify-between gap-1 px-0">
-                                            <button id="btn-pitch-down" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Disminuir tono (Graves)">
-                                                <i class="fa-solid fa-volume-low text-zinc-400 text-[13px]"></i>
-                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Graves</span>
-                                            </button>
-                                            <span id="tone-value" class="text-iosAccent font-semibold text-[13px] min-w-[48px] text-center">Normal</span>
-                                            <button id="btn-pitch-up" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Aumentar tono (Agudos)">
-                                                <i class="fa-solid fa-volume-high text-iosAccent text-[13px]"></i>
-                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Agudos</span>
-                                            </button>
+                                        <div class="flex items-center gap-2 px-1">
+                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[14px]"></i>
+                                            <input type="range" id="slider-pitch" min="0.5" max="1.5" step="0.1" value="1.0" class="flex-1 h-1 bg-white/15 rounded-full appearance-none outline-none cursor-pointer accent-iosAccent">
+                                            <i class="fa-solid fa-volume-high text-iosAccent text-[14px]"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -803,6 +798,8 @@ body.light-theme .piper-progress-bar { background: #007aff; }
         </div>
     </div>
 
+    <!-- Marcadores como menú desplegable anclado (igual estilo que Capítulos) -->
+
     <!-- MODAL DE CONFIRMACIÓN DE ACCIONES -->
     <div id="modal-confirm" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-xs rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl p-5 text-center">
@@ -880,11 +877,16 @@ let piperAudioCtx = null;
 
 // ============================================================
 // EDGE TTS NEURAL — Servidor propio en Render (gratis)
+// CON PRECARGA del próximo párrafo (elimina silencios)
 // ============================================================
 let EDGE_TTS_SERVER_URL = ''; // Se carga desde localStorage al inicio
-
-// Voz Edge seleccionada (por defecto: Jorge MX)
 let EDGE_SELECTED_VOICE = 'es-MX-JorgeNeural';
+
+// Cola de audios precargados: { index, blob, url, voice, status }
+// status: 'loading' | 'ready' | 'error' | 'playing'
+let edgePrefetchCache = new Map();
+let edgePrefetchAbortControllers = new Map();
+const EDGE_PREFETCH_AHEAD = 3; // Cuántos párrafos adelantar
 
 // Lista completa de voces neurales latinoamericanas de Microsoft Edge TTS
 const EDGE_LATIN_VOICES = [
@@ -938,6 +940,29 @@ try {
     if (_savedVoice && EDGE_LATIN_VOICES.some(v => v.id === _savedVoice)) EDGE_SELECTED_VOICE = _savedVoice;
 } catch(_) {}
 
+// ⚡ Pre-conectar al servidor Edge TTS apenas carga la página
+// (DNS + TLS handshake en paralelo con la carga de la UI).
+// Ahorra ~200ms en la primera request de audio.
+function edgeSetupPreconnect() {
+    if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) return;
+    try {
+        // Evitar duplicados
+        if (document.querySelector('link[data-edge-preconnect]')) return;
+        const link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = EDGE_TTS_SERVER_URL;
+        link.setAttribute('data-edge-preconnect', '1');
+        document.head.appendChild(link);
+        // También un dns-prefetch como fallback
+        const dns = document.createElement('link');
+        dns.rel = 'dns-prefetch';
+        dns.href = EDGE_TTS_SERVER_URL;
+        dns.setAttribute('data-edge-preconnect', '1');
+        document.head.appendChild(dns);
+    } catch(_) {}
+}
+edgeSetupPreconnect();
+
 const PIPER_MODEL_BASE = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high';
 const PIPER_MODEL_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx';
 const PIPER_CONFIG_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx.json';
@@ -981,75 +1006,15 @@ async function piperCachePut(key, data) {
     } catch(e) { console.warn('Piper cache write failed:', e); }
 }
 
-// ============================================================
-// BASE DE DATOS DE CACHÉ DE AUDIOS PERSISTENTE (IndexedDB)
-// ============================================================
-const AUDIO_CACHE_DB_NAME = "AudiolibrosDiegoAudioCacheDB";
-const AUDIO_CACHE_STORE_NAME = "audio_chunks";
-
-function initAudioCacheDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(AUDIO_CACHE_DB_NAME, 1);
-        request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(AUDIO_CACHE_STORE_NAME)) {
-                db.createObjectStore(AUDIO_CACHE_STORE_NAME);
-            }
-        };
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e.target.error);
-    });
-}
-
-async function getCachedAudio(key) {
-    try {
-        const db = await initAudioCacheDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(AUDIO_CACHE_STORE_NAME, "readonly");
-            const store = tx.objectStore(AUDIO_CACHE_STORE_NAME);
-            const request = store.get(key);
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error);
-        });
-    } catch (e) {
-        return null;
-    }
-}
-
-async function saveCachedAudio(key, data) {
-    try {
-        const db = await initAudioCacheDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(AUDIO_CACHE_STORE_NAME, "readwrite");
-            const store = tx.objectStore(AUDIO_CACHE_STORE_NAME);
-            const request = store.put(data, key);
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
-    } catch (e) {
-        console.warn("Error al guardar audio en caché persistente:", e);
-    }
-}
-
-// Estructura de caché rápida en memoria (RAM) para acceso ultra-instantáneo de precargas
-let inMemoryAudioCache = new Map();
-
-function getSentenceCacheKey(index, voiceType, voiceId, text, rate, pitch) {
-    const textHash = text.trim().substring(0, 80).replace(/[^a-zA-Z0-9íóáéúñÑ]/g, "_");
-    return `${voiceType}_${voiceId}_r${rate}_p${pitch}_${textHash}`;
-}
-
-function clearInMemoryAudioCache() {
-    inMemoryAudioCache.forEach((value) => {
-        if (typeof value === 'string' && value.startsWith('blob:')) {
-            try { URL.revokeObjectURL(value); } catch(e) {}
-        }
-    });
-    inMemoryAudioCache.clear();
-}
-
 // --- Spanish (MX) Phonemizer (IPA Unicode for Piper es_MX-claude-high) ---
+// CORREGIDO: El modelo Piper espera fonemas IPA Unicode (ɲ, ʝ, ɾ, tʃ, ŋ, ˈ)
+// NO notación espeak ASCII (J, L, R, tS, N). Los fonemas ASCII no existen
+// en el phoneme_id_map del modelo y producen audio irreconocible.
+// Salida calibrada contra `espeak-ng -v es-419 --ipa` (la voz con la que
+// Piper fue entrenado). Incluye lenición y diptongos entre palabras.
 function spanishPhonemize(text) {
+    // 1) Preservar ñ y vocales acentuadas antes de NFD
+    //    (NFD descompone ñ -> n+\u0303, á -> a+\u0301, etc.)
     text = text.toLowerCase()
                .replace(/\u00f1/g, '\u0001NY\u0001')
                .replace(/\u00e1/g, '\u0001A1\u0001')
@@ -1058,23 +1023,30 @@ function spanishPhonemize(text) {
                .replace(/\u00f3/g, '\u0001O1\u0001')
                .replace(/\u00fa/g, '\u0001U1\u0001')
                .replace(/\u00fc/g, '\u0001UD\u0001');
+    // 2) NFD para separar otros diacríticos
     text = text.normalize('NFD');
+    // 3) Quitar diacríticos combinantes que no nos interesan
     let result = '';
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
         if (ch >= '\u0300' && ch <= '\u036f') continue;
         result += ch;
     }
+    // 4) Restaurar ñ y acentos como marca \u0002 después de la vocal
     text = result
-        .replace(/\u0001NY\u0001/g, 'ñ')
+        .replace(/\u0001NY\u0001/g, '\u00f1')
         .replace(/\u0001A1\u0001/g, 'a\u0002')
         .replace(/\u0001E1\u0001/g, 'e\u0002')
         .replace(/\u0001I1\u0001/g, 'i\u0002')
         .replace(/\u0001O1\u0001/g, 'o\u0002')
         .replace(/\u0001U1\u0001/g, 'u\u0002')
         .replace(/\u0001UD\u0001/g, 'u');
+    // 5) Limpiar: conservar solo a-z, ñ, marca de acento \u0002, espacios
     text = text.replace(/[^a-z\u00f1\u0002\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return '';
+    // 6) Fonetizar todas las palabras en secuencia, pasando el contexto
+    //    (lastPh) de una palabra a la siguiente para activar la lenición
+    //    entre palabras (ej: "me gusta" -> la 'g' se vuelve fricativa).
     const words = text.split(' ').filter(Boolean);
     let out = [];
     let runningLastPh = null;
@@ -1089,19 +1061,29 @@ function spanishPhonemize(text) {
 }
 
 function phonemizeWord(word, incomingLastPh) {
+    // Detectar posición de la tilde original (marca \u0002 después de vocal)
     const stressedVowelIdx = word.indexOf('\u0002') - 1;
     word = word.replace(/\u0002/g, '');
 
+    // Fonemas IPA Unicode que SÍ existen en el phoneme_id_map del modelo
+    // es_MX-claude-high (verificado contra el .onnx.json en HuggingFace):
+    //   ɲ=U+0272(id82)  ʝ=U+029D(id115)  ɾ=U+027E(id92)  ŋ=U+014B(id44)
+    //   ʃ=U+0283(id96)  ˈ=U+02C8(id120)  r=id30(trill)   ɡ=U+0261(id66)
+    //   β=U+03B2(id125) ð=U+00F0(id41)   ɣ=U+0263(id68)  t=id32  x=id36
+    //   ɪ=U+026A(id74)  ʊ=U+028A(id100)  ɛ=U+025B(id61)
     const V = 'aeiou';
-    const VOPEN = new Set(['a','e','o']);
+    const VOPEN = new Set(['a','e','o']);  // vocales abiertas (para diptongos decrecientes)
     const VPH = new Set(['a','e','i','o','u','\u026A','\u028A']);
     let ph = [];
     let vowOrigIdx = [];
-    let lastPh = incomingLastPh || null;
+    let lastPh = incomingLastPh || null;  // contexto de palabra anterior (para lenición)
     let prevLetter = null;
     const lenitionB = (last) => (last === null || last === 'n' || last === 'm' || last === 'l') ? 'b' : '\u03B2';
     const lenitionD = (last) => (last === null || last === 'n' || last === 'l') ? 'd' : '\u00F0';
     const lenitionG = (last) => (last === null || last === '\u014B' || last === 'n') ? '\u0261' : '\u0263';
+    // Para la 'r' inicial: si la palabra anterior terminó en vocal, espeak usa
+    // la vibrante simple ɾ (no la trill). En posición inicial absoluta usa r (trill).
+    const initialR = (last) => (last === null) ? 'r' : '\u027E';
     let i = 0;
     while (i < word.length) {
         const c = word[i], n = word[i+1] || '', n2 = word[i+2] || '';
@@ -1119,9 +1101,11 @@ function phonemizeWord(word, incomingLastPh) {
         else if (c==='a') { ph.push('a'); vowOrigIdx.push(i); pushed='a'; i++; }
         else if (c==='e') { ph.push('e'); vowOrigIdx.push(i); pushed='e'; i++; }
         else if (c==='i') {
+            // Diptongo decreciente: vocal abierta (a/e/o) + i -> ɪ
             if (prevLetter && VOPEN.has(prevLetter) && stressedVowelIdx !== i) {
                 ph.push('\u026A'); pushed='\u026A';
             }
+            // Diptongo creciente: i + vocal -> j
             else if (n && V.includes(n) && stressedVowelIdx !== i) {
                 ph.push('j'); pushed='j';
             }
@@ -1130,10 +1114,12 @@ function phonemizeWord(word, incomingLastPh) {
         }
         else if (c==='o') { ph.push('o'); vowOrigIdx.push(i); pushed='o'; i++; }
         else if (c==='u') {
+            // Diptongo decreciente: vocal abierta (a/e/o) + u -> ʊ
             if (prevLetter && VOPEN.has(prevLetter) && stressedVowelIdx !== i
                 && !(prevLetter==='q' || (prevLetter==='g'))) {
                 ph.push('\u028A'); pushed='\u028A';
             }
+            // Diptongo creciente: u + vocal -> w
             else if (n && V.includes(n) && stressedVowelIdx !== i
                 && !(prevLetter==='q' || (prevLetter==='g' && (n==='e'||n==='i')))) {
                 ph.push('w'); pushed='w';
@@ -1165,6 +1151,8 @@ function phonemizeWord(word, incomingLastPh) {
         else if (c==='\u00f1') { ph.push('\u0272'); pushed='\u0272'; i++; }
         else if (c==='p') { ph.push('p'); pushed='p'; i++; }
         else if (c==='r') {
+            // r simple: ɾ tap en posición interna; r (trill) al inicio de palabra
+            // (incluso después de otra palabra, como hace espeak-ng)
             if (i === 0) { ph.push('r'); pushed='r'; }
             else { ph.push('\u027E'); pushed='\u027E'; }
             i++;
@@ -1183,6 +1171,7 @@ function phonemizeWord(word, incomingLastPh) {
         lastPh = pushed;
         prevLetter = c;
     }
+    // Marca de acento ˈ antes de la vocal tónica
     const atoneMonosyllables = new Set([
         'el','la','los','las','al','del',
         'de','a','en','con','por','para','sin','sobre','tras','y','o','u','e','ni','que','se','me','te','le','les','lo','nos','os',
@@ -1212,10 +1201,15 @@ function phonemizeWord(word, incomingLastPh) {
             }
         }
         if (stressPh >= 0) ph.splice(stressPh, 0, '\u02C8');
+        // Regla de espeak-ng: 'e' tónica + nasal + consonante -> ɛ (e abierta)
+        // Solo cuando la nasal cierra la sílaba de la 'e' (siguiente letra es consonante).
+        // Ej: tengo (e+n+g), comienzo (e+n+z), firmamento (e+n+t), intensamente (e+n+s)
+        // NO aplica: suena (e+n+vocal), bien (e+n+fin de palabra)
         if (stressPh >= 0 && ph[stressPh + 1] === 'e') {
             const nasal = ph[stressPh + 2];
             const afterNasal = ph[stressPh + 3];
             const isNasal = (nasal === 'n' || nasal === 'm' || nasal === '\u014B');
+            // afterNasal debe ser consonante (no vocal ni undefined ni marca de acento)
             const isConsonant = afterNasal && !VPH.has(afterNasal) && afterNasal !== '\u02C8';
             if (isNasal && isConsonant) {
                 ph[stressPh + 1] = '\u025B';
@@ -1227,13 +1221,20 @@ function phonemizeWord(word, incomingLastPh) {
 
 function phonemesToIds(phonemeStr) {
     if (!piperPhonemeMap) return null;
+    // CRÍTICO: piper-cli inserta un PAD (id=0) después de CADA fonema
+    // (incluyendo BOS). Sin estos PADs, el modelo produce audio sin sentido
+    // (suena como un idioma incomprensible). Esto replica exactamente
+    // phonemes_to_ids() de piper/phoneme_ids.py.
+    //   Estructura: [BOS, PAD, (fonema, PAD)*, EOS]
     const BOS = piperPhonemeMap['^'] || [1];
     const EOS = piperPhonemeMap['$'] || [2];
     const PAD = piperPhonemeMap['_'] || [0];
     const SPACE = piperPhonemeMap[' '] || [3];
     const ids = [];
+    // BOS + PAD
     ids.push(BOS[0]);
     ids.push(PAD[0]);
+    // Cada fonema va seguido de PAD
     for (const ch of phonemeStr) {
         if (piperPhonemeMap[ch]) {
             ids.push(piperPhonemeMap[ch][0]);
@@ -1242,7 +1243,9 @@ function phonemesToIds(phonemeStr) {
             ids.push(SPACE[0]);
             ids.push(PAD[0]);
         }
+        // else: ignorar caracteres desconocidos (igual que piper-cli)
     }
+    // EOS (sin PAD después)
     ids.push(EOS[0]);
     return ids;
 }
@@ -1282,11 +1285,13 @@ async function loadPiperModel() {
         if (modelBuffer && configData) {
             updatePiperUI('loading', 'Cargando desde cach\u00e9...');
         } else {
+            // Download config
             updatePiperUI('loading', 'Descargando config...');
             let configBuf = await fetchWithCORS(PIPER_CONFIG_URL);
             configData = JSON.parse(new TextDecoder().decode(configBuf));
             await piperCachePut(PIPER_DB_KEY + '_config', configData);
 
+            // Download model
             updatePiperUI('loading', 'Descargando modelo (63 MB)...');
             modelBuffer = await fetchWithCORS(PIPER_MODEL_URL);
             updatePiperUI('loading', 'Guardando en cach\u00e9...');
@@ -1296,6 +1301,8 @@ async function loadPiperModel() {
         piperConfig = configData;
         piperPhonemeMap = configData.phoneme_id_map;
 
+        // Inicializar el G2P de piper-plus (piper-cli compatible)
+        // una vez que tenemos el phoneme_id_map del modelo.
         if (window.piperG2P && !window.piperG2P.ready) {
             window.piperG2P.init(piperPhonemeMap);
         }
@@ -1322,6 +1329,10 @@ async function loadPiperModel() {
 
 async function piperSynthesize(text) {
     if (!piperLoaded || !piperSession) throw new Error('Piper no cargada');
+    // Usar el G2P de piper-plus/g2p (calidad 100% idéntica a piper-cli).
+    // Incluye: seseo, lenición, diptongos, acentos, asimilación de nasales,
+    // expansión de PUA chars (ch -> tʃ, rr -> rr), y PADs entre fonemas.
+    // Fallback al fonetizador manual si el módulo no cargó (no debería pasar).
     let ids, phonemeStr;
     if (window.piperG2P && window.piperG2P.ready) {
         const r = window.piperG2P.textToIds(text);
@@ -1329,6 +1340,7 @@ async function piperSynthesize(text) {
         ids = r.ids;
         phonemeStr = r.phonemes;
     } else {
+        // Fallback (solo si el módulo ES no cargó)
         phonemeStr = spanishPhonemize(text);
         if (!phonemeStr) return null;
         ids = phonemesToIds(phonemeStr);
@@ -1338,6 +1350,9 @@ async function piperSynthesize(text) {
     const inputIds = BigInt64Array.from(ids, x => BigInt(x));
     const inputTensor = new ort.Tensor('int64', inputIds, [1, ids.length]);
     const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]);
+    // length_scale ligeramente más alto (1.05) para audiolibros: habla más
+    // despacio y claro, sin sonar arrastrado. noise_w más bajo reduce el
+    // temblor natural y mejora la claridad.
     const lenScale = (piperConfig.inference.length_scale || 1.0) * 1.05;
     const noiseW = (piperConfig.inference.noise_w || 0.8) * 0.7;
     const scales = new Float32Array([piperConfig.inference.noise_scale, lenScale, noiseW]);
@@ -1362,16 +1377,17 @@ function playPiperAudio(audioSamples) {
     if (piperAudioCtx.state === 'suspended') piperAudioCtx.resume();
     const buffer = piperAudioCtx.createBuffer(1, audioSamples.length, piperConfig.audio.sample_rate);
     const ch = buffer.getChannelData(0);
-    
+    // Normalizar el audio para que el pico máximo esté en 0.9
+    // (evita saturación y mantiene volumen consistente entre oraciones).
     let maxAbs = 0;
     for (let i = 0; i < audioSamples.length; i++) {
         const a = Math.abs(audioSamples[i]);
         if (a > maxAbs) maxAbs = a;
     }
     const norm = maxAbs > 0.001 ? Math.min(0.9 / maxAbs, 4.0) : 1.0;
+    // Gain de 1.3 (antes 1.8 causaba saturación en oraciones largas)
     const finalGain = norm * 1.3;
     for (let i = 0; i < audioSamples.length; i++) ch[i] = audioSamples[i] * finalGain;
-    
     const src = piperAudioCtx.createBufferSource();
     src.buffer = buffer;
     const gain = piperAudioCtx.createGain();
@@ -1379,7 +1395,6 @@ function playPiperAudio(audioSamples) {
     src.connect(gain);
     gain.connect(piperAudioCtx.destination);
     src.start(0);
-    
     return new Promise(r => { src.onended = r; });
 }
 
@@ -1392,6 +1407,9 @@ async function speakSentencePiper(text) {
         const audio = await piperSynthesize(text);
         if (audio) {
             await playPiperAudio(audio);
+            // Pequeña pausa (120ms) después de cada oración para mejorar la
+            // comprensión en audiolibros. Sin esto, las oraciones se pegaban
+            // y era difícil distinguir dónde terminaba una y empezaba la otra.
             await new Promise(r => setTimeout(r, 120));
             return true;
         }
@@ -1438,6 +1456,7 @@ function updatePiperProgress(pct) {
         // Adaptador de almacenamiento súper seguro con conmutación automática
         const storageAdapter = {
             async getAll() {
+                // Intento 1: IndexedDB
                 if (typeof indexedDB !== 'undefined') {
                     try {
                         const db = await initDB();
@@ -1452,6 +1471,7 @@ function updatePiperProgress(pct) {
                         console.warn("IndexedDB bloqueado. Conmutando a LocalStorage...");
                     }
                 }
+                // Intento 2: LocalStorage Fallback
                 try {
                     const raw = localStorage.getItem('audiolibros_diego_fallback_db');
                     return raw ? JSON.parse(raw) : [];
@@ -1463,6 +1483,7 @@ function updatePiperProgress(pct) {
 
             async save(book) {
                 let saved = false;
+                // Intento 1: IndexedDB
                 if (typeof indexedDB !== 'undefined') {
                     try {
                         const db = await initDB();
@@ -1478,6 +1499,7 @@ function updatePiperProgress(pct) {
                         console.warn("No se pudo guardar en IndexedDB.");
                     }
                 }
+                // Intento 2: LocalStorage Fallback
                 try {
                     const books = await this.getAll();
                     const idx = books.findIndex(b => b.id === book.id);
@@ -1498,6 +1520,7 @@ function updatePiperProgress(pct) {
             },
 
             async delete(id) {
+                // Intento 1: IndexedDB
                 if (typeof indexedDB !== 'undefined') {
                     try {
                         const db = await initDB();
@@ -1510,6 +1533,7 @@ function updatePiperProgress(pct) {
                         });
                     } catch (e) {}
                 }
+                // Intento 2: LocalStorage Fallback
                 try {
                     const books = await this.getAll();
                     const filtered = books.filter(b => b.id !== id);
@@ -1554,6 +1578,7 @@ function updatePiperProgress(pct) {
         let touchEndX = 0;
         let confirmActionCallback = null;
 
+        // Configuración segura de PDFJS para evitar cuelgues si no carga la CDN
         try {
             if (typeof pdfjsLib !== 'undefined') {
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
@@ -1602,6 +1627,13 @@ function updatePiperProgress(pct) {
                 window.speechSynthesis.speak(dummyUtterance);
             }
 
+            // --- Desbloqueo del AudioContext de Piper (Web Audio API) ---
+            // iOS exige que el AudioContext se cree/reanude DENTRO de la pila
+            // sincrónica de un gesto del usuario. Si se crea más tarde, dentro
+            // de una cadena async (como al terminar de descargar el modelo o
+            // correr la inferencia ONNX), iOS lo deja "suspended" para siempre
+            // y el audio se reproduce en silencio absoluto. Por eso lo creamos
+            // y reanudamos aquí mismo, en cada tap de play/pausa.
             try {
                 if (!piperAudioCtx) {
                     piperAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 22050 });
@@ -1609,6 +1641,8 @@ function updatePiperProgress(pct) {
                 if (piperAudioCtx.state === 'suspended') {
                     piperAudioCtx.resume();
                 }
+                // Empuja un buffer silencioso de 1 sample para "despertar" el
+                // hardware de audio del lado de iOS dentro del mismo gesto.
                 const warmupBuffer = piperAudioCtx.createBuffer(1, 1, piperAudioCtx.sampleRate);
                 const warmupSrc = piperAudioCtx.createBufferSource();
                 warmupSrc.buffer = warmupBuffer;
@@ -1762,7 +1796,7 @@ function updatePiperProgress(pct) {
                 });
             }
 
-            // Lógica para desplegar el menú de MARCADORES
+            // Lógica para desplegar el menú de MARCADORES (mismo comportamiento que Capítulos)
             const btnListBookmarks = document.getElementById('btn-list-bookmarks');
             const bookmarksFlyout = document.getElementById('bookmarks-flyout');
 
@@ -1804,50 +1838,23 @@ function updatePiperProgress(pct) {
                     if (activeUtterance) activeUtterance.rate = activeSpeedRate;
                     
                     recalculateDurationsAndOffsets();
-                    // Limpiar la caché en memoria para que se vuelvan a sintetizar a la nueva velocidad
-                    clearInMemoryAudioCache();
                     showToast(`Velocidad ajustada a ${activeSpeedRate}x`, "fa-gauge-high text-iosAccent");
                 });
             });
 
-            // Botones de Modulación de Tono (Pitch)
-            function updatePitchDisplay() {
-                let label = "Normal";
-                if (activePitch < 0.9) label = "Grave";
-                else if (activePitch > 1.1) label = "Agudo";
-                const toneEl = document.getElementById('tone-value');
-                if (toneEl) toneEl.textContent = label === "Normal" ? "Normal" : `${label} (${activePitch.toFixed(1)}x)`;
-                
-                const btnDown = document.getElementById('btn-pitch-down');
-                const btnUp = document.getElementById('btn-pitch-up');
-                if (btnDown) {
-                    const icon = btnDown.querySelector('i');
-                    if (icon) icon.className = activePitch < 1.0 ? 'fa-solid fa-volume-low text-iosAccent text-[13px]' : 'fa-solid fa-volume-low text-zinc-400 text-[13px]';
-                }
-                if (btnUp) {
-                    const icon = btnUp.querySelector('i');
-                    if (icon) icon.className = activePitch > 1.0 ? 'fa-solid fa-volume-high text-iosAccent text-[13px]' : 'fa-solid fa-volume-high text-zinc-500 text-[13px]';
-                }
-            }
-
-            const btnPitchDown = document.getElementById('btn-pitch-down');
-            if (btnPitchDown) {
-                btnPitchDown.addEventListener('click', () => {
-                    activePitch = Math.max(0.5, parseFloat((activePitch - 0.1).toFixed(1)));
-                    if (activeUtterance) activeUtterance.pitch = activePitch;
-                    // Limpiar caché RAM para recodificar tono en voces neuronales
-                    clearInMemoryAudioCache();
-                    updatePitchDisplay();
-                });
-            }
-
-            const btnPitchUp = document.getElementById('btn-pitch-up');
-            if (btnPitchUp) {
-                btnPitchUp.addEventListener('click', () => {
-                    activePitch = Math.min(1.5, parseFloat((activePitch + 0.1).toFixed(1)));
-                    if (activeUtterance) activeUtterance.pitch = activePitch;
-                    clearInMemoryAudioCache();
-                    updatePitchDisplay();
+            // Slider de Modulación de Tono (Pitch)
+            const sliderPitch = document.getElementById('slider-pitch');
+            if (sliderPitch) {
+                sliderPitch.addEventListener('input', (e) => {
+                    activePitch = parseFloat(e.target.value);
+                    let label = "Normal";
+                    if (activePitch < 0.9) label = "Grave";
+                    else if (activePitch > 1.1) label = "Agudo";
+                    document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
+                    
+                    if (activeUtterance) {
+                        activeUtterance.pitch = activePitch;
+                    }
                 });
             }
 
@@ -1872,6 +1879,7 @@ function updatePiperProgress(pct) {
                 switchView('library');
             });
 
+            // Vinculación de los botones de control de accesibilidad redundantes en ambos lados
             document.querySelectorAll('.btn-font-inc').forEach(btn => {
                 btn.addEventListener('click', () => adjustGlobalFont(0.05));
             });
@@ -1984,6 +1992,7 @@ function updatePiperProgress(pct) {
             });
         }
 
+        // --- STREAMING_CHUNK: Utilidades de imagen y compresión canvas... ---
         function compressCoverImage(dataUrl) {
             return new Promise((resolve) => {
                 try {
@@ -2081,6 +2090,7 @@ function updatePiperProgress(pct) {
             }
 
             function detectBestSpanishVoice() {
+                // PRIORIDAD 1: Paulina Mejorada/Premium (iOS Siri)
                 for (let i = 0; i < synthesisVoices.length; i++) {
                     const n = synthesisVoices[i].name.toLowerCase();
                     if (n.includes('paulina') && (n.includes('premium') || n.includes('mejorada') || n.includes('enhanced'))) {
@@ -2088,12 +2098,14 @@ function updatePiperProgress(pct) {
                         return i;
                     }
                 }
+                // PRIORIDAD 2: Paulina estandar
                 for (let i = 0; i < synthesisVoices.length; i++) {
                     if (synthesisVoices[i].name.toLowerCase().includes('paulina')) {
                         console.log('Voz auto: Paulina (Estandar)');
                         return i;
                     }
                 }
+                // PRIORIDAD 3: Mejor voz espanol por puntuacion
                 const isQ = (name) => {
                     const n = name.toLowerCase();
                     return n.includes('neural') || n.includes('natural') || n.includes('siri') || n.includes('google') || n.includes('mejorada') || n.includes('enhanced') || n.includes('premium') || n.includes('wavenet') || n.includes('jets');
@@ -2171,6 +2183,7 @@ function updatePiperProgress(pct) {
                 edgeHdr.textContent = "Voces Neuronales Edge TTS";
                 flyout.appendChild(edgeHdr);
 
+                // Campo para configurar la URL del servidor en Render
                 const urlBox = document.createElement('div');
                 urlBox.className = "px-2 py-2 mb-2 rounded-lg bg-white/5 border border-white/10";
                 urlBox.innerHTML = ''
@@ -2184,7 +2197,7 @@ function updatePiperProgress(pct) {
                     +         'class="flex-1 min-w-0 bg-black/30 border border-white/10 rounded px-2 py-1 text-[12px] outline-none focus:border-iosAccent">'
                     +   '<button id="edge-server-url-save" class="bg-iosAccent text-black rounded px-2 py-1 text-[11px] font-bold shrink-0">OK</button>'
                     + '</div>'
-                    + '<div class="text-[10px] opacity-40 mt-1">Sin esto, las voces neurales no suenan. Es gratis.</div>';
+                    + '<div class="text-[10px] opacity-40 mt-1">Voces neurales con precarga (sin silencios entre párrafos)</div>';
                 flyout.appendChild(urlBox);
 
                 const _saveBtn = urlBox.querySelector('#edge-server-url-save');
@@ -2195,13 +2208,15 @@ function updatePiperProgress(pct) {
                         const v = _urlInput.value.trim().replace(/\/+$/, '');
                         EDGE_TTS_SERVER_URL = v;
                         try { localStorage.setItem('audiolibros_diego_edge_server_url', v); } catch(_) {}
+                        // ⚡ Establecer pre-conexión inmediatamente
+                        if (typeof edgeSetupPreconnect === 'function') edgeSetupPreconnect();
                         showToast(v ? 'Servidor Edge TTS guardado' : 'URL borrada', 'fa-circle-check text-iosAccent');
-                        clearInMemoryAudioCache(); // Resetear caché al actualizar servidor
                     });
                     _urlInput.addEventListener('click', (e) => e.stopPropagation());
                     _urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); _saveBtn.click(); } e.stopPropagation(); });
                 }
 
+                // Agrupar voces por país y renderizar
                 const _byCountry = {};
                 EDGE_LATIN_VOICES.forEach(v => {
                     if (!_byCountry[v.country]) _byCountry[v.country] = [];
@@ -2232,6 +2247,8 @@ function updatePiperProgress(pct) {
                             e.stopPropagation();
                             EDGE_SELECTED_VOICE = v.id;
                             try { localStorage.setItem('audiolibros_diego_edge_voice', v.id); } catch(_) {}
+                            // Limpiar cache de precarga al cambiar de voz
+                            edgeClearPrefetchCache();
                             selectVoice("edge", v.name + ' (' + country + ')');
                         });
                         flyout.appendChild(btn);
@@ -2339,7 +2356,6 @@ function updatePiperProgress(pct) {
                 document.getElementById('voice-flyout').classList.add('hidden');
                 showToast('Voz: ' + shortLabel, "fa-circle-user text-iosAccent");
                 onlineTtsFailed = false;
-                clearInMemoryAudioCache(); // Resetear caché RAM para refrescar audios con nueva voz
                 if (isPlaying) speakSentence(currentSentenceIndex);
             }
 
@@ -2549,6 +2565,7 @@ function updatePiperProgress(pct) {
             }
         }
 
+        // --- STREAMING_CHUNK: Procesando documentos locales PDF... ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -2763,7 +2780,7 @@ function updatePiperProgress(pct) {
 
         // --- STREAMING_CHUNK: Inicializando reproductor e hilos de audio... ---
         function loadAudiobookPlayer(index) {
-            clearInMemoryAudioCache();
+            clearTTSAudioCache();
             activeBookIndex = index;
             const book = currentBooks[index];
             activeChapterIndex = book.progressChapter || 0;
@@ -2834,7 +2851,8 @@ function updatePiperProgress(pct) {
 
         async function changeChapter(chapterIdx) {
             pauseAudio();
-            clearInMemoryAudioCache();
+            clearTTSAudioCache();
+            edgeClearPrefetchCache();
             activeChapterIndex = chapterIdx;
             currentSentenceIndex = 0;
             
@@ -2877,6 +2895,25 @@ function updatePiperProgress(pct) {
             recalculateDurationsAndOffsets();
             updateSmoothProgress();
             highlightCurrentSentence();
+
+            // ⚡ PRE-CARGA TEMPRANA: si la voz Edge TTS está seleccionada
+            // y el servidor configurado, empezar a pedir los primeros
+            // párrafos apenas el capítulo se muestra — ANTES de que el
+            // usuario presione play. Así, cuando lo haga, el párrafo 0
+            // ya está descargado y suena al instante (sin silencio).
+            if (selectedVoiceValue === 'edge' && EDGE_TTS_SERVER_URL && EDGE_TTS_SERVER_URL.length >= 10) {
+                // Pequeño delay para no competir con el render de la UI
+                setTimeout(() => {
+                    try {
+                        // Empezar desde el párrafo actual (progreso guardado)
+                        // y prefetch de los 3 siguientes
+                        edgeFetchParagraph(currentSentenceIndex);
+                        edgePrefetchAhead(currentSentenceIndex);
+                    } catch (e) {
+                        console.warn('[Edge TTS] Pre-carga temprana falló:', e);
+                    }
+                }, 300);
+            }
         }
 
         function recalculateDurationsAndOffsets() {
@@ -2926,10 +2963,24 @@ function updatePiperProgress(pct) {
         }
 
         const ttsAudioEl = document.getElementById('tts-audio-player');
-        
-        function clearTTSAudioCache() {
-            clearInMemoryAudioCache();
+        // Audio cache removed - all voices use browser SpeechSynthesis API
+        function splitTextIntoTTSChunks(text, maxLen = 150) {
+            const rawSentences = text.split(/(?<=[.!?])\s+/);
+            const chunks = [];
+            let current = "";
+            for (let s of rawSentences) {
+                if ((current + " " + s).trim().length < maxLen) {
+                    current += (current ? " " : "") + s;
+                } else {
+                    if (current) chunks.push(current);
+                    current = s;
+                }
+            }
+            if (current) chunks.push(current);
+            return chunks.length > 0 ? chunks : [text];
         }
+
+        function clearTTSAudioCache() { /* no-op: voices use SpeechSynthesis */ }
 
         function isOnlineVoiceSelected() {
             return selectedVoiceValue === "online";
@@ -2960,124 +3011,20 @@ function updatePiperProgress(pct) {
             
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
-                if (piperAudioCtx) {
-                    try { piperAudioCtx.close(); } catch(e) {}
-                    piperAudioCtx = null;
-                }
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
             }
-            edgeCleanup();
             if (ttsAudioEl) ttsAudioEl.pause();
+            // Limpiar cache de precarga Edge TTS al pausar
+            edgeClearPrefetchCache();
             stopSilentAudioHack();
             stopSmoothProgressLoop();
             updateMediaSessionState("paused");
         }
 
-        // ============================================================
-        // LÓGICA DE PRECARGA ASÍNCRONA PARA ELIMINAR SILENCIOS
-        // ============================================================
-        async function preloadNextSentences(currentIndex) {
-            const nextIndex = currentIndex + 1;
-            if (nextIndex >= textSentences.length) return;
-
-            const text = textSentences[nextIndex];
-            if (!text || !text.trim()) return;
-
-            const voiceType = selectedVoiceValue === "piper" ? "piper" :
-                              selectedVoiceValue === "edge" ? "edge" :
-                              selectedVoiceValue === "online" ? "online" : "system";
-
-            if (voiceType === "system") return; // La API del sistema speechSynthesis no soporta precarga de buffer
-
-            const voiceId = voiceType === "edge" ? EDGE_SELECTED_VOICE :
-                            voiceType === "online" ? "google_es" : "piper_mx";
-
-            const key = getSentenceCacheKey(nextIndex, voiceType, voiceId, text, activeSpeedRate, activePitch);
-
-            // 1. Si ya está cargada en RAM, omitir
-            if (inMemoryAudioCache.has(key)) return;
-
-            // 2. Si ya está guardada en la base de datos IndexedDB local, pasarla a memoria RAM (carga instantánea sin red/ONNX)
-            try {
-                const savedData = await getCachedAudio(key);
-                if (savedData) {
-                    if (voiceType === "piper") {
-                        inMemoryAudioCache.set(key, savedData);
-                    } else {
-                        const blob = new Blob([savedData], { type: "audio/mpeg" });
-                        const blobUrl = URL.createObjectURL(blob);
-                        inMemoryAudioCache.set(key, blobUrl);
-                    }
-                    return;
-                }
-            } catch (err) {
-                console.warn("Fallo leyendo la caché local persistente de audios:", err);
-            }
-
-            // 3. Si no existe en ningún lado, sintetizar o descargar de forma silenciosa en segundo plano
-            try {
-                if (voiceType === "piper") {
-                    if (!piperLoaded) return;
-                    const audio = await piperSynthesize(text);
-                    if (audio) {
-                        inMemoryAudioCache.set(key, audio);
-                        await saveCachedAudio(key, audio);
-                    }
-                } else if (voiceType === "online") {
-                    if (onlineTtsFailed) return;
-                    const url = getOnlineTTSUrl(text);
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const buffer = await response.arrayBuffer();
-                        const blob = new Blob([buffer], { type: "audio/mpeg" });
-                        const blobUrl = URL.createObjectURL(blob);
-                        inMemoryAudioCache.set(key, blobUrl);
-                        await saveCachedAudio(key, buffer);
-                    }
-                } else if (voiceType === "edge") {
-                    if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) return;
-                    const pitchHz = edgePitchHz(activePitch);
-                    const rateVal = edgeRatePercent(activeSpeedRate);
-
-                    const response = await fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            text: text,
-                            voice: EDGE_SELECTED_VOICE,
-                            rate: rateVal,
-                            pitch: pitchHz + 'Hz',
-                            volume: '+0%'
-                        })
-                    });
-                    if (response.ok) {
-                        const buffer = await response.arrayBuffer();
-                        const blob = new Blob([buffer], { type: "audio/mpeg" });
-                        const blobUrl = URL.createObjectURL(blob);
-                        inMemoryAudioCache.set(key, blobUrl);
-                        await saveCachedAudio(key, buffer);
-                    }
-                }
-            } catch (err) {
-                console.warn(`No se pudo precargar la oración asíncrona ${nextIndex}:`, err);
-            }
-        }
-
-        // Liberación de memoria progresiva (mantiene máximo 50 blobs en memoria para evitar saturar el hardware)
-        function checkAndCleanCacheLimit() {
-            if (inMemoryAudioCache.size > 50) {
-                let keys = Array.from(inMemoryAudioCache.keys());
-                for (let i = 0; i < 15; i++) {
-                    let keyToDelete = keys[i];
-                    let value = inMemoryAudioCache.get(keyToDelete);
-                    if (typeof value === 'string' && value.startsWith('blob:')) {
-                        try { URL.revokeObjectURL(value); } catch(e) {}
-                    }
-                    inMemoryAudioCache.delete(keyToDelete);
-                }
-            }
-        }
-
-        // LÓGICA PRINCIPAL DE REPRODUCCIÓN (SISTEMA INTELIGENTE DE CACHÉ)
         async function speakSentence(index) {
             if (!isPlaying) return;
             if (index >= textSentences.length) {
@@ -3100,212 +3047,38 @@ function updatePiperProgress(pct) {
             const book = currentBooks[activeBookIndex];
             book.progressChapter = activeChapterIndex;
             book.progressSentence = currentSentenceIndex;
+            // No esperamos este guardado: en iOS Safari, hacer "await" sobre una
+            // escritura a IndexedDB antes de llamar a play() rompe la cadena de
+            // "gesto del usuario" que el navegador exige para permitir el audio,
+            // haciendo que la reproducción falle en silencio en el iPhone.
+            // Guardamos el progreso en segundo plano y arrancamos el audio ya mismo.
             storageAdapter.save(book).catch(err => console.warn("No se pudo guardar progreso:", err));
 
-            // Arrancar precarga del siguiente párrafo de forma paralela e inmediata
-            preloadNextSentences(index);
-            checkAndCleanCacheLimit();
-
-            const text = textSentences[index];
-            if (!text || !text.trim()) {
-                if (isPlaying) speakSentence(index + 1);
+            if (selectedVoiceValue === "piper") {
+                speakSentencePiper(textSentences[currentSentenceIndex]).then(ok => {
+                    if (ok) { if (isPlaying) speakSentence(currentSentenceIndex + 1); }
+                    else { console.warn('[Piper] Fallback to system'); speakSentenceSystem(currentSentenceIndex); }
+                });
                 return;
             }
-
-            const voiceType = selectedVoiceValue === "piper" ? "piper" :
-                              selectedVoiceValue === "edge" ? "edge" :
-                              selectedVoiceValue === "online" ? "online" : "system";
-
-            if (voiceType === "system") {
-                speakSentenceSystem(index);
+            if (selectedVoiceValue === "edge") {
+                speakSentenceEdge(index);
                 return;
             }
-
-            const voiceId = voiceType === "edge" ? EDGE_SELECTED_VOICE :
-                            voiceType === "online" ? "google_es" : "piper_mx";
-
-            const key = getSentenceCacheKey(index, voiceType, voiceId, text, activeSpeedRate, activePitch);
-
-            // A. CACHÉ NIVEL 1 (MEMORIA RAM): Reproducción instantánea sin esperar microsegundos
-            if (inMemoryAudioCache.has(key)) {
-                const cachedData = inMemoryAudioCache.get(key);
-                if (voiceType === "piper") {
-                    await playPiperAudio(cachedData);
-                    await new Promise(r => setTimeout(r, 120));
-                    if (isPlaying) speakSentence(index + 1);
-                } else {
-                    playCachedBlobUrl(cachedData, index);
-                }
-                return;
-            }
-
-            // B. CACHÉ NIVEL 2 (INDEXEDDB PERSISTENTE): Carga rápida local sin internet/ONNX
-            try {
-                const savedData = await getCachedAudio(key);
-                if (savedData) {
-                    if (voiceType === "piper") {
-                        inMemoryAudioCache.set(key, savedData);
-                        await playPiperAudio(savedData);
-                        await new Promise(r => setTimeout(r, 120));
-                        if (isPlaying) speakSentence(index + 1);
-                    } else {
-                        const blob = new Blob([savedData], { type: "audio/mpeg" });
-                        const blobUrl = URL.createObjectURL(blob);
-                        inMemoryAudioCache.set(key, blobUrl);
-                        playCachedBlobUrl(blobUrl, index);
-                    }
-                    return;
-                }
-            } catch (err) {
-                console.warn("Fallo buscando en base de datos de caché local:", err);
-            }
-
-            // C. FALLBACK SÍNCRONO (Si el párrafo aún no se había precargado ni guardado en disco)
-            if (voiceType === "piper") {
-                speakSentencePiperNormal(index, key);
-                return;
-            }
-            if (voiceType === "edge") {
-                speakSentenceEdgeNormal(index, key);
-                return;
-            }
-            if (voiceType === "online") {
-                speakSentenceOnlineNormal(index, key);
-            }
-        }
-
-        // LÓGICA DE REPRODUCCIÓN PIPER CONVENCIONAL Y GUARDADO EN CACHÉ
-        async function speakSentencePiperNormal(index, key) {
-            if (!piperLoaded) {
-                await loadPiperModel();
-                if (!piperLoaded) return;
-            }
-            try {
-                const text = textSentences[index];
-                const audio = await piperSynthesize(text);
-                if (audio) {
-                    inMemoryAudioCache.set(key, audio);
-                    saveCachedAudio(key, audio); // Guardado asíncrono en IndexedDB para futuras reproducciones
-                    await playPiperAudio(audio);
-                    await new Promise(r => setTimeout(r, 120));
-                    if (isPlaying) speakSentence(index + 1);
-                } else {
-                    speakSentenceSystem(index);
-                }
-            } catch (e) {
-                console.error('[Piper] Error en síntesis normal:', e);
+            if (isOnlineVoiceSelected()) {
+                speakSentenceOnline(index);
+            } else {
                 speakSentenceSystem(index);
             }
-        }
-
-        // LÓGICA DE REPRODUCCIÓN EDGE CONVENCIONAL Y GUARDADO EN CACHÉ
-        function speakSentenceEdgeNormal(index, key) {
-            window.speechSynthesis.cancel();
-            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
-            if (ttsAudioEl) ttsAudioEl.pause();
-
-            const text = textSentences[index];
-            if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) {
-                showToast('Configura la URL de tu servidor Edge TTS', 'fa-triangle-exclamation text-yellow-400');
-                const flyout = document.getElementById('voice-flyout');
-                if (flyout) flyout.classList.remove('hidden');
-                edgeFallbackToSystem(text);
-                return;
-            }
-
-            const pitchHz = edgePitchHz(activePitch);
-            const rateVal = edgeRatePercent(activeSpeedRate);
-
-            fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: text,
-                    voice: EDGE_SELECTED_VOICE,
-                    rate: rateVal,
-                    pitch: pitchHz + 'Hz',
-                    volume: '+0%'
-                })
-            })
-            .then(resp => {
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                return resp.arrayBuffer();
-            })
-            .then(buffer => {
-                if (buffer.byteLength < 100) throw new Error('Audio vacío');
-                const blob = new Blob([buffer], { type: "audio/mpeg" });
-                const blobUrl = URL.createObjectURL(blob);
-                inMemoryAudioCache.set(key, blobUrl);
-                saveCachedAudio(key, buffer); // Guardar asíncronamente
-                playCachedBlobUrl(blobUrl, index);
-            })
-            .catch(err => {
-                console.warn('[Edge TTS] Falló descarga en vivo. Usando fallback de sistema:', err);
-                edgeFallbackToSystem(text);
-            });
-        }
-
-        // LÓGICA DE REPRODUCCIÓN ONLINE CONVENCIONAL Y GUARDADO EN CACHÉ
-        function speakSentenceOnlineNormal(index, key) {
-            window.speechSynthesis.cancel();
-            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
-            if (ttsAudioEl) ttsAudioEl.pause();
-
-            const text = textSentences[index];
-            if (onlineTtsFailed) {
-                onlineFallback(text);
-                return;
-            }
-
-            const url = getOnlineTTSUrl(text);
-            fetch(url)
-            .then(resp => {
-                if (!resp.ok) throw new Error();
-                return resp.arrayBuffer();
-            })
-            .then(buffer => {
-                const blob = new Blob([buffer], { type: "audio/mpeg" });
-                const blobUrl = URL.createObjectURL(blob);
-                inMemoryAudioCache.set(key, blobUrl);
-                saveCachedAudio(key, buffer);
-                playCachedBlobUrl(blobUrl, index);
-            })
-            .catch(() => {
-                onlineTtsFailed = true;
-                onlineFallback(text);
-            });
-        }
-
-        // REPRODUCTOR FLUIDO DE BLOB URL DESDE CACHÉ
-        function playCachedBlobUrl(blobUrl, index) {
-            window.speechSynthesis.cancel();
-            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
-            if (ttsAudioEl) ttsAudioEl.pause();
-
-            ttsAudioEl.onended = () => {
-                if (isPlaying) speakSentence(index + 1);
-            };
-            ttsAudioEl.onerror = () => {
-                if (isPlaying) speakSentence(index + 1);
-            };
-            ttsAudioEl.src = blobUrl;
-            ttsAudioEl.load();
-            ttsAudioEl.playbackRate = activeSpeedRate;
-            
-            const sk = document.getElementById('silent-keepalive');
-            if (sk) sk.play().catch(() => {});
-            
-            ttsAudioEl.play().catch(() => {
-                if (isPlaying) speakSentence(index + 1);
-            });
         }
 
         function speakSentenceSystem(index) {
             window.speechSynthesis.cancel();
+// Stop Piper audio
             if (piperAudioCtx) {
                 try { piperAudioCtx.close(); } catch(e) {}
                 piperAudioCtx = null;
-            }
+            };
             if (ttsAudioEl) ttsAudioEl.pause();
 
             const sentenceText = textSentences[index];
@@ -3349,15 +3122,49 @@ function updatePiperProgress(pct) {
         }
 
         function speakSentenceOnline(index) {
-            speakSentence(index); // Derivar de forma unificada a speakSentence que ya gestiona la lógica de precargas
+            window.speechSynthesis.cancel();
+// Stop Piper audio
+            if (piperAudioCtx) {
+                try { piperAudioCtx.close(); } catch(e) {}
+                piperAudioCtx = null;
+            };
+            const sentenceText = textSentences[index];
+            if (!sentenceText || sentenceText.trim() === '') {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
+            }
+
+            // Si Google TTS ya fallo antes, ir directo a voz del sistema
+            if (onlineTtsFailed || !ttsAudioEl) {
+                onlineFallback(sentenceText);
+                return;
+            }
+
+            let fallbackDone = false;
+            const doFallback = () => {
+                if (fallbackDone) return;
+                fallbackDone = true;
+                onlineTtsFailed = true;
+                onlineFallback(sentenceText);
+            };
+
+            ttsAudioEl.onended = () => {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.onerror = () => doFallback();
+            ttsAudioEl.src = getOnlineTTSUrl(sentenceText);
+            ttsAudioEl.load();
+            ttsAudioEl.playbackRate = activeSpeedRate;
+            ttsAudioEl.play().catch(() => doFallback());
         }
 
         function onlineFallback(text) {
             window.speechSynthesis.cancel();
+// Stop Piper audio
             if (piperAudioCtx) {
                 try { piperAudioCtx.close(); } catch(e) {}
                 piperAudioCtx = null;
-            }
+            };
             if (ttsAudioEl) ttsAudioEl.pause();
             activeUtterance = new SpeechSynthesisUtterance(text);
             if (bestOnlineVoiceIndex !== null && synthesisVoices[bestOnlineVoiceIndex]) {
@@ -3383,15 +3190,236 @@ function updatePiperProgress(pct) {
             window.speechSynthesis.speak(activeUtterance);
         }
 
+        // ============================================================
+        // EDGE TTS MOTOR — CON PRECARGA (elimina silencios entre párrafos)
+        // ------------------------------------------------------------
+        // Estrategia:
+        // 1. Cuando suena el párrafo N, pedimos en segundo plano los
+        //    párrafos N+1 y N+2 al servidor.
+        // 2. Cuando termina N, el párrafo N+1 ya está descargado y
+        //    suena al instante (sin silencio).
+        // 3. Si el usuario salta párrafos o cambia de voz, se descarta
+        //    la cola y se vuelve a empezar — no rompe nada.
+        // ============================================================
+
         function edgePitchHz(pitch) { return Math.round((pitch - 1.0) * 100); }
         function edgeRatePercent(rate) {
             const r = Math.round((rate - 1.0) * 100);
             return (r >= 0 ? '+' : '') + r + '%';
         }
-        function edgeCleanup() {  }
+
+        // Limpiar toda la cola de precarga (al pausar, cambiar voz, saltar)
+        function edgeClearPrefetchCache() {
+            // Cancelar requests en curso
+            edgePrefetchAbortControllers.forEach((controller, idx) => {
+                try { controller.abort(); } catch(_) {}
+            });
+            edgePrefetchAbortControllers.clear();
+            // Liberar object URLs
+            edgePrefetchCache.forEach((entry) => {
+                if (entry && entry.url) {
+                    try { URL.revokeObjectURL(entry.url); } catch(_) {}
+                }
+            });
+            edgePrefetchCache.clear();
+        }
+
+        // Pedir un párrafo al servidor (con cache + cancelable)
+        function edgeFetchParagraph(index) {
+            // Si ya está cacheado y listo, devolverlo
+            const cached = edgePrefetchCache.get(index);
+            if (cached && (cached.status === 'ready' || cached.status === 'loading')) {
+                return cached;
+            }
+            // Si estaba en error, limpiarla para reintentar
+            if (cached && cached.url) {
+                try { URL.revokeObjectURL(cached.url); } catch(_) {}
+            }
+
+            const text = textSentences[index];
+            if (!text || !text.trim()) {
+                const emptyEntry = { status: 'ready', blob: null, url: null, empty: true };
+                edgePrefetchCache.set(index, emptyEntry);
+                return emptyEntry;
+            }
+
+            const controller = new AbortController();
+            edgePrefetchAbortControllers.set(index, controller);
+            const entry = { status: 'loading', blob: null, url: null, empty: false };
+            edgePrefetchCache.set(index, entry);
+
+            const pitchHz = edgePitchHz(activePitch);
+            const rateVal = edgeRatePercent(activeSpeedRate);
+
+            fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    voice: EDGE_SELECTED_VOICE,
+                    rate: rateVal,
+                    pitch: pitchHz + 'Hz',
+                    volume: '+0%'
+                }),
+                signal: controller.signal
+            })
+            .then(resp => {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.blob();
+            })
+            .then(blob => {
+                if (blob.size < 100) throw new Error('Audio vacío');
+                entry.blob = blob;
+                entry.url = URL.createObjectURL(blob);
+                entry.status = 'ready';
+                edgePrefetchAbortControllers.delete(index);
+            })
+            .catch(err => {
+                if (err && err.name === 'AbortError') {
+                    // Fue cancelada a propósito (salto de párrafo, cambio de voz) — no marcar como error
+                    edgePrefetchCache.delete(index);
+                    edgePrefetchAbortControllers.delete(index);
+                } else {
+                    console.warn('[Edge TTS] Error precargando párrafo', index, err);
+                    entry.status = 'error';
+                    entry.error = err.message;
+                    edgePrefetchAbortControllers.delete(index);
+                }
+            });
+
+            return entry;
+        }
+
+        // Disparar precarga de los próximos N párrafos
+        function edgePrefetchAhead(currentIndex) {
+            for (let i = 1; i <= EDGE_PREFETCH_AHEAD; i++) {
+                const nextIdx = currentIndex + i;
+                if (nextIdx < textSentences.length) {
+                    edgeFetchParagraph(nextIdx);
+                }
+            }
+        }
 
         function speakSentenceEdge(index) {
-            speakSentence(index); // Derivar al gestor inteligente de caché/precargas unificado
+            window.speechSynthesis.cancel();
+            if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
+            if (ttsAudioEl) ttsAudioEl.pause();
+
+            const text = textSentences[index];
+            if (!text || !text.trim()) {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                return;
+            }
+
+            // Verificar que la URL del servidor esté configurada
+            if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) {
+                showToast('Configura la URL de tu servidor Edge TTS', 'fa-triangle-exclamation text-yellow-400');
+                const flyout = document.getElementById('voice-flyout');
+                const trigger = document.getElementById('btn-voice-trigger');
+                if (trigger && flyout) {
+                    closeAllFlyouts(flyout);
+                    flyout.classList.remove('hidden');
+                }
+                edgeFallbackToSystem(text);
+                return;
+            }
+
+            // Disparar precarga de los próximos párrafos en paralelo
+            edgePrefetchAhead(index);
+
+            // Intentar usar el audio cacheado del párrafo actual
+            const cached = edgePrefetchCache.get(index);
+
+            if (cached && cached.status === 'ready') {
+                // ✅ Caso ideal: ya está descargado, suena al instante
+                if (cached.empty) {
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                    return;
+                }
+                edgePlayBlobUrl(cached.url, index);
+            } else if (cached && cached.status === 'loading') {
+                // ⏳ Aún descargando: esperar a que termine
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else if (entry && entry.status === 'error') {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            } else if (cached && cached.status === 'error') {
+                // ❌ Falló antes: reintentar
+                edgePrefetchCache.delete(index);
+                edgeFetchParagraph(index);
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            } else {
+                // No estaba en cache (p.ej. salto de párrafo): pedir fresco
+                edgeFetchParagraph(index);
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else if (entry && entry.status === 'error') {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            }
+        }
+
+        // Esperar a que un párrafo termine de cargarse (polling liviano)
+        function edgeWaitForParagraph(index, maxWaitMs = 20000) {
+            return new Promise((resolve) => {
+                const entry = edgePrefetchCache.get(index);
+                if (!entry) { resolve(null); return; }
+                if (entry.status === 'ready' || entry.status === 'error') {
+                    resolve(entry);
+                    return;
+                }
+                const start = Date.now();
+                const poll = setInterval(() => {
+                    const e = edgePrefetchCache.get(index);
+                    if (!e || e.status === 'ready' || e.status === 'error') {
+                        clearInterval(poll);
+                        resolve(e);
+                    } else if (Date.now() - start > maxWaitMs) {
+                        clearInterval(poll);
+                        resolve(e);
+                    }
+                }, 50);
+            });
+        }
+
+        function edgeHandleFetchError(text, index) {
+            console.warn('[Edge TTS] Fallback al sistema para párrafo', index);
+            showToast('Edge TTS no disponible — usando voz del sistema', 'fa-triangle-exclamation text-yellow-400');
+            edgeFallbackToSystem(text);
+        }
+
+        function edgePlayBlobUrl(url, index) {
+            // Limpieza del blob URL anterior cuando termine
+            ttsAudioEl.onended = () => {
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.onerror = () => {
+                console.warn('[Edge TTS] Error de reproducción, saltando');
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            };
+            ttsAudioEl.src = url;
+            // No llamamos a .load() — el navegador carga automáticamente al asignar .src
+            // y play() arranca apenas hay datos suficientes (streaming).
+            const sk = document.getElementById('silent-keepalive');
+            if (sk) sk.play().catch(() => {});
+            ttsAudioEl.play().catch(() => {
+                console.warn('[Edge TTS] play() rechazado, saltando');
+                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+            });
         }
 
         function edgeFallbackToSystem(text) {
@@ -3572,18 +3600,6 @@ function updatePiperProgress(pct) {
             showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
 
-        function formatBookmarkDate(ts) {
-            const d = new Date(ts);
-            const day = d.getDate();
-            const month = d.getMonth() + 1;
-            const year = d.getFullYear();
-            let hours = d.getHours();
-            const minutes = d.getMinutes().toString().padStart(2, '0');
-            const ampm = hours >= 12 ? 'pm' : 'am';
-            hours = hours % 12 || 12;
-            return `${day}/${month}/${year} ${hours}:${minutes}${ampm}`;
-        }
-
         function renderBookmarksList() {
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
@@ -3600,7 +3616,7 @@ function updatePiperProgress(pct) {
                     item.innerHTML = `
                         <div class="flex-1 min-w-0 pr-3 text-left">
                             <p class="font-bold truncate">${b.name}</p>
-                            <p class="text-[13px] opacity-60">Guardado: ${formatBookmarkDate(b.timestamp)}</p>
+                            <p class="text-[13px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
                         </div>
                         <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none shrink-0" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
                     `;
@@ -3633,13 +3649,6 @@ function updatePiperProgress(pct) {
             
             document.getElementById('timer-label').textContent = `${minutes} min`;
             showToast(`Apagado programado en ${minutes} min`, "fa-clock text-iosAccent");
-
-            document.querySelectorAll('.timer-opt-btn').forEach(b => {
-                const check = b.querySelector('.check-icon');
-                const isMatch = parseInt(b.dataset.minutes) === minutes;
-                if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
-                b.classList.toggle('active-opt', isMatch);
-            });
 
             timerCountdown = setInterval(() => {
                 remainingTimerSeconds--;
@@ -3757,6 +3766,7 @@ function updatePiperProgress(pct) {
             }
         }
 
+        // --- STREAMING_CHUNK: Sistema de Respaldo e Intercambio JSON multiplataforma ---
         async function exportBackupJSON() {
             try {
                 showToast("Generando copia de seguridad...", "fa-spinner fa-spin");
@@ -3820,7 +3830,7 @@ function updatePiperProgress(pct) {
             reader.readAsText(file);
         }
     
-        // --- Sound Wave Animation Engine ---
+        // --- Sound Wave Animation Engine (organic speech-like rhythm) ---
         let waveAnimFrame = null;
         let waveBars = null;
         let wavePhase = 0;
@@ -3839,6 +3849,7 @@ function updatePiperProgress(pct) {
             if (waveAnimFrame) { cancelAnimationFrame(waveAnimFrame); waveAnimFrame = null; }
             const container = document.getElementById('sound-wave-anim');
             if (container) container.classList.add('paused');
+            // Collapse bars smoothly
             if (waveBars) {
                 waveBars.forEach(bar => { bar.style.height = '15%'; });
             }
@@ -3849,12 +3860,14 @@ function updatePiperProgress(pct) {
             wavePhase += 0.12 + (activeSpeedRate - 1) * 0.04;
 
             for (let i = 0; i < waveBars.length; i++) {
+                // Simulate speech pattern: mix of frequencies for natural look
                 const base = Math.sin(wavePhase + i * 0.8) * 0.5 + 0.5;
                 const fast = Math.sin(wavePhase * 2.3 + i * 1.2) * 0.3;
                 const slow = Math.sin(wavePhase * 0.5 + i * 0.3) * 0.2;
-                const pop = Math.random() * 0.15;
+                const pop = Math.random() * 0.15; // Random pops like real speech
 
                 let h = Math.max(0.08, Math.min(1, base + fast + slow + pop));
+                // Center bars tend taller (speech formant shape)
                 const center = 1 - Math.abs(i - (waveBars.length - 1) / 2) / ((waveBars.length - 1) / 2);
                 h = h * (0.5 + center * 0.5);
 
