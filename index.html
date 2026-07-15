@@ -880,12 +880,70 @@ let piperLoading = false;
 let piperError = null;
 let piperAudioCtx = null;
 
-// --- EDGE TTS ENGINE (Jorge Neural, es-MX) ---
-let edgeWs = null;
-const EDGE_TTS_WSS = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
-const EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-const EDGE_TTS_REST = 'https://api-edgetts.azurewebsites.net/api/edgetts';
-const EDGE_VOICE_NAME = 'es-MX-JorgeNeural';
+// ============================================================
+// EDGE TTS NEURAL — Servidor propio en Render (gratis)
+// ------------------------------------------------------------
+// Este motor ahora usa TU propio servidor en Render en lugar
+// del endpoint de terceros (que nunca funcionó por CORS).
+// La URL se puede configurar desde el flyout de voces en la UI,
+// o aquí directamente. Se guarda en localStorage.
+// ============================================================
+let EDGE_TTS_SERVER_URL = ''; // Se carga desde localStorage al inicio
+
+// Voz Edge seleccionada (por defecto: Jorge MX)
+let EDGE_SELECTED_VOICE = 'es-MX-JorgeNeural';
+
+// Lista completa de voces neurales latinoamericanas de Microsoft Edge TTS
+const EDGE_LATIN_VOICES = [
+    { id: 'es-MX-JorgeNeural',     name: 'Jorge',     gender: 'M', country: 'México',           flag: '🇲🇽' },
+    { id: 'es-MX-DaliaNeural',     name: 'Dalia',     gender: 'F', country: 'México',           flag: '🇲🇽' },
+    { id: 'es-AR-TomasNeural',     name: 'Tomás',     gender: 'M', country: 'Argentina',        flag: '🇦🇷' },
+    { id: 'es-AR-ElenaNeural',     name: 'Elena',     gender: 'F', country: 'Argentina',        flag: '🇦🇷' },
+    { id: 'es-BO-MarceloNeural',   name: 'Marcelo',   gender: 'M', country: 'Bolivia',          flag: '🇧🇴' },
+    { id: 'es-BO-SofiaNeural',     name: 'Sofía',     gender: 'F', country: 'Bolivia',          flag: '🇧🇴' },
+    { id: 'es-CL-GonzaloNeural',   name: 'Gonzalo',   gender: 'M', country: 'Chile',            flag: '🇨🇱' },
+    { id: 'es-CL-CatalinaNeural',  name: 'Catalina',  gender: 'F', country: 'Chile',            flag: '🇨🇱' },
+    { id: 'es-CO-GonzaloNeural',   name: 'Gonzalo',   gender: 'M', country: 'Colombia',         flag: '🇨🇴' },
+    { id: 'es-CO-SalomeNeural',    name: 'Salomé',    gender: 'F', country: 'Colombia',         flag: '🇨🇴' },
+    { id: 'es-CR-JuanNeural',      name: 'Juan',      gender: 'M', country: 'Costa Rica',       flag: '🇨🇷' },
+    { id: 'es-CR-MariaNeural',     name: 'María',     gender: 'F', country: 'Costa Rica',       flag: '🇨🇷' },
+    { id: 'es-CU-ManuelNeural',    name: 'Manuel',    gender: 'M', country: 'Cuba',             flag: '🇨🇺' },
+    { id: 'es-CU-BelkysNeural',    name: 'Belkys',    gender: 'F', country: 'Cuba',             flag: '🇨🇺' },
+    { id: 'es-DO-RamiroNeural',    name: 'Ramiro',    gender: 'M', country: 'Rep. Dominicana',  flag: '🇩🇴' },
+    { id: 'es-DO-RamonaNeural',    name: 'Ramona',    gender: 'F', country: 'Rep. Dominicana',  flag: '🇩🇴' },
+    { id: 'es-EC-AndresNeural',    name: 'Andrés',    gender: 'M', country: 'Ecuador',          flag: '🇪🇨' },
+    { id: 'es-EC-AndreaNeural',    name: 'Andrea',    gender: 'F', country: 'Ecuador',          flag: '🇪🇨' },
+    { id: 'es-GT-AndresNeural',    name: 'Andrés',    gender: 'M', country: 'Guatemala',        flag: '🇬🇹' },
+    { id: 'es-GT-MartaNeural',     name: 'Marta',     gender: 'F', country: 'Guatemala',        flag: '🇬🇹' },
+    { id: 'es-HN-CarlosNeural',    name: 'Carlos',    gender: 'M', country: 'Honduras',         flag: '🇭🇳' },
+    { id: 'es-HN-KarlaNeural',     name: 'Karla',     gender: 'F', country: 'Honduras',         flag: '🇭🇳' },
+    { id: 'es-NI-FedericoNeural',  name: 'Federico',  gender: 'M', country: 'Nicaragua',        flag: '🇳🇮' },
+    { id: 'es-NI-YolandaNeural',   name: 'Yolanda',   gender: 'F', country: 'Nicaragua',        flag: '🇳🇮' },
+    { id: 'es-PA-MiguelNeural',    name: 'Miguel',    gender: 'M', country: 'Panamá',           flag: '🇵🇦' },
+    { id: 'es-PA-MargaritaNeural', name: 'Margarita', gender: 'F', country: 'Panamá',           flag: '🇵🇦' },
+    { id: 'es-PE-AlexNeural',      name: 'Alex',      gender: 'M', country: 'Perú',             flag: '🇵🇪' },
+    { id: 'es-PE-CamilaNeural',    name: 'Camila',    gender: 'F', country: 'Perú',             flag: '🇵🇪' },
+    { id: 'es-PY-MateoNeural',     name: 'Mateo',     gender: 'M', country: 'Paraguay',         flag: '🇵🇾' },
+    { id: 'es-PY-TaniaNeural',     name: 'Tania',     gender: 'F', country: 'Paraguay',         flag: '🇵🇾' },
+    { id: 'es-SV-RodrigoNeural',   name: 'Rodrigo',   gender: 'M', country: 'El Salvador',      flag: '🇸🇻' },
+    { id: 'es-SV-LorenaNeural',    name: 'Lorena',    gender: 'F', country: 'El Salvador',      flag: '🇸🇻' },
+    { id: 'es-US-AlonsoNeural',    name: 'Alonso',    gender: 'M', country: 'EE.UU. Latino',    flag: '🇺🇸' },
+    { id: 'es-US-PalomaNeural',    name: 'Paloma',    gender: 'F', country: 'EE.UU. Latino',    flag: '🇺🇸' },
+    { id: 'es-UY-MateoNeural',     name: 'Mateo',     gender: 'M', country: 'Uruguay',          flag: '🇺🇾' },
+    { id: 'es-UY-ValentinaNeural', name: 'Valentina', gender: 'F', country: 'Uruguay',          flag: '🇺🇾' },
+    { id: 'es-VE-PaoloNeural',     name: 'Paolo',     gender: 'M', country: 'Venezuela',        flag: '🇻🇪' },
+    { id: 'es-VE-VeronicaNeural',  name: 'Verónica',  gender: 'F', country: 'Venezuela',        flag: '🇻🇪' },
+    { id: 'es-PR-VictorNeural',    name: 'Víctor',    gender: 'M', country: 'Puerto Rico',      flag: '🇵🇷' },
+    { id: 'es-PR-KarinaNeural',    name: 'Karina',    gender: 'F', country: 'Puerto Rico',      flag: '🇵🇷' }
+];
+
+// Restaurar URL del servidor y voz Edge guardadas
+try {
+    const _savedUrl = localStorage.getItem('audiolibros_diego_edge_server_url');
+    if (_savedUrl && _savedUrl.trim()) EDGE_TTS_SERVER_URL = _savedUrl.trim().replace(/\/$/, '');
+    const _savedVoice = localStorage.getItem('audiolibros_diego_edge_voice');
+    if (_savedVoice && EDGE_LATIN_VOICES.some(v => v.id === _savedVoice)) EDGE_SELECTED_VOICE = _savedVoice;
+} catch(_) {}
 
 const PIPER_MODEL_BASE = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_MX/claude/high';
 const PIPER_MODEL_URL = PIPER_MODEL_BASE + '/es_MX-claude-high.onnx';
@@ -2123,17 +2181,79 @@ function updatePiperProgress(pct) {
                 });
                 flyout.appendChild(onlineBtn);
 
-                // --- Edge TTS: Jorge Neural (es-MX) ---
-                const edgeBtn = document.createElement('button');
-                edgeBtn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
-                edgeBtn.dataset.value = "edge";
-                edgeBtn.innerHTML = '<div class="flex items-center gap-2"><i class="fa-brands fa-microsoft text-iosAccent text-[14px]"></i><div class="flex flex-col items-start"><span>Jorge Neural (MX)</span><span class="text-[11px] opacity-50 font-normal">Voz neural Edge TTS - Gratis</span></div></div><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:' + (selectedVoiceValue === 'edge' ? 'visible' : 'hidden') + '"></i>';
-                if (selectedVoiceValue === "edge") edgeBtn.classList.add('active-opt');
-                edgeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    selectVoice("edge", "Jorge Neural (MX)");
+                // --- Voces Neuronales Edge TTS (Latino, 40 voces) ---
+                const edgeHdr = document.createElement('div');
+                edgeHdr.className = "text-[14px] font-bold opacity-60 uppercase tracking-wider px-2 py-2 mt-1 border-b border-white/10";
+                edgeHdr.textContent = "Voces Neuronales Edge TTS";
+                flyout.appendChild(edgeHdr);
+
+                // Campo para configurar la URL del servidor en Render
+                const urlBox = document.createElement('div');
+                urlBox.className = "px-2 py-2 mb-2 rounded-lg bg-white/5 border border-white/10";
+                urlBox.innerHTML = ''
+                    + '<div class="flex items-center gap-1 mb-1">'
+                    +   '<i class="fa-solid fa-server text-[10px] opacity-60"></i>'
+                    +   '<label class="text-[11px] opacity-70 font-semibold">URL de tu servidor en Render</label>'
+                    + '</div>'
+                    + '<div class="flex gap-1">'
+                    +   '<input id="edge-server-url-input" type="text" placeholder="https://mi-app.onrender.com" '
+                    +         'value="' + (EDGE_TTS_SERVER_URL || '').replace(/"/g, '&quot;') + '" '
+                    +         'class="flex-1 min-w-0 bg-black/30 border border-white/10 rounded px-2 py-1 text-[12px] outline-none focus:border-iosAccent">'
+                    +   '<button id="edge-server-url-save" class="bg-iosAccent text-black rounded px-2 py-1 text-[11px] font-bold shrink-0">OK</button>'
+                    + '</div>'
+                    + '<div class="text-[10px] opacity-40 mt-1">Sin esto, las voces neurales no suenan. Es gratis.</div>';
+                flyout.appendChild(urlBox);
+
+                const _saveBtn = urlBox.querySelector('#edge-server-url-save');
+                const _urlInput = urlBox.querySelector('#edge-server-url-input');
+                if (_saveBtn && _urlInput) {
+                    _saveBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const v = _urlInput.value.trim().replace(/\/+$/, '');
+                        EDGE_TTS_SERVER_URL = v;
+                        try { localStorage.setItem('audiolibros_diego_edge_server_url', v); } catch(_) {}
+                        showToast(v ? 'Servidor Edge TTS guardado' : 'URL borrada', 'fa-circle-check text-iosAccent');
+                    });
+                    _urlInput.addEventListener('click', (e) => e.stopPropagation());
+                    _urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); _saveBtn.click(); } e.stopPropagation(); });
+                }
+
+                // Agrupar voces por país y renderizar
+                const _byCountry = {};
+                EDGE_LATIN_VOICES.forEach(v => {
+                    if (!_byCountry[v.country]) _byCountry[v.country] = [];
+                    _byCountry[v.country].push(v);
                 });
-                flyout.appendChild(edgeBtn);
+                Object.keys(_byCountry).forEach(country => {
+                    const cHdr = document.createElement('div');
+                    cHdr.className = "text-[12px] font-bold opacity-50 uppercase tracking-wider px-2 pt-2 pb-1";
+                    cHdr.textContent = country;
+                    flyout.appendChild(cHdr);
+
+                    _byCountry[country].forEach(v => {
+                        const btn = document.createElement('button');
+                        btn.className = "voice-opt-btn flyout-option w-full text-[16px] font-semibold py-2.5";
+                        btn.dataset.value = "edge:" + v.id;
+                        const isSel = (EDGE_SELECTED_VOICE === v.id) && (selectedVoiceValue === 'edge');
+                        const genderIcon = v.gender === 'F' ? '\u2640' : '\u2642';
+                        const genderColor = v.gender === 'F' ? 'text-pink-400' : 'text-sky-400';
+                        btn.innerHTML = '<div class="flex items-center gap-2 flex-1 min-w-0">'
+                            + '<span class="text-[16px] shrink-0">' + v.flag + '</span>'
+                            + '<div class="flex-1 text-left min-w-0">'
+                            +   '<div class="leading-tight truncate">' + v.name + ' <span class="' + genderColor + ' opacity-70 text-[12px]">' + genderIcon + '</span></div>'
+                            +   '<div class="text-[10px] opacity-40 font-normal">Neural \u00b7 Edge TTS</div>'
+                            + '</div></div>'
+                            + '<i class="fa-solid fa-check check-icon text-iosAccent text-[14px] shrink-0" style="visibility:' + (isSel ? 'visible' : 'hidden') + '"></i>';
+                        if (isSel) btn.classList.add('active-opt');
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            EDGE_SELECTED_VOICE = v.id;
+                            try { localStorage.setItem('audiolibros_diego_edge_voice', v.id); } catch(_) {}
+                            selectVoice("edge", v.name + ' (' + country + ')');
+                        });
+                        flyout.appendChild(btn);
+                    });
+                });
 
                 // --- Piper TTS Option ---
                 const piperBtn = document.createElement('button');
@@ -2225,7 +2345,7 @@ function updatePiperProgress(pct) {
                     if (value === "online") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'online' }));
                     } else if (value === "edge") {
-                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'edge' }));
+                        localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'edge', voice: EDGE_SELECTED_VOICE }));
                     } else if (value === "piper") {
                         localStorage.setItem('audiolibros_diego_voice_pref', JSON.stringify({ type: 'piper' }));
                     } else {
@@ -2250,7 +2370,12 @@ function updatePiperProgress(pct) {
                         if (disp) disp.textContent = 'Voz Online HD';
                     } else if (pref.type === 'edge') {
                         selectedVoiceValue = 'edge';
-                        if (disp) disp.textContent = 'Jorge Neural (MX)';
+                        if (pref.voice && EDGE_LATIN_VOICES.some(v => v.id === pref.voice)) {
+                            EDGE_SELECTED_VOICE = pref.voice;
+                            try { localStorage.setItem('audiolibros_diego_edge_voice', pref.voice); } catch(_){}
+                        }
+                        const vInfo = EDGE_LATIN_VOICES.find(v => v.id === EDGE_SELECTED_VOICE);
+                        if (disp) disp.textContent = vInfo ? (vInfo.name + ' (' + vInfo.country + ')') : 'Edge TTS';
                     } else if (pref.type === 'piper') {
                         selectedVoiceValue = 'piper';
                         if (disp) disp.textContent = 'Piper Claude (MX)';
@@ -3044,35 +3169,26 @@ function updatePiperProgress(pct) {
             window.speechSynthesis.speak(activeUtterance);
         }
 
-        // --- EDGE TTS: Motor de voz neural Jorge (es-MX) ---
-        // Estrategia dual: WebSocket directo (sin CORS, funciona desde file://)
-        // si falla en 3s, intenta REST API (funciona desde http/https)
+        // ============================================================
+        // EDGE TTS MOTOR — Servidor propio en Render (gratis)
+        // ------------------------------------------------------------
+        // Esta versión ya NO usa WebSocket directo ni el endpoint
+        // de terceros (api-edgetts.azurewebsites.net) que nunca funcionó.
+        // En su lugar, llama a TU servidor en Render, que sí puede
+        // hablar con Microsoft porque está en Node.js (sin CORS).
+        // ============================================================
 
-        function edgeGenUUID() {
-            if (crypto.randomUUID) return crypto.randomUUID();
-            const b = new Uint8Array(16);
-            crypto.getRandomValues(b);
-            b[6] = (b[6] & 0x0f) | 0x40;
-            b[8] = (b[8] & 0x3f) | 0x80;
-            const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
-            return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
-        }
         function edgePitchHz(pitch) { return Math.round((pitch - 1.0) * 100); }
         function edgeRatePercent(rate) {
             const r = Math.round((rate - 1.0) * 100);
             return (r >= 0 ? '+' : '') + r + '%';
         }
-        function edgeEscapeXml(s) {
-            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-        }
-        function edgeCleanup() {
-            if (edgeWs) { try { edgeWs.close(); } catch(e) {} edgeWs = null; }
-        }
+        // Mantenida por compatibilidad con pauseAudio() — ya no hace nada
+        function edgeCleanup() { /* no-op: el audio se controla con ttsAudioEl.pause() */ }
 
         function speakSentenceEdge(index) {
             window.speechSynthesis.cancel();
             if (piperAudioCtx) { try { piperAudioCtx.close(); } catch(e) {} piperAudioCtx = null; }
-            edgeCleanup();
             if (ttsAudioEl) ttsAudioEl.pause();
 
             const text = textSentences[index];
@@ -3081,129 +3197,61 @@ function updatePiperProgress(pct) {
                 return;
             }
 
+            // Verificar que la URL del servidor esté configurada
+            if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) {
+                showToast('Configura la URL de tu servidor Edge TTS', 'fa-triangle-exclamation text-yellow-400');
+                // Abrir el flyout para que el usuario la configure
+                const flyout = document.getElementById('voice-flyout');
+                const trigger = document.getElementById('btn-voice-trigger');
+                if (trigger && flyout) {
+                    closeAllFlyouts(flyout);
+                    flyout.classList.remove('hidden');
+                }
+                // Caer a voz del sistema para no cortar la reproducción
+                edgeFallbackToSystem(text);
+                return;
+            }
+
             const pitchHz = edgePitchHz(activePitch);
             const rateVal = edgeRatePercent(activeSpeedRate);
-
-            // Intentar WebSocket primero (funciona desde file://, sin CORS)
-            speakEdgeWebSocket(text, pitchHz, rateVal, 0);
-        }
-
-        function speakEdgeWebSocket(text, pitchHz, rateVal, attempt) {
-            if (attempt >= 2) {
-                // WebSocket fallo 2 veces, intentar REST API
-                speakEdgeRest(text, pitchHz, rateVal);
-                return;
-            }
-
-            const reqId = edgeGenUUID();
-            const audioChunks = [];
-            let resolved = false;
-            let wsTimeout;
-
-            const finish = (success) => {
-                if (resolved) return;
-                resolved = true;
-                clearTimeout(wsTimeout);
-                if (!success) {
-                    console.warn('[Edge TTS] WebSocket fallo, reintentando o usando REST...');
-                    speakEdgeRest(text, pitchHz, rateVal);
-                }
-            };
-
-            wsTimeout = setTimeout(() => {
-                console.warn('[Edge TTS] WebSocket timeout, intentando REST API...');
-                finish(false);
-            }, 3000);
-
-            let ws;
-            try {
-                ws = new WebSocket(
-                    EDGE_TTS_WSS + '?TrustedClientToken=' + EDGE_TTS_TOKEN + '&ConnectionId=' + reqId
-                );
-            } catch(e) {
-                clearTimeout(wsTimeout);
-                speakEdgeRest(text, pitchHz, rateVal);
-                return;
-            }
-            edgeWs = ws;
-            ws.binaryType = 'arraybuffer';
-
-            ws.onopen = () => {
-                // Config: formato de audio MP3 24khz
-                ws.send(
-                    'Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n' +
-                    '{"context":{"synthesis":{"audio":{"metadataoptions":' +
-                    '{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},' +
-                    '"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\n'
-                );
-                // SSML con voz Jorge y ajustes de tono/velocidad
-                const ssml =
-                    "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='es-MX'>" +
-                    "<voice name='" + EDGE_VOICE_NAME + "'>" +
-                    "<prosody pitch='" + pitchHz + "Hz' rate='" + rateVal + "' volume='+0%'>" +
-                    edgeEscapeXml(text) +
-                    "</prosody></voice></speak>";
-                ws.send('X-RequestId:' + reqId + '\r\nContent-Type:application/ssml+xml\r\nPath:ssml\r\n\r\n' + ssml + '\n');
-            };
-
-            ws.onmessage = (event) => {
-                if (typeof event.data === 'string') {
-                    if (event.data.includes('Path:turn.end')) {
-                        clearTimeout(wsTimeout);
-                        edgeCleanup();
-                        if (audioChunks.length > 0) {
-                            edgePlayAudioChunks(audioChunks);
-                        } else {
-                            if (isPlaying) speakSentence(currentSentenceIndex + 1);
-                        }
-                        resolved = true;
-                    }
-                } else {
-                    const view = new DataView(event.data);
-                    if (event.data.byteLength < 2) return;
-                    const textHeaderLen = view.getUint16(0);
-                    const audioData = event.data.slice(2 + textHeaderLen);
-                    if (audioData.byteLength > 0) audioChunks.push(audioData);
-                }
-            };
-
-            ws.onerror = () => { finish(false); };
-            ws.onclose = () => { edgeWs = null; if (!resolved) finish(false); };
+            speakEdgeRest(text, pitchHz, rateVal);
         }
 
         function speakEdgeRest(text, pitchHz, rateVal) {
-            // REST API: funciona desde http/https (no desde file:// por CORS)
-            fetch(EDGE_TTS_REST, {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+
+            fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: text,
-                    voice: EDGE_VOICE_NAME,
+                    voice: EDGE_SELECTED_VOICE,
                     rate: rateVal,
                     pitch: pitchHz + 'Hz',
                     volume: '+0%'
-                })
+                }),
+                signal: controller.signal
             })
             .then(resp => {
+                clearTimeout(timeout);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 return resp.blob();
             })
             .then(blob => {
-                if (blob.size < 100) throw new Error('Audio vacio');
+                if (blob.size < 100) throw new Error('Audio vacío');
                 const url = URL.createObjectURL(blob);
                 edgePlayBlobUrl(url);
             })
             .catch(err => {
-                console.warn('[Edge TTS] REST tambien fallo:', err);
-                showToast('Edge TTS no disponible', 'fa-triangle-exclamation text-yellow-400');
+                clearTimeout(timeout);
+                const msg = (err && err.name === 'AbortError')
+                    ? 'Edge TTS: timeout (¿servidor dormido? Intenta de nuevo)'
+                    : 'Edge TTS no disponible';
+                console.warn('[Edge TTS] Error:', err);
+                showToast(msg, 'fa-triangle-exclamation text-yellow-400');
                 edgeFallbackToSystem(text);
             });
-        }
-
-        function edgePlayAudioChunks(chunks) {
-            const blob = new Blob(chunks, { type: 'audio/mpeg' });
-            const url = URL.createObjectURL(blob);
-            edgePlayBlobUrl(url);
         }
 
         function edgePlayBlobUrl(url) {
