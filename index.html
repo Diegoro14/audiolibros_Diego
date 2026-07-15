@@ -696,21 +696,16 @@ body.light-theme .piper-progress-bar { background: #007aff; }
                                     <button class="speed-opt-btn flyout-option w-full text-[15px] font-semibold" data-value="2.0">
                                         <span>2.0x</span><i class="fa-solid fa-check check-icon text-iosAccent text-[14px]" style="visibility:hidden"></i>
                                     </button>
-                                    <!-- Modulador de Tono (Botones Graves / Agudos) -->
+                                    <!-- Modulador de Tono (Pitch Slider) -->
                                     <div class="pt-2 mt-1 border-t border-white/15 space-y-1.5">
-                                        <div class="text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
+                                        <div class="flex justify-between items-center text-[13px] uppercase font-bold opacity-60 tracking-wider px-1">
                                             <span>Tono</span>
+                                            <span id="tone-value" class="text-iosAccent font-semibold text-[14px]">Normal</span>
                                         </div>
-                                        <div class="flex items-center justify-between gap-1 px-0">
-                                            <button id="btn-pitch-down" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Disminuir tono (Graves)">
-                                                <i class="fa-solid fa-volume-low text-zinc-400 text-[13px]"></i>
-                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Graves</span>
-                                            </button>
-                                            <span id="tone-value" class="text-iosAccent font-semibold text-[13px] min-w-[48px] text-center">Normal</span>
-                                            <button id="btn-pitch-up" class="flex flex-col items-center justify-center gap-0 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 active:scale-90 transition-all duration-150 shrink-0" title="Aumentar tono (Agudos)">
-                                                <i class="fa-solid fa-volume-high text-iosAccent text-[13px]"></i>
-                                                <span class="text-[9px] text-zinc-500 font-medium leading-tight">Agudos</span>
-                                            </button>
+                                        <div class="flex items-center gap-2 px-1">
+                                            <i class="fa-solid fa-volume-low text-zinc-500 text-[14px]"></i>
+                                            <input type="range" id="slider-pitch" min="0.5" max="1.5" step="0.1" value="1.0" class="flex-1 h-1 bg-white/15 rounded-full appearance-none outline-none cursor-pointer accent-iosAccent">
+                                            <i class="fa-solid fa-volume-high text-iosAccent text-[14px]"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -882,16 +877,16 @@ let piperAudioCtx = null;
 
 // ============================================================
 // EDGE TTS NEURAL — Servidor propio en Render (gratis)
-// ------------------------------------------------------------
-// Este motor ahora usa TU propio servidor en Render en lugar
-// del endpoint de terceros (que nunca funcionó por CORS).
-// La URL se puede configurar desde el flyout de voces en la UI,
-// o aquí directamente. Se guarda en localStorage.
+// CON PRECARGA del próximo párrafo (elimina silencios)
 // ============================================================
 let EDGE_TTS_SERVER_URL = ''; // Se carga desde localStorage al inicio
-
-// Voz Edge seleccionada (por defecto: Jorge MX)
 let EDGE_SELECTED_VOICE = 'es-MX-JorgeNeural';
+
+// Cola de audios precargados: { index, blob, url, voice, status }
+// status: 'loading' | 'ready' | 'error' | 'playing'
+let edgePrefetchCache = new Map();
+let edgePrefetchAbortControllers = new Map();
+const EDGE_PREFETCH_AHEAD = 2; // Cuántos párrafos adelantar
 
 // Lista completa de voces neurales latinoamericanas de Microsoft Edge TTS
 const EDGE_LATIN_VOICES = [
@@ -1824,41 +1819,19 @@ function updatePiperProgress(pct) {
                 });
             });
 
-            // Botones de Modulación de Tono (Pitch) — Graves / Agudos
-            function updatePitchDisplay() {
-                let label = "Normal";
-                if (activePitch < 0.9) label = "Grave";
-                else if (activePitch > 1.1) label = "Agudo";
-                const toneEl = document.getElementById('tone-value');
-                if (toneEl) toneEl.textContent = label === "Normal" ? "Normal" : `${label} (${activePitch.toFixed(1)}x)`;
-                // Actualizar colores de los botones según el estado
-                const btnDown = document.getElementById('btn-pitch-down');
-                const btnUp = document.getElementById('btn-pitch-up');
-                if (btnDown) {
-                    const icon = btnDown.querySelector('i');
-                    if (icon) icon.className = activePitch < 1.0 ? 'fa-solid fa-volume-low text-iosAccent text-[13px]' : 'fa-solid fa-volume-low text-zinc-400 text-[13px]';
-                }
-                if (btnUp) {
-                    const icon = btnUp.querySelector('i');
-                    if (icon) icon.className = activePitch > 1.0 ? 'fa-solid fa-volume-high text-iosAccent text-[13px]' : 'fa-solid fa-volume-high text-zinc-500 text-[13px]';
-                }
-            }
-
-            const btnPitchDown = document.getElementById('btn-pitch-down');
-            if (btnPitchDown) {
-                btnPitchDown.addEventListener('click', () => {
-                    activePitch = Math.max(0.5, parseFloat((activePitch - 0.1).toFixed(1)));
-                    if (activeUtterance) activeUtterance.pitch = activePitch;
-                    updatePitchDisplay();
-                });
-            }
-
-            const btnPitchUp = document.getElementById('btn-pitch-up');
-            if (btnPitchUp) {
-                btnPitchUp.addEventListener('click', () => {
-                    activePitch = Math.min(1.5, parseFloat((activePitch + 0.1).toFixed(1)));
-                    if (activeUtterance) activeUtterance.pitch = activePitch;
-                    updatePitchDisplay();
+            // Slider de Modulación de Tono (Pitch)
+            const sliderPitch = document.getElementById('slider-pitch');
+            if (sliderPitch) {
+                sliderPitch.addEventListener('input', (e) => {
+                    activePitch = parseFloat(e.target.value);
+                    let label = "Normal";
+                    if (activePitch < 0.9) label = "Grave";
+                    else if (activePitch > 1.1) label = "Agudo";
+                    document.getElementById('tone-value').textContent = `${label} (${activePitch.toFixed(1)}x)`;
+                    
+                    if (activeUtterance) {
+                        activeUtterance.pitch = activePitch;
+                    }
                 });
             }
 
@@ -2201,7 +2174,7 @@ function updatePiperProgress(pct) {
                     +         'class="flex-1 min-w-0 bg-black/30 border border-white/10 rounded px-2 py-1 text-[12px] outline-none focus:border-iosAccent">'
                     +   '<button id="edge-server-url-save" class="bg-iosAccent text-black rounded px-2 py-1 text-[11px] font-bold shrink-0">OK</button>'
                     + '</div>'
-                    + '<div class="text-[10px] opacity-40 mt-1">Sin esto, las voces neurales no suenan. Es gratis.</div>';
+                    + '<div class="text-[10px] opacity-40 mt-1">Voces neurales con precarga (sin silencios entre párrafos)</div>';
                 flyout.appendChild(urlBox);
 
                 const _saveBtn = urlBox.querySelector('#edge-server-url-save');
@@ -2249,6 +2222,8 @@ function updatePiperProgress(pct) {
                             e.stopPropagation();
                             EDGE_SELECTED_VOICE = v.id;
                             try { localStorage.setItem('audiolibros_diego_edge_voice', v.id); } catch(_) {}
+                            // Limpiar cache de precarga al cambiar de voz
+                            edgeClearPrefetchCache();
                             selectVoice("edge", v.name + ' (' + country + ')');
                         });
                         flyout.appendChild(btn);
@@ -2852,6 +2827,7 @@ function updatePiperProgress(pct) {
         async function changeChapter(chapterIdx) {
             pauseAudio();
             clearTTSAudioCache();
+            edgeClearPrefetchCache();
             activeChapterIndex = chapterIdx;
             currentSentenceIndex = 0;
             
@@ -2997,8 +2973,9 @@ function updatePiperProgress(pct) {
                 piperAudioCtx = null;
             };
             }
-            edgeCleanup();
             if (ttsAudioEl) ttsAudioEl.pause();
+            // Limpiar cache de precarga Edge TTS al pausar
+            edgeClearPrefetchCache();
             stopSilentAudioHack();
             stopSmoothProgressLoop();
             updateMediaSessionState("paused");
@@ -3170,12 +3147,15 @@ function updatePiperProgress(pct) {
         }
 
         // ============================================================
-        // EDGE TTS MOTOR — Servidor propio en Render (gratis)
+        // EDGE TTS MOTOR — CON PRECARGA (elimina silencios entre párrafos)
         // ------------------------------------------------------------
-        // Esta versión ya NO usa WebSocket directo ni el endpoint
-        // de terceros (api-edgetts.azurewebsites.net) que nunca funcionó.
-        // En su lugar, llama a TU servidor en Render, que sí puede
-        // hablar con Microsoft porque está en Node.js (sin CORS).
+        // Estrategia:
+        // 1. Cuando suena el párrafo N, pedimos en segundo plano los
+        //    párrafos N+1 y N+2 al servidor.
+        // 2. Cuando termina N, el párrafo N+1 ya está descargado y
+        //    suena al instante (sin silencio).
+        // 3. Si el usuario salta párrafos o cambia de voz, se descarta
+        //    la cola y se vuelve a empezar — no rompe nada.
         // ============================================================
 
         function edgePitchHz(pitch) { return Math.round((pitch - 1.0) * 100); }
@@ -3183,8 +3163,98 @@ function updatePiperProgress(pct) {
             const r = Math.round((rate - 1.0) * 100);
             return (r >= 0 ? '+' : '') + r + '%';
         }
-        // Mantenida por compatibilidad con pauseAudio() — ya no hace nada
-        function edgeCleanup() { /* no-op: el audio se controla con ttsAudioEl.pause() */ }
+
+        // Limpiar toda la cola de precarga (al pausar, cambiar voz, saltar)
+        function edgeClearPrefetchCache() {
+            // Cancelar requests en curso
+            edgePrefetchAbortControllers.forEach((controller, idx) => {
+                try { controller.abort(); } catch(_) {}
+            });
+            edgePrefetchAbortControllers.clear();
+            // Liberar object URLs
+            edgePrefetchCache.forEach((entry) => {
+                if (entry && entry.url) {
+                    try { URL.revokeObjectURL(entry.url); } catch(_) {}
+                }
+            });
+            edgePrefetchCache.clear();
+        }
+
+        // Pedir un párrafo al servidor (con cache + cancelable)
+        function edgeFetchParagraph(index) {
+            // Si ya está cacheado y listo, devolverlo
+            const cached = edgePrefetchCache.get(index);
+            if (cached && (cached.status === 'ready' || cached.status === 'loading')) {
+                return cached;
+            }
+            // Si estaba en error, limpiarla para reintentar
+            if (cached && cached.url) {
+                try { URL.revokeObjectURL(cached.url); } catch(_) {}
+            }
+
+            const text = textSentences[index];
+            if (!text || !text.trim()) {
+                const emptyEntry = { status: 'ready', blob: null, url: null, empty: true };
+                edgePrefetchCache.set(index, emptyEntry);
+                return emptyEntry;
+            }
+
+            const controller = new AbortController();
+            edgePrefetchAbortControllers.set(index, controller);
+            const entry = { status: 'loading', blob: null, url: null, empty: false };
+            edgePrefetchCache.set(index, entry);
+
+            const pitchHz = edgePitchHz(activePitch);
+            const rateVal = edgeRatePercent(activeSpeedRate);
+
+            fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    voice: EDGE_SELECTED_VOICE,
+                    rate: rateVal,
+                    pitch: pitchHz + 'Hz',
+                    volume: '+0%'
+                }),
+                signal: controller.signal
+            })
+            .then(resp => {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.blob();
+            })
+            .then(blob => {
+                if (blob.size < 100) throw new Error('Audio vacío');
+                entry.blob = blob;
+                entry.url = URL.createObjectURL(blob);
+                entry.status = 'ready';
+                edgePrefetchAbortControllers.delete(index);
+            })
+            .catch(err => {
+                if (err && err.name === 'AbortError') {
+                    // Fue cancelada a propósito (salto de párrafo, cambio de voz) — no marcar como error
+                    edgePrefetchCache.delete(index);
+                    edgePrefetchAbortControllers.delete(index);
+                } else {
+                    console.warn('[Edge TTS] Error precargando párrafo', index, err);
+                    entry.status = 'error';
+                    entry.error = err.message;
+                    edgePrefetchAbortControllers.delete(index);
+                }
+            });
+
+            return entry;
+        }
+
+        // Disparar precarga de los próximos N párrafos
+        function edgePrefetchAhead(currentIndex) {
+            for (let i = 1; i <= EDGE_PREFETCH_AHEAD; i++) {
+                const nextIdx = currentIndex + i;
+                if (nextIdx < textSentences.length) {
+                    edgeFetchParagraph(nextIdx);
+                }
+            }
+        }
 
         function speakSentenceEdge(index) {
             window.speechSynthesis.cancel();
@@ -3200,67 +3270,101 @@ function updatePiperProgress(pct) {
             // Verificar que la URL del servidor esté configurada
             if (!EDGE_TTS_SERVER_URL || EDGE_TTS_SERVER_URL.length < 10) {
                 showToast('Configura la URL de tu servidor Edge TTS', 'fa-triangle-exclamation text-yellow-400');
-                // Abrir el flyout para que el usuario la configure
                 const flyout = document.getElementById('voice-flyout');
                 const trigger = document.getElementById('btn-voice-trigger');
                 if (trigger && flyout) {
                     closeAllFlyouts(flyout);
                     flyout.classList.remove('hidden');
                 }
-                // Caer a voz del sistema para no cortar la reproducción
                 edgeFallbackToSystem(text);
                 return;
             }
 
-            const pitchHz = edgePitchHz(activePitch);
-            const rateVal = edgeRatePercent(activeSpeedRate);
-            speakEdgeRest(text, pitchHz, rateVal);
+            // Disparar precarga de los próximos párrafos en paralelo
+            edgePrefetchAhead(index);
+
+            // Intentar usar el audio cacheado del párrafo actual
+            const cached = edgePrefetchCache.get(index);
+
+            if (cached && cached.status === 'ready') {
+                // ✅ Caso ideal: ya está descargado, suena al instante
+                if (cached.empty) {
+                    if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                    return;
+                }
+                edgePlayBlobUrl(cached.url, index);
+            } else if (cached && cached.status === 'loading') {
+                // ⏳ Aún descargando: esperar a que termine
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else if (entry && entry.status === 'error') {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            } else if (cached && cached.status === 'error') {
+                // ❌ Falló antes: reintentar
+                edgePrefetchCache.delete(index);
+                edgeFetchParagraph(index);
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            } else {
+                // No estaba en cache (p.ej. salto de párrafo): pedir fresco
+                edgeFetchParagraph(index);
+                edgeWaitForParagraph(index).then(entry => {
+                    if (!isPlaying || currentSentenceIndex !== index) return;
+                    if (entry && entry.status === 'ready' && entry.url) {
+                        edgePlayBlobUrl(entry.url, index);
+                    } else if (entry && entry.status === 'error') {
+                        edgeHandleFetchError(text, index);
+                    }
+                });
+            }
         }
 
-        function speakEdgeRest(text, pitchHz, rateVal) {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 20000);
-
-            fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: text,
-                    voice: EDGE_SELECTED_VOICE,
-                    rate: rateVal,
-                    pitch: pitchHz + 'Hz',
-                    volume: '+0%'
-                }),
-                signal: controller.signal
-            })
-            .then(resp => {
-                clearTimeout(timeout);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                return resp.blob();
-            })
-            .then(blob => {
-                if (blob.size < 100) throw new Error('Audio vacío');
-                const url = URL.createObjectURL(blob);
-                edgePlayBlobUrl(url);
-            })
-            .catch(err => {
-                clearTimeout(timeout);
-                const msg = (err && err.name === 'AbortError')
-                    ? 'Edge TTS: timeout (¿servidor dormido? Intenta de nuevo)'
-                    : 'Edge TTS no disponible';
-                console.warn('[Edge TTS] Error:', err);
-                showToast(msg, 'fa-triangle-exclamation text-yellow-400');
-                edgeFallbackToSystem(text);
+        // Esperar a que un párrafo termine de cargarse (polling liviano)
+        function edgeWaitForParagraph(index, maxWaitMs = 20000) {
+            return new Promise((resolve) => {
+                const entry = edgePrefetchCache.get(index);
+                if (!entry) { resolve(null); return; }
+                if (entry.status === 'ready' || entry.status === 'error') {
+                    resolve(entry);
+                    return;
+                }
+                const start = Date.now();
+                const poll = setInterval(() => {
+                    const e = edgePrefetchCache.get(index);
+                    if (!e || e.status === 'ready' || e.status === 'error') {
+                        clearInterval(poll);
+                        resolve(e);
+                    } else if (Date.now() - start > maxWaitMs) {
+                        clearInterval(poll);
+                        resolve(e);
+                    }
+                }, 100);
             });
         }
 
-        function edgePlayBlobUrl(url) {
+        function edgeHandleFetchError(text, index) {
+            console.warn('[Edge TTS] Fallback al sistema para párrafo', index);
+            showToast('Edge TTS no disponible — usando voz del sistema', 'fa-triangle-exclamation text-yellow-400');
+            edgeFallbackToSystem(text);
+        }
+
+        function edgePlayBlobUrl(url, index) {
+            // Limpieza del blob URL anterior cuando termine
             ttsAudioEl.onended = () => {
-                URL.revokeObjectURL(url);
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
             };
             ttsAudioEl.onerror = () => {
-                URL.revokeObjectURL(url);
+                console.warn('[Edge TTS] Error de reproducción, saltando');
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
             };
             ttsAudioEl.src = url;
@@ -3268,7 +3372,7 @@ function updatePiperProgress(pct) {
             const sk = document.getElementById('silent-keepalive');
             if (sk) sk.play().catch(() => {});
             ttsAudioEl.play().catch(() => {
-                URL.revokeObjectURL(url);
+                console.warn('[Edge TTS] play() rechazado, saltando');
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
             });
         }
@@ -3290,8 +3394,6 @@ function updatePiperProgress(pct) {
             };
             window.speechSynthesis.speak(activeUtterance);
         }
-
-
 
 
         function jumpToSentence(idx) {
@@ -3453,18 +3555,6 @@ function updatePiperProgress(pct) {
             showToast("Marcador Guardado", "fa-star text-yellow-400");
         }
 
-        function formatBookmarkDate(ts) {
-            const d = new Date(ts);
-            const day = d.getDate();
-            const month = d.getMonth() + 1;
-            const year = d.getFullYear();
-            let hours = d.getHours();
-            const minutes = d.getMinutes().toString().padStart(2, '0');
-            const ampm = hours >= 12 ? 'pm' : 'am';
-            hours = hours % 12 || 12;
-            return `${day}/${month}/${year} ${hours}:${minutes}${ampm}`;
-        }
-
         function renderBookmarksList() {
             if (activeBookIndex === null) return;
             const book = currentBooks[activeBookIndex];
@@ -3481,7 +3571,7 @@ function updatePiperProgress(pct) {
                     item.innerHTML = `
                         <div class="flex-1 min-w-0 pr-3 text-left">
                             <p class="font-bold truncate">${b.name}</p>
-                            <p class="text-[13px] opacity-60">Guardado: ${formatBookmarkDate(b.timestamp)}</p>
+                            <p class="text-[13px] opacity-60">Guardado: ${new Date(b.timestamp).toLocaleDateString()}</p>
                         </div>
                         <button class="text-red-400 hover:text-red-500 p-1 bg-transparent border-none outline-none shadow-none shrink-0" onclick="deleteBookmark(event, ${idx})"><i class="fa-solid fa-trash-can"></i></button>
                     `;
@@ -3514,14 +3604,6 @@ function updatePiperProgress(pct) {
             
             document.getElementById('timer-label').textContent = `${minutes} min`;
             showToast(`Apagado programado en ${minutes} min`, "fa-clock text-iosAccent");
-
-            // Re-asignar el check a la opción seleccionada (clearSleepTimer lo resetea a Off)
-            document.querySelectorAll('.timer-opt-btn').forEach(b => {
-                const check = b.querySelector('.check-icon');
-                const isMatch = parseInt(b.dataset.minutes) === minutes;
-                if (check) check.style.visibility = isMatch ? 'visible' : 'hidden';
-                b.classList.toggle('active-opt', isMatch);
-            });
 
             timerCountdown = setInterval(() => {
                 remainingTimerSeconds--;
