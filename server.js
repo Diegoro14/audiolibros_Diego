@@ -5,11 +5,17 @@
 // Este servidor recibe texto desde tu página web y devuelve
 // audio MP3 generado con las voces neurales de Microsoft Edge.
 // No necesita API key ni tarjeta de crédito.
+//
+// Usa el paquete "node-edge-tts" que sí funciona correctamente
+// (a diferencia de "msedge-tts" que falla por rate limiting).
 // ============================================================
 
 import express from "express";
 import cors from "cors";
-import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { EdgeTTS } from "node-edge-tts";
 
 const app = express();
 
@@ -29,7 +35,8 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     service: "Edge TTS Server - Audiolibros Diego",
-    version: "1.0.0",
+    version: "2.0.0",
+    engine: "node-edge-tts",
     timestamp: new Date().toISOString()
   });
 });
@@ -40,6 +47,9 @@ app.get("/health", (req, res) => {
 // Devuelve: audio MP3 directamente
 // ------------------------------------------------------------
 app.post("/api/tts", async (req, res) => {
+  // Crear archivo temporal único para esta request
+  const tmpFile = path.join(os.tmpdir(), `tts_${Date.now()}_${Math.random().toString(36).slice(2)}.mp3`);
+
   try {
     const {
       text,
@@ -53,47 +63,52 @@ app.post("/api/tts", async (req, res) => {
       return res.status(400).json({ error: "Falta el texto a sintetizar" });
     }
 
-    // Crear instancia fresca de Edge TTS para cada request
-    // (evita problemas de estado compartido entre requests concurrentes)
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+    // Validar que la voz tenga formato correcto (es-XX-NameNeural)
+    if (!/^[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural$/.test(voice)) {
+      return res.status(400).json({ error: "ID de voz inválido" });
+    }
 
-    const chunks = [];
-    const stream = tts.toStream(text, { rate, pitch, volume });
+    // Extraer lang del voice (ej: "es-MX-JorgeNeural" → "es-MX")
+    const lang = voice.split("-").slice(0, 2).join("-");
 
-    stream.on("data", (chunk) => {
-      if (Buffer.isBuffer(chunk)) chunks.push(chunk);
-      else chunks.push(Buffer.from(chunk));
+    // Crear instancia de Edge TTS
+    const tts = new EdgeTTS({
+      voice: voice,
+      lang: lang,
+      rate: rate,
+      pitch: pitch,
+      volume: volume,
+      timeout: 30000
     });
 
-    stream.on("end", () => {
-      try {
-        const buffer = Buffer.concat(chunks);
-        if (buffer.length < 100) {
-          res.status(500).json({ error: "Audio vacío o demasiado corto" });
-        } else {
-          res.set("Content-Type", "audio/mpeg");
-          res.set("Content-Length", buffer.length);
-          res.set("Cache-Control", "no-cache");
-          res.send(buffer);
-        }
-        tts.close();
-      } catch (e) {
-        console.error("Error al enviar audio:", e.message);
-        if (!res.headersSent) res.status(500).json({ error: e.message });
-        try { tts.close(); } catch (_) {}
-      }
-    });
+    // Sintetizar a archivo temporal
+    await tts.ttsPromise(text, tmpFile);
 
-    stream.on("error", (err) => {
-      console.error("Error TTS:", err.message);
-      if (!res.headersSent) res.status(500).json({ error: err.message });
-      try { tts.close(); } catch (_) {}
-    });
+    // Leer el archivo y enviarlo como MP3
+    const buffer = fs.readFileSync(tmpFile);
+
+    if (buffer.length < 100) {
+      throw new Error("Audio generado vacío o demasiado corto");
+    }
+
+    res.set("Content-Type", "audio/mpeg");
+    res.set("Content-Length", buffer.length);
+    res.set("Cache-Control", "no-cache");
+    res.send(buffer);
 
   } catch (err) {
-    console.error("Error general:", err.message);
-    if (!res.headersSent) res.status(500).json({ error: err.message });
+    console.error("Error TTS:", err?.message || err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: err?.message || "Error desconocido",
+        details: String(err)
+      });
+    }
+  } finally {
+    // Limpiar archivo temporal
+    try {
+      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    } catch (_) {}
   }
 });
 
@@ -110,16 +125,9 @@ app.use((err, req, res, next) => {
 // ------------------------------------------------------------
 app.listen(PORT, "0.0.0.0", () => {
   console.log("=".repeat(60));
-  console.log("  Edge TTS Server - Audiolibros Diego");
+  console.log("  Edge TTS Server - Audiolibros Diego (v2.0.0)");
+  console.log("  Engine: node-edge-tts");
   console.log("  Escuchando en puerto " + PORT);
   console.log("  Health: http://localhost:" + PORT + "/health");
   console.log("=".repeat(60));
 });
-
-// Mantener el proceso vivo en Render (evitar sleep agresivo)
-// No es obligatorio, pero ayuda a que las primeras requests no tarden tanto
-setInterval(() => {
-  try {
-    process.stdout.write("");
-  } catch (_) {}
-}, 5 * 60 * 1000); // cada 5 min
