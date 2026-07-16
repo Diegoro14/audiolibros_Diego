@@ -28,6 +28,17 @@ app.use(express.json({ limit: "10mb" }));
 const PORT = process.env.PORT || 3000;
 
 // ------------------------------------------------------------
+// Ruta raíz: evita el "Cannot GET /" al abrir la URL en el navegador
+// ------------------------------------------------------------
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    service: "Edge TTS Server - Audiolibros Diego",
+    endpoints: ["/health", "POST /api/tts"]
+  });
+});
+
+// ------------------------------------------------------------
 // Ruta de salud: para verificar que el servidor está vivo
 // Visita https://TU-APP.onrender.com/health en el navegador
 // ------------------------------------------------------------
@@ -35,7 +46,7 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     service: "Edge TTS Server - Audiolibros Diego",
-    version: "2.0.0",
+    version: "2.1.0",
     engine: "node-edge-tts",
     timestamp: new Date().toISOString()
   });
@@ -78,7 +89,7 @@ app.post("/api/tts", async (req, res) => {
       rate: rate,
       pitch: pitch,
       volume: volume,
-      timeout: 30000
+      timeout: 45000
     });
 
     // Sintetizar a archivo temporal
@@ -125,7 +136,7 @@ app.use((err, req, res, next) => {
 // ------------------------------------------------------------
 app.listen(PORT, "0.0.0.0", () => {
   console.log("=".repeat(60));
-  console.log("  Edge TTS Server - Audiolibros Diego (v2.0.0)");
+  console.log("  Edge TTS Server - Audiolibros Diego (v2.1.0)");
   console.log("  Engine: node-edge-tts");
   console.log("  Escuchando en puerto " + PORT);
   console.log("  Health: http://localhost:" + PORT + "/health");
