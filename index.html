@@ -483,7 +483,7 @@
         /* NOTIFICACIÓN ESTILO NOTCH DYNAMIC ISLAND MEJORADO CON FROSTED GLASS COMPACTO */
         #app-toast {
             position: absolute;
-            top: 14px;
+            top: max(84px, calc(env(safe-area-inset-top) + 80px));
             left: 50%;
             transform: translate(-50%, -40px) scale(0.8);
             opacity: 0;
@@ -877,7 +877,7 @@
                 <div id="view-player" class="flex flex-col h-full">
                     <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-700" style="transform: scale(1.35);"></div>
                     
-                    <header class="flex flex-col gap-2.5 px-6 pt-6 pb-2 safe-padding-top shrink-0">
+                    <header class="flex flex-col gap-2.5 px-6 pt-8 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full relative">
                             <!-- Boton de Cerrar -->
                             <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all font-semibold text-sm" title="Volver">
