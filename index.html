@@ -66,6 +66,14 @@
             --accent-glow: rgba(255, 164, 0, 0.3);
             --card-hover: rgba(255, 255, 255, 0.12);
             --blob-op: 0.25;
+
+            /* Liquid Glass Custom Variables (Modo Oscuro) */
+            --nav-bg: rgba(10, 10, 12, 0.72);
+            --nav-blur: 24px;
+            --nav-border: rgba(255, 255, 255, 0.07);
+            --pill-bg: rgba(255, 255, 255, 0.05);
+            --pill-border-gradient: linear-gradient(135deg, #ff007f 0%, #7f00ff 25%, #00f0ff 50%, #ffaa00 75%, #ff007f 100%);
+            --pill-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.2);
         }
 
         /* IMPECABLE iOS LIGHT THEME OVERRIDES */
@@ -80,6 +88,14 @@
             --accent-glow: rgba(255, 164, 0, 0.15);
             --card-hover: rgba(0, 0, 0, 0.04);
             --blob-op: 0.12;
+
+            /* Liquid Glass Custom Variables (Modo Claro) */
+            --nav-bg: rgba(255, 255, 255, 0.82);
+            --nav-blur: 14px;
+            --nav-border: rgba(0, 0, 0, 0.08);
+            --pill-bg: rgba(0, 0, 0, 0.03);
+            --pill-border-gradient: linear-gradient(135deg, #ff007f 0%, #7f00ff 30%, #00f0ff 60%, #ffaa00 100%);
+            --pill-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.5);
         }
 
         body.light-theme { color-scheme: light; }
@@ -113,13 +129,72 @@
             border-color: rgba(0,0,0,0.08) !important;
         }
 
-        /* BARRA INFERIOR DE NAVEGACIÓN - BLANCO TRANSLÚCIDO EN MODO CLARO */
-        body.light-theme nav {
-            background-color: rgba(255, 255, 255, 0.94) !important;
-            border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+        /* BARRA INFERIOR DE NAVEGACIÓN - CRISTAL LÍQUIDO */
+        #bottom-navbar {
+            background-color: var(--nav-bg) !important;
+            backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
+            -webkit-backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
+            border-top: 1px solid var(--nav-border) !important;
+            transition: background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
         }
-        body.light-theme nav button.text-zinc-500 {
-            color: #8e8e93 !important;
+
+        /* EFECTO LIQUID ACTIVE PILL CON ESTILO "GOTA DE AGUA" */
+        .active-pill {
+            position: absolute;
+            height: 48px;
+            border-radius: 24px;
+            pointer-events: none;
+            z-index: 5;
+            box-sizing: border-box;
+            background: var(--pill-bg);
+            box-shadow: var(--pill-shadow);
+            transition: left 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), width 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), top 0.5s ease, height 0.5s ease, transform 0.2s cubic-bezier(0.25, 1, 0.2, 1.2), opacity 0.2s ease;
+            opacity: 0.85; 
+        }
+
+        .active-pill::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: 23px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.1) 100%);
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), inset 0 -2px 6px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+        }
+
+        .active-pill.active-touch {
+            opacity: 1 !important;
+            background: rgba(255, 164, 0, 0.08) !important;
+            box-shadow: 0 10px 28px rgba(255, 164, 0, 0.25) !important;
+            transform: scale(0.95);
+        }
+
+        .active-pill::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 1.5px;
+            background: var(--nav-border);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            transition: background 0.3s ease, filter 0.3s ease, opacity 0.3s ease;
+        }
+
+        /* Saturation reduced by 14% more: from 90% down to 76% */
+        .active-pill.active-touch::before {
+            background: var(--pill-border-gradient);
+            background-size: 200% auto;
+            animation: iridescence-glow 4s linear infinite;
+            filter: saturate(76%); 
+        }
+
+        @keyframes iridescence-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         /* MINIREPRODUCTOR FLOTANTE - MODO CLARO */
@@ -289,10 +364,15 @@
         }
 
         .safe-padding-top {
-            padding-top: max(16px, env(safe-area-inset-top));
+            padding-top: max(24px, calc(env(safe-area-inset-top) + 16px));
         }
         .safe-padding-bottom {
             padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+        }
+
+        /* AJUSTE PRECISIÓN DE MARGEN SUPERIOR CONTRA EL NOTCH / BARRA DE ESTADO */
+        #view-player header {
+            padding-top: max(44px, calc(env(safe-area-inset-top) + 28px)) !important;
         }
 
         .view-transition {
@@ -315,23 +395,26 @@
             background: rgba(242, 242, 247, 0.96);
         }
 
-        /* REPRODUCTOR DE AUDIOLIBROS - ANIMACIÓN SPRING COMPLETA AL ACTIVARSE */
+        /* REPRODUCTOR DE AUDIOLIBROS - ANIMACIÓN SPRING COMPLETA AL ACTIVARSE Y AL MINIMIZARSE */
         #view-player {
             position: absolute;
             inset: 0;
             bottom: 72px;
             z-index: 40;
-            background-color: var(--bg-color) !important; /* SE ADAPTA DINÁMICAMENTE AL MODO CLARO/OSCURO EN LUGAR DE UN GRIS FORZADO */
+            background-color: var(--bg-color) !important;
             transform: translateY(100%) scale(0.92);
             opacity: 0;
             pointer-events: none;
-            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease !important;
+            /* Transición al MINIMIZARSE: Efecto rebote suave elástico hacia el fondo de la pantalla (overshoot elástico) */
+            transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease-in-out !important;
         }
 
         #view-player.player-active {
             transform: translateY(0) scale(1) !important;
             opacity: 1 !important;
             pointer-events: auto !important;
+            /* Transición al ACTIVARSE: Mantiene su rebote elástico hacia arriba */
+            transition: transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease !important;
         }
 
         /* MENÚS EMERGENTES CON EFECTO FROSTED GLASS Y ANIMACIÓN DE REBOTE DYNAMIC SPRING */
@@ -634,9 +717,25 @@
             background-color: #ffa400 !important;
             transform: scale(1.35);
         }
+
+        /* Transiciones fluidas sobre botones generales */
+        .nav-tab-btn {
+            position: relative;
+            z-index: 10;
+            transition: color 0.4s cubic-bezier(0.25, 1, 0.2, 1), transform 0.2s ease, font-weight 0.4s cubic-bezier(0.25, 1, 0.2, 1);
+        }
+        .nav-tab-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Evitar scrolling al interactuar con la barra de navegación */
+        #bottom-navbar {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
-    <!-- Import map para cargar @piper-plus/g2p como módulo ES -->
     <script type="importmap">
     {
         "imports": {
@@ -704,11 +803,19 @@
                             </div>
                         </div>
 
-                        <!-- Continuar Leyendo -->
+                        <!-- Continuar Leyendo (Carátulas Gigantes) -->
                         <div>
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Continuar Leyendo</span>
                             <div id="reading-carousel" class="flex gap-4 overflow-x-auto pb-3 snap-x scrollbar-hide">
                                 <div class="text-zinc-500 text-sm py-4 text-center w-full">No hay libros disponibles</div>
+                            </div>
+                        </div>
+
+                        <!-- Libros Completados (Carátulas Gigantes) -->
+                        <div>
+                            <span class="text-[11px] font-extrabold text-green-500 tracking-widest uppercase block mb-3">Libros Completados</span>
+                            <div id="completed-carousel" class="flex gap-4 overflow-x-auto pb-3 snap-x scrollbar-hide">
+                                <div class="text-zinc-500 text-sm py-4 text-center w-full">No hay libros completados</div>
                             </div>
                         </div>
                     </div>
@@ -758,7 +865,6 @@
                                 <span id="library-count" class="text-[13px] opacity-70 bg-white/5 px-1.5 py-1 rounded-md font-semibold">0 libros</span>
                             </div>
                         </div>
-                        <!-- LISTA VERTICAL RIGUROSA -->
                         <div id="books-grid" class="flex flex-col gap-3 pb-12 w-full">
                             <div id="no-books-msg" class="text-center py-16 opacity-60 w-full">
                                 <i class="fa-solid fa-book-open text-4xl mb-3 text-orange-500"></i>
@@ -791,7 +897,6 @@
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Gestión de Biblioteca</span>
                             <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <!-- Importar Audio -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="document.getElementById('file-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
@@ -801,7 +906,6 @@
                                     </div>
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
-                                <!-- Importar Biblioteca JSON -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="document.getElementById('backup-import-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
@@ -812,7 +916,6 @@
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
                                 <input type="file" id="backup-import-input" accept=".json" class="hidden">
-                                <!-- Exportar Copia de Seguridad -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="exportBackupJSON()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
@@ -829,7 +932,6 @@
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Preferencias</span>
                             <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <!-- Modo Oscuro -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
@@ -842,7 +944,6 @@
                                         <span class="ios-slider"></span>
                                     </label>
                                 </div>
-                                <!-- Tamaño de Letra -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
@@ -855,7 +956,6 @@
                                         <button class="btn-font-inc w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-xs font-bold text-white">A+</button>
                                     </div>
                                 </div>
-                                <!-- MODO ESCRITORIO / TELÉFONO -->
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
@@ -879,12 +979,10 @@
                     
                     <header class="flex flex-col gap-2.5 px-6 pt-8 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full relative">
-                            <!-- Boton de Cerrar -->
                             <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all font-semibold text-sm" title="Volver">
                                 <i class="fa-solid fa-chevron-left"></i>
                                 <span>Cerrar</span>
                             </button>
-                            <!-- Onda Siri de 10 barras redondeadas animada puramente por CSS -->
                             <div id="sound-wave-anim" class="absolute left-1/2 -translate-x-1/2 paused">
                                 <span class="wave-bar" style="--wave-dur: 1.05s; --wave-delay: 0.10s; border-radius: 9999px;"></span>
                                 <span class="wave-bar" style="--wave-dur: 1.3s; --wave-delay: 0.05s; border-radius: 9999px;"></span>
@@ -897,8 +995,6 @@
                                 <span class="wave-bar" style="--wave-dur: 1.05s; --wave-delay: 0.03s; border-radius: 9999px;"></span>
                                 <span class="wave-bar" style="--wave-dur: 1.3s; --wave-delay: 0.12s; border-radius: 9999px;"></span>
                             </div>
-
-                            <!-- Botón de cambio de tema en cabecera del reproductor -->
                             <button class="btn-toggle-theme w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all" title="Cambiar Tema">
                                 <i class="fa-solid fa-moon theme-icon"></i>
                             </button>
@@ -908,7 +1004,6 @@
                     <div class="flex-1 flex flex-col justify-between px-6 pb-4 overflow-hidden">
                         <div class="h-6 shrink-0"></div>
 
-                        <!-- Miniatura de Portada Inteligente (Sin Recortes) -->
                         <div id="wrapper-cover" class="flex-1 flex flex-col justify-center items-center transition-all duration-300 min-h-0">
                             <div class="relative h-[240px] md:h-[300px] w-auto max-w-[80%] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-6 mx-auto bg-black/15 flex items-center justify-center transition-all hover:scale-[1.02]">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="h-full w-auto object-contain">
@@ -918,7 +1013,6 @@
                                 <p id="player-book-author" class="text-sm opacity-60 mt-0.5 line-clamp-1 text-zinc-300">Autor Desconocido</p>
                                 <p id="player-book-saga" class="text-[14px] font-semibold mt-1 uppercase tracking-wide">LIBRO ÚNICO</p>
                             </div>
-                            <!-- Botón "Leer" -->
                             <button id="btn-leer-spotify" class="mt-5 flex items-center justify-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all font-semibold text-sm">
                                 <i class="fa-solid fa-align-left text-xs"></i> <span>Leer</span>
                             </button>
@@ -957,7 +1051,6 @@
                             </div>
                         </div>
 
-                        <!-- Controles de Ajustes de Audio — Pills Minimalistas con check -->
                         <div class="grid grid-cols-4 gap-2">
                             <!-- Voz -->
                             <div class="flex flex-col relative" id="voice-dropdown-container">
@@ -994,20 +1087,17 @@
                                         <span>2.0x</span><i class="fa-solid fa-check check-icon text-orange-500 text-[12px]" style="visibility:hidden"></i>
                                     </button>
 
-                                    <!-- Regulador de Tono (Matriz de Puntos y Bocinas) -->
+                                    <!-- Regulador de Tono -->
                                     <div class="pt-3 mt-1 border-t border-white/10 space-y-1.5">
                                         <div class="flex justify-between items-center text-[12px] px-1 font-bold">
                                             <span class="text-zinc-400 uppercase tracking-wider">TONO</span>
                                             <span id="tone-value" class="text-orange-500">Normal (1.0x)</span>
                                         </div>
                                         <div class="flex items-center justify-between gap-1 px-1">
-                                            <!-- Bocina izquierda (Bajar Tono) -->
                                             <button id="btn-pitch-dec" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-orange-500 active:scale-90 transition-all">
                                                 <i class="fa-solid fa-volume-low text-sm"></i>
                                             </button>
-                                            <!-- Hilera de puntos de Tono -->
                                             <div id="pitch-dots-row" class="flex items-center justify-between flex-1 px-1 gap-1"></div>
-                                            <!-- Bocina derecha (Subir Tono) -->
                                             <button id="btn-pitch-inc" class="w-8 h-8 flex items-center justify-center text-orange-500 hover:text-orange-600 active:scale-90 transition-all">
                                                 <i class="fa-solid fa-volume-high text-sm"></i>
                                             </button>
@@ -1054,12 +1144,10 @@
 
                         <!-- Botones de Acción de Reproducción -->
                         <div class="flex justify-between items-center px-0 pt-4 safe-padding-bottom">
-                            <!-- Icono de Marcadores -->
                             <button id="btn-bookmark" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90 transition-all duration-200">
                                 <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-2xl"></i>
                             </button>
                             
-                            <!-- Botón de retroceso de 15 segundos con SVG optimizado y perfectamente centrado -->
                             <button id="btn-rewind" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95 transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
                                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1068,12 +1156,10 @@
                                 </svg>
                             </button>
                             
-                            <!-- Botón central circular de Play/Pause (Blindado de color naranja) -->
                             <button id="btn-play-pause" class="btn-multimedia-play text-white keep-white">
                                 <i id="play-icon" class="fa-solid fa-play text-2xl ml-0.5 keep-white"></i>
                             </button>
                             
-                            <!-- Botón de avance de 15 segundos con SVG optimizado y perfectamente centrado -->
                             <button id="btn-forward" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95 transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
                                     <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1082,7 +1168,6 @@
                                 </svg>
                             </button>
 
-                            <!-- Menú Emergente de Marcadores -->
                             <div class="relative" id="bookmarks-dropdown-container">
                                 <button id="btn-list-bookmarks" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90 transition-all">
                                     <i id="btn-list-bookmarks-icon" class="fa-regular fa-star text-2xl"></i>
@@ -1092,7 +1177,7 @@
                                         <i class="fa-solid fa-star text-orange-500 text-xs"></i>MARCADORES
                                     </div>
                                     <div id="bookmarks-list" class="max-h-[280px] ios-scroll space-y-2.5 pr-1"></div>
-                                </div>
+                                end</div>
                             </div>
                         </div>
                     </div>
@@ -1118,7 +1203,9 @@
                 </div>
 
                 <!-- BARRA DE NAVEGACIÓN DE PESTAÑAS INFERIOR -->
-                <nav class="absolute bottom-0 left-0 right-0 h-[72px] bg-zinc-950/95 backdrop-blur-xl border-t border-white/5 py-2.5 px-8 flex justify-between items-center z-50">
+                <nav id="bottom-navbar" class="absolute bottom-0 left-0 right-0 h-[76px] py-2.5 px-6 flex justify-between items-center z-50 overflow-hidden">
+                    <div id="nav-active-pill" class="active-pill"></div>
+
                     <button id="nav-btn-listening" class="nav-tab-btn flex flex-col items-center gap-1 text-orange-500 font-bold flex-1 transition-all">
                         <i class="fa-solid fa-headphones text-lg"></i>
                         <span class="text-[10px]">Escuchando</span>
@@ -1215,7 +1302,6 @@
         let piperError = null;
         let piperAudioCtx = null;
 
-        // Se usa por defecto la URL oficial o guardada
         let EDGE_TTS_SERVER_URL = 'https://audiolibros-diego.onrender.com'; 
         let EDGE_SELECTED_VOICE = 'es-MX-JorgeNeural';
         let edgePrefetchCache = new Map();
@@ -1225,7 +1311,6 @@
         let ttsEngineToken = 0;
         let edgeRetryCounts = {};
 
-        // Lista completa de voces neuronales Edge TTS en español latinoamericano
         const EDGE_LATIN_VOICES = [
             { id: 'es-MX-JorgeNeural',      name: 'Jorge',      gender: 'M', country: 'México',            flag: '🇲🇽' },
             { id: 'es-MX-DaliaNeural',      name: 'Dalia',      gender: 'F', country: 'México',            flag: '🇲🇽' },
@@ -1420,6 +1505,8 @@
             }
             applyLayoutState();
             renderToneDots(); 
+            
+            setTimeout(updateNavPillPosition, 150);
         };
 
         function isOnlineVoiceSelected() {
@@ -1432,6 +1519,8 @@
             document.getElementById('nav-btn-listening').addEventListener('click', () => { hideFullPlayer(); switchTab('listening'); });
             document.getElementById('nav-btn-library').addEventListener('click', () => { hideFullPlayer(); switchTab('library'); });
             document.getElementById('nav-btn-settings').addEventListener('click', () => { hideFullPlayer(); switchTab('settings'); });
+
+            initNavbarGestures();
 
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
@@ -1449,7 +1538,6 @@
                 });
             }
 
-            // Configurar los menús emergentes garantizando que el de voces se construya dinámicamente al abrirse
             setupDropdown('btn-speed-trigger', 'speed-flyout');
             setupDropdown('btn-voice-trigger', 'voice-flyout', () => buildVoiceFlyout());
             setupDropdown('btn-trigger-chapters', 'chapters-flyout', () => renderChaptersFlyoutList());
@@ -1536,9 +1624,9 @@
 
             window.addEventListener('resize', () => {
                 applyLayoutState();
+                updateNavPillPosition();
             });
 
-            // Bocinas de control de Tono (Pitch) interactivo
             document.getElementById('btn-pitch-dec').addEventListener('click', (e) => {
                 e.stopPropagation();
                 adjustPitchStep(-0.1);
@@ -1599,6 +1687,117 @@
                 localStorage.setItem('audiolibros_diego_pc_layout', isPcLayout);
             }
             applyLayoutState();
+            setTimeout(updateNavPillPosition, 150);
+        }
+
+        /* GESTOS TÁCTILES AVANZADOS Y DESLIZAMIENTO DE LA BARRA DE NAVEGACIÓN */
+        let isDraggingPill = false;
+        let navContainer = null;
+        let navButtons = [];
+        let activePill = null;
+
+        function initNavbarGestures() {
+            navContainer = document.getElementById('bottom-navbar');
+            activePill = document.getElementById('nav-active-pill');
+            navButtons = [
+                { id: 'listening', el: document.getElementById('nav-btn-listening') },
+                { id: 'library', el: document.getElementById('nav-btn-library') },
+                { id: 'settings', el: document.getElementById('nav-btn-settings') }
+            ];
+
+            if (!navContainer || !activePill) return;
+
+            const handleStart = (clientX) => {
+                isDraggingPill = true;
+                activePill.style.transition = 'none'; 
+                activePill.classList.add('active-touch');
+                handleMove(clientX);
+            };
+
+            const handleMove = (clientX) => {
+                if (!isDraggingPill) return;
+                const rect = navContainer.getBoundingClientRect();
+                let relX = clientX - rect.left; 
+
+                const pillWidth = activePill.offsetWidth || 88;
+                const halfPill = pillWidth / 2;
+                let targetLeft = relX - halfPill;
+
+                if (targetLeft < 12) targetLeft = 12;
+                if (targetLeft > rect.width - pillWidth - 12) {
+                    targetLeft = rect.width - pillWidth - 12;
+                }
+
+                activePill.style.left = `${targetLeft}px`;
+
+                const closest = getClosestTab(relX, rect.width);
+                highlightHoveredTab(closest.id);
+            };
+
+            const handleEnd = () => {
+                if (!isDraggingPill) return;
+                isDraggingPill = false;
+                
+                activePill.style.transition = ''; 
+                activePill.classList.remove('active-touch');
+
+                const rect = navContainer.getBoundingClientRect();
+                const pillWidth = activePill.offsetWidth || 88;
+                const currentLeft = parseFloat(activePill.style.left);
+                const currentCenter = currentLeft + (pillWidth / 2);
+
+                const closest = getClosestTab(currentCenter, rect.width);
+                
+                hideFullPlayer();
+                switchTab(closest.id);
+            };
+
+            navContainer.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                handleStart(touch.clientX);
+            }, { passive: true });
+
+            navContainer.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                handleMove(touch.clientX);
+            }, { passive: true });
+
+            navContainer.addEventListener('touchend', handleEnd);
+
+            navContainer.addEventListener('mousedown', (e) => {
+                handleStart(e.clientX);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDraggingPill) handleMove(e.clientX);
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDraggingPill) handleEnd();
+            });
+        }
+
+        function getClosestTab(relativeX, totalWidth) {
+            const zoneWidth = totalWidth / 3;
+            if (relativeX < zoneWidth) {
+                return navButtons[0];
+            } else if (relativeX < zoneWidth * 2) {
+                return navButtons[1];
+            } else {
+                return navButtons[2];
+            }
+        }
+
+        function highlightHoveredTab(tabId) {
+            navButtons.forEach(btn => {
+                if (btn.id === tabId) {
+                    btn.el.classList.replace('text-zinc-500', 'text-orange-500');
+                    btn.el.classList.replace('font-medium', 'font-bold');
+                } else {
+                    btn.el.classList.replace('text-orange-500', 'text-zinc-500');
+                    btn.el.classList.replace('font-bold', 'font-medium');
+                }
+            });
         }
 
         function switchTab(tabName) {
@@ -1630,6 +1829,29 @@
                     }
                 }
             });
+
+            updateNavPillPosition();
+        }
+
+        function updateNavPillPosition() {
+            const pill = document.getElementById('nav-active-pill');
+            if (!pill) return;
+            const activeBtn = document.getElementById(`nav-btn-${currentActiveTab}`);
+            if (!activeBtn) return;
+
+            const navbar = document.getElementById('bottom-navbar');
+            if (!navbar) return;
+
+            const navRect = navbar.getBoundingClientRect();
+            const btnRect = activeBtn.getBoundingClientRect();
+
+            const targetWidth = Math.min(btnRect.width * 0.75, 90);
+            const relativeLeft = (btnRect.left - navRect.left) + (btnRect.width - targetWidth) / 2;
+            const relativeTop = (navRect.height - 48) / 2;
+
+            pill.style.left = `${relativeLeft}px`;
+            pill.style.width = `${targetWidth}px`;
+            pill.style.top = `${relativeTop}px`;
         }
 
         // --- STREAMING_CHUNK: Controlando transiciones de apertura/cierre de la pantalla del reproductor... ---
@@ -1641,7 +1863,6 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('hidden');
             
-            // Permitir un ciclo para ejecutar la animación elástica ascendente
             requestAnimationFrame(() => {
                 viewPlayer.classList.add('player-active');
             });
@@ -1655,14 +1876,15 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('player-active');
             
-            // Ocultar físicamente después de completarse el retroceso elástico (600ms)
             setTimeout(() => {
                 if (!viewPlayer.classList.contains('player-active')) {
                     viewPlayer.classList.add('hidden');
                 }
             }, 600);
 
+            saveCurrentProgress();
             updateMiniPlayer();
+            updateHomeListeningViews();
             switchTab(currentActiveTab);
             updateStarButtonState(false);
         }
@@ -1697,7 +1919,7 @@
                 trigger.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const isActive = flyout.classList.contains('show-active');
-                    closeAllFlyouts(flyout);
+                    closeAllFlyouts(triggerId);
                     if (!isActive) {
                         flyout.classList.add('show-active');
                         if (triggerId === 'btn-list-bookmarks') {
@@ -1853,7 +2075,7 @@
                     const newBook = {
                         id: Date.now().toString(),
                         title, author, cover: coverDataUrl || "https://placehold.co/400x600/101012/ffffff?text=Epub",
-                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0
+                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false
                     };
                     await storageAdapter.save(newBook);
                     migrateAndLoadLibrary();
@@ -1888,7 +2110,7 @@
                         title: file.name.replace('.pdf', ''),
                         author: "Documento PDF",
                         cover: "https://placehold.co/400x600/101012/ffffff?text=PDF",
-                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0
+                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false
                     };
                     await storageAdapter.save(newBook);
                     migrateAndLoadLibrary();
@@ -1908,35 +2130,87 @@
 
         function updateHomeListeningViews() {
             const carousel = document.getElementById('reading-carousel');
-            if (!carousel) return;
+            const completedCarousel = document.getElementById('completed-carousel');
+            if (!carousel || !completedCarousel) return;
+
             carousel.innerHTML = '';
+            completedCarousel.innerHTML = '';
 
-            if (currentBooks.length === 0) {
-                carousel.innerHTML = `<div class="text-zinc-500 text-sm py-4 text-center w-full">No hay libros importados</div>`;
-                return;
+            const readingBooks = currentBooks.filter(b => !b.completed);
+            const completedBooks = currentBooks.filter(b => b.completed);
+
+            // Renderizar Continuar Leyendo
+            if (readingBooks.length === 0) {
+                carousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros en progreso</div>`;
+            } else {
+                readingBooks.forEach((book) => {
+                    const idx = currentBooks.findIndex(b => b.id === book.id);
+                    const card = document.createElement('div');
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-all duration-300";
+                    card.innerHTML = `
+                        <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
+                            <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
+                        </div>
+                        <h5 class="text-xs font-bold text-white truncate leading-snug">${book.title}</h5>
+                        <p class="text-[10px] text-zinc-400 truncate mt-0.5">${book.author}</p>
+                    `;
+                    card.addEventListener('click', () => loadAudiobookPlayer(idx));
+                    carousel.appendChild(card);
+                });
             }
 
-            currentBooks.forEach((book, idx) => {
-                const card = document.createElement('div');
-                card.className = "flex-shrink-0 w-28 cursor-pointer snap-start hover:scale-105 transition-all duration-300";
-                card.innerHTML = `
-                    <div class="w-28 h-40 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
-                        <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
-                    </div>
-                    <h5 class="text-xs font-bold text-white truncate leading-snug">${book.title}</h5>
-                    <p class="text-[10px] text-zinc-400 truncate mt-0.5">${book.author}</p>
-                `;
-                card.addEventListener('click', () => loadAudiobookPlayer(idx));
-                carousel.appendChild(card);
-            });
-
-            const lastBook = currentBooks[0];
-            if (lastBook) {
-                document.getElementById('last-played-title').textContent = lastBook.title;
-                document.getElementById('last-played-author').textContent = lastBook.author;
-                document.getElementById('last-played-cover').src = lastBook.cover;
-                document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(0);
+            // Renderizar Libros Completados
+            if (completedBooks.length === 0) {
+                completedCarousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros completados todavía</div>`;
+            } else {
+                completedBooks.forEach((book) => {
+                    const idx = currentBooks.findIndex(b => b.id === book.id);
+                    const card = document.createElement('div');
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-all duration-300";
+                    card.innerHTML = `
+                        <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-green-500/20 bg-zinc-950 mb-2 relative">
+                            <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
+                            <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] shadow-lg">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-xs font-bold text-white truncate leading-snug">${book.title}</h5>
+                        <p class="text-[10px] text-zinc-400 truncate mt-0.5">${book.author}</p>
+                    `;
+                    card.addEventListener('click', () => loadAudiobookPlayer(idx));
+                    completedCarousel.appendChild(card);
+                });
             }
+
+            // Actualizar la tarjeta de "Último Reproducido" con el libro que esté activo, o el primero por defecto
+            let activeOrLastBook = activeBookIndex !== null ? currentBooks[activeBookIndex] : currentBooks[0];
+            if (activeOrLastBook) {
+                document.getElementById('last-played-title').textContent = activeOrLastBook.title;
+                document.getElementById('last-played-author').textContent = activeOrLastBook.author;
+                document.getElementById('last-played-cover').src = activeOrLastBook.cover;
+                
+                const lpIdx = currentBooks.findIndex(b => b.id === activeOrLastBook.id);
+                document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(lpIdx);
+                
+                // Calcular progreso visual
+                if (activeBookIndex === null) {
+                    const ratio = activeOrLastBook.progressChapter / Math.max(1, activeOrLastBook.chapters.length);
+                    document.getElementById('last-played-progress').style.width = `${ratio * 100}%`;
+                }
+            } else {
+                document.getElementById('last-played-title').textContent = "Ningún audiolibro";
+                document.getElementById('last-played-author').textContent = "Importa un archivo para comenzar";
+                document.getElementById('last-played-cover').src = "https://placehold.co/400x600/101012/ffffff?text=Diego";
+                document.getElementById('last-played-progress').style.width = `0%`;
+            }
+        }
+
+        function saveCurrentProgress() {
+            if (activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+            book.progressChapter = activeChapterIndex;
+            book.progressSentence = currentSentenceIndex;
+            storageAdapter.save(book);
         }
 
         // --- STREAMING_CHUNK: Renderizando la colección de la biblioteca en lista vertical... ---
@@ -1956,7 +2230,8 @@
             }
             document.getElementById('no-books-msg').classList.add('hidden');
 
-            filtered.forEach((book, idx) => {
+            filtered.forEach((book) => {
+                const idx = currentBooks.findIndex(b => b.id === book.id);
                 const card = document.createElement('div');
                 card.className = "book-card flex items-center gap-3.5 p-3 rounded-xl liquid-glass bg-zinc-900/40 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all w-full";
                 card.innerHTML = `
@@ -1981,6 +2256,9 @@
             e.stopPropagation();
             const book = currentBooks[index];
             showCustomConfirm("¿Eliminar Libro?", `¿Estás seguro de borrar "${book.title}"?`, async () => {
+                if (activeBookIndex === index) {
+                    activeBookIndex = null;
+                }
                 await storageAdapter.delete(book.id);
                 migrateAndLoadLibrary();
                 showToast("Libro borrado");
@@ -1997,6 +2275,12 @@
             document.getElementById('player-book-author').textContent = book.author;
             document.getElementById('player-cover-img').src = book.cover;
             document.getElementById('player-bg-blur').style.backgroundImage = `url(${book.cover})`;
+
+            // Sincronizar instantáneamente "Último reproducido" con el libro cargado
+            document.getElementById('last-played-title').textContent = book.title;
+            document.getElementById('last-played-author').textContent = book.author;
+            document.getElementById('last-played-cover').src = book.cover;
+            document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(index);
 
             setupChapterMedia(activeChapterIndex);
             showFullPlayer();
@@ -2028,6 +2312,7 @@
             recalculateDurationsAndOffsets();
             updateSmoothProgress();
             highlightCurrentSentence();
+            saveCurrentProgress();
         }
 
         function recalculateDurationsAndOffsets() {
@@ -2091,6 +2376,8 @@
             if (ttsAudioEl) ttsAudioEl.pause();
             ttsEngineToken++; 
             stopProgressLoop();
+            saveCurrentProgress();
+            updateHomeListeningViews();
         }
 
         function speakSentence(index) {
@@ -2102,7 +2389,11 @@
                     speakSentence(0);
                 } else {
                     pauseAudio();
-                    showToast("Libro Terminado!");
+                    // Marcar libro como terminado
+                    currentBooks[activeBookIndex].completed = true;
+                    saveCurrentProgress();
+                    updateHomeListeningViews();
+                    showToast("Libro Terminado!", "fa-circle-check text-green-400");
                 }
                 return;
             }
@@ -2134,7 +2425,6 @@
             speakSentenceSystem(text);
         }
 
-        // --- STREAMING_CHUNK: Creando el cargador interactivo de descarga del modelo Piper... ---
         function initializePiperVoiceAndSpeak(text) {
             if (!piperLoaded) {
                 piperLoaded = true;
@@ -2289,12 +2579,14 @@
         // --- STREAMING_CHUNK: Creando funciones de sincronización de texto y marcadores... ---
         function jumpToSentence(idx) {
             currentSentenceIndex = idx;
+            saveCurrentProgress();
             if (isPlaying) {
                 speakSentence(idx);
             } else {
                 highlightCurrentSentence();
                 scrollToActiveSentence();
                 updateSmoothProgress();
+                updateHomeListeningViews();
             }
         }
 
@@ -2359,11 +2651,14 @@
             document.getElementById('time-current').textContent = formatTime(progressTime);
             document.getElementById('time-total').textContent = formatTime(totalChapterDuration);
 
+            // Sincronización precisa de barra de progreso en Último Reproducido
             const lastProgress = document.getElementById('last-played-progress');
             if (lastProgress) {
                 lastProgress.style.width = `${ratio * 100}%`;
-                document.getElementById('last-played-current').textContent = formatTime(progressTime);
-                document.getElementById('last-played-remaining').textContent = formatTime(totalChapterDuration - progressTime) + " restan";
+                const lpCurrent = document.getElementById('last-played-current');
+                const lpRemaining = document.getElementById('last-played-remaining');
+                if (lpCurrent) lpCurrent.textContent = formatTime(progressTime);
+                if (lpRemaining) lpRemaining.textContent = formatTime(Math.max(0, totalChapterDuration - progressTime)) + " restan";
             }
         }
 
@@ -2652,7 +2947,6 @@
             header.textContent = "Voces Disponibles";
             flyout.appendChild(header);
 
-            // Opción de Voz Online Estándar
             const onlineBtn = document.createElement('button');
             onlineBtn.className = `voice-opt-btn flyout-option w-full text-[14px] ${selectedVoiceValue === 'online' ? 'active-opt' : ''}`;
             onlineBtn.dataset.value = "online";
@@ -2677,13 +2971,11 @@
             onlineBtn.addEventListener('click', () => selectVoice("online", "Voz Online HD"));
             flyout.appendChild(onlineBtn);
 
-            // Cabecera voces neuronales Edge
             const edgeHeader = document.createElement('div');
             edgeHeader.className = "text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-2 mt-1.5 border-b border-white/10";
             edgeHeader.textContent = "VOCES NEURONALES EDGE TTS";
             flyout.appendChild(edgeHeader);
 
-            // Input URL Servidor en Render
             const inputContainer = document.createElement('div');
             inputContainer.className = "p-2 mb-2 bg-white/5 rounded-xl border border-white/10 text-xs";
             inputContainer.innerHTML = `
@@ -2699,7 +2991,6 @@
             inputContainer.addEventListener('click', (e) => e.stopPropagation());
             flyout.appendChild(inputContainer);
 
-            // Evento para guardar URL
             setTimeout(() => {
                 const saveBtn = document.getElementById('btn-save-edge-url');
                 const urlField = document.getElementById('edge-url-field');
@@ -2714,7 +3005,6 @@
                 }
             }, 100);
 
-            // Agrupar voces de Edge TTS por país
             const groupedVoices = {};
             EDGE_LATIN_VOICES.forEach(voice => {
                 if (!groupedVoices[voice.country]) {
@@ -2723,7 +3013,6 @@
                 groupedVoices[voice.country].push(voice);
             });
 
-            // Renderizar voces de Edge
             Object.keys(groupedVoices).forEach(country => {
                 const countryLabel = document.createElement('div');
                 countryLabel.className = "text-[11px] font-bold opacity-50 uppercase tracking-widest px-2 pt-2 pb-0.5";
@@ -2754,7 +3043,6 @@
                 });
             });
 
-            // Opción Piper Claude (MX)
             const piperHeader = document.createElement('div');
             piperHeader.className = "text-[11px] font-bold opacity-50 uppercase tracking-widest px-2 pt-2 pb-0.5";
             piperHeader.textContent = "VOCES NEURALES OFFLINE";
@@ -2779,7 +3067,6 @@
             });
             flyout.appendChild(piperBtn);
 
-            // Voces de Sistema Locales
             const systemHeader = document.createElement('div');
             systemHeader.className = "text-[11px] font-bold opacity-50 uppercase tracking-widest px-2 pt-2.5 pb-0.5";
             systemHeader.textContent = "VOCES DE SISTEMA";
@@ -2855,6 +3142,7 @@
                     icon.className = "fa-solid fa-moon theme-icon";
                 });
             }
+            setTimeout(updateNavPillPosition, 150);
         }
 
         function toggleTheme() {
@@ -2870,6 +3158,7 @@
             });
 
             showToast(isLight ? "Modo Claro" : "Modo Oscuro");
+            setTimeout(updateNavPillPosition, 150);
         }
 
         function restoreFontScale() {
@@ -2884,6 +3173,7 @@
             document.documentElement.style.setProperty('--font-scale', next);
             localStorage.setItem('font-scale', next);
             showToast(`Tamaño de letra: ${Math.round(next * 100)}%`, 'fa-text-height text-orange-500');
+            setTimeout(updateNavPillPosition, 150);
         }
 
         function startWaveAnimation() {
