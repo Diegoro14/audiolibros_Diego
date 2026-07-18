@@ -787,11 +787,19 @@
                             </div>
                         </div>
 
-                        <!-- Continuar Leyendo (Carátulas Gigantes) -->
+                        <!-- Continuar Escuchando (Carátulas Gigantes) -->
                         <div>
-                            <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Continuar Leyendo</span>
+                            <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Continuar Escuchando</span>
                             <div id="reading-carousel" class="flex gap-4 overflow-x-auto pb-3 snap-x scrollbar-hide">
                                 <div class="text-zinc-500 text-sm py-4 text-center w-full">No hay libros disponibles</div>
+                            </div>
+                        </div>
+
+                        <!-- Libros Favoritos -->
+                        <div>
+                            <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Libros Favoritos</span>
+                            <div id="favorites-carousel" class="flex gap-4 overflow-x-auto pb-3 snap-x scrollbar-hide">
+                                <div class="text-zinc-500 text-sm py-4 text-center w-full">No hay libros favoritos</div>
                             </div>
                         </div>
 
@@ -1813,6 +1821,9 @@
             document.getElementById('nav-btn-settings').addEventListener('click', () => { hideFullPlayer(); switchTab('settings'); });
 
             initNavbarGestures();
+            
+            // Inicializar manejadores físicos de la pantalla de bloqueo de iOS
+            initMediaSessionHandlers();
 
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
@@ -2373,7 +2384,7 @@
                     const newBook = {
                         id: Date.now().toString(),
                         title, author, cover: coverDataUrl || "https://placehold.co/400x600/101012/ffffff?text=Epub",
-                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false
+                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false, favorite: false
                     };
                     await storageAdapter.save(newBook);
                     migrateAndLoadLibrary();
@@ -2385,6 +2396,7 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // --- STREAMING_CHUNK: Parsing de PDFs mediante PDFJS de forma estructurada... ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -2407,7 +2419,7 @@
                         title: file.name.replace('.pdf', ''),
                         author: "Documento PDF",
                         cover: "https://placehold.co/400x600/101012/ffffff?text=PDF",
-                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false
+                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false, favorite: false
                     };
                     await storageAdapter.save(newBook);
                     migrateAndLoadLibrary();
@@ -2425,18 +2437,21 @@
             updateHomeListeningViews();
         }
 
-        // --- STREAMING_CHUNK: Generando carruseles para Continuar Leyendo y libros completados ---
         function updateHomeListeningViews() {
             const carousel = document.getElementById('reading-carousel');
             const completedCarousel = document.getElementById('completed-carousel');
-            if (!carousel || !completedCarousel) return;
+            const favoritesCarousel = document.getElementById('favorites-carousel');
+            if (!carousel || !completedCarousel || !favoritesCarousel) return;
 
             carousel.innerHTML = '';
             completedCarousel.innerHTML = '';
+            favoritesCarousel.innerHTML = '';
 
             const readingBooks = currentBooks.filter(b => !b.completed);
             const completedBooks = currentBooks.filter(b => b.completed);
+            const favoriteBooks = currentBooks.filter(b => b.favorite);
 
+            // Renderizar Continuar Escuchando
             if (readingBooks.length === 0) {
                 carousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros en progreso</div>`;
             } else {
@@ -2457,6 +2472,31 @@
                 });
             }
 
+            // Renderizar Libros Favoritos
+            if (favoriteBooks.length === 0) {
+                favoritesCarousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros favoritos</div>`;
+            } else {
+                favoriteBooks.forEach((book) => {
+                    const idx = currentBooks.findIndex(b => b.id === book.id);
+                    const card = document.createElement('div');
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105";
+                    card.style.transition = "transform 0.3s ease";
+                    card.innerHTML = `
+                        <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
+                            <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
+                            <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-[10px] shadow-lg">
+                                <i class="fa-solid fa-heart"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-xs font-bold text-white truncate leading-snug">${book.title}</h5>
+                        <p class="text-[10px] text-zinc-400 truncate mt-0.5">${book.author}</p>
+                    `;
+                    card.addEventListener('click', () => loadAudiobookPlayer(idx));
+                    favoritesCarousel.appendChild(card);
+                });
+            }
+
+            // Renderizar Libros Completados
             if (completedBooks.length === 0) {
                 completedCarousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros completados todavía</div>`;
             } else {
@@ -2480,6 +2520,7 @@
                 });
             }
 
+            // Actualizar la tarjeta de "Último Reproducido" con el libro que esté activo, o el primero por defecto
             let activeOrLastBook = activeBookIndex !== null ? currentBooks[activeBookIndex] : currentBooks[0];
             if (activeOrLastBook) {
                 document.getElementById('last-played-title').textContent = activeOrLastBook.title;
@@ -2489,6 +2530,7 @@
                 const lpIdx = currentBooks.findIndex(b => b.id === activeOrLastBook.id);
                 document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(lpIdx);
                 
+                // Calcular progreso visual
                 if (activeBookIndex === null) {
                     const ratio = activeOrLastBook.progressChapter / Math.max(1, activeOrLastBook.chapters.length);
                     document.getElementById('last-played-progress').style.width = `${ratio * 100}%`;
@@ -2509,7 +2551,7 @@
             storageAdapter.save(book);
         }
 
-        // --- STREAMING_CHUNK: Renderizando la biblioteca en lista vertical... ---
+        // --- STREAMING_CHUNK: Renderizando la colección de la biblioteca en lista vertical... ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             if (!grid) return;
@@ -2528,6 +2570,7 @@
 
             filtered.forEach((book) => {
                 const idx = currentBooks.findIndex(b => b.id === book.id);
+                const isFav = book.favorite || false;
                 const card = document.createElement('div');
                 card.className = "book-card flex items-center gap-3.5 p-3 rounded-xl liquid-glass bg-zinc-900/40 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-[0.98] w-full";
                 card.innerHTML = `
@@ -2539,6 +2582,9 @@
                         <p class="text-[15px] opacity-60 truncate mt-1 text-zinc-300">${book.author}</p>
                         <span class="text-xs text-orange-500 font-bold uppercase block mt-1">${book.chapters.length} Caps</span>
                     </div>
+                    <button class="w-10 h-10 shrink-0 ${isFav ? 'text-red-500 hover:text-red-600' : 'text-zinc-500 hover:text-red-400'} active:scale-95 flex items-center justify-center rounded-full" style="transition: transform 0.2s ease, color 0.2s ease;" onclick="toggleFavoriteBook(event, ${idx})">
+                        <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-heart text-sm"></i>
+                    </button>
                     <button class="w-10 h-10 shrink-0 text-zinc-500 hover:text-red-400 active:scale-95 flex items-center justify-center rounded-full" style="transition: transform 0.2s ease, color 0.2s ease;" onclick="deleteBook(event, ${idx})">
                         <i class="fa-solid fa-trash-can text-sm"></i>
                     </button>
@@ -2547,6 +2593,16 @@
                 grid.appendChild(card);
             });
         }
+
+        async function toggleFavoriteBook(event, index) {
+            event.stopPropagation();
+            const book = currentBooks[index];
+            book.favorite = !book.favorite;
+            await storageAdapter.save(book);
+            migrateAndLoadLibrary(); // Esto actualiza tanto la lista de favoritos en Escuchando como en Biblioteca
+            showToast(book.favorite ? "Añadido a Favoritos" : "Quitado de Favoritos", "fa-heart text-red-500");
+        }
+        window.toggleFavoriteBook = toggleFavoriteBook; // Asegura disponibilidad global para llamados onclick inline
 
         function deleteBook(e, index) {
             e.stopPropagation();
@@ -3559,6 +3615,20 @@
 
             // Sincronizar estado físico del reproductor con iOS
             navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+            // Sincronizar la barra de progreso completa (Capítulo) con la pantalla de bloqueo de iOS
+            if ('setPositionState' in navigator.mediaSession && totalChapterDuration > 0) {
+                try {
+                    const currentOffset = sentenceOffsets[currentSentenceIndex] || 0;
+                    navigator.mediaSession.setPositionState({
+                        duration: Math.max(1, totalChapterDuration),
+                        playbackRate: activeSpeedRate,
+                        position: Math.min(totalChapterDuration, currentOffset)
+                    });
+                } catch (e) {
+                    console.warn("Error setting MediaSession position:", e);
+                }
+            }
         }
 
         function initMediaSessionHandlers() {
