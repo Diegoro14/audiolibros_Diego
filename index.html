@@ -56,7 +56,8 @@
     <style>
         html {
             font-size: calc(16px * var(--font-scale, 1));
-            transition: font-size 0.2s ease;
+            /* Sin transition: animar font-size en html fuerza recalcular el layout
+               de TODO el documento en cada frame. Mejor cambio instantáneo. */
         }
         :root {
             --bg-color: #050508;
@@ -72,7 +73,7 @@
 
             /* Liquid Glass Custom Variables (Modo Oscuro) */
             --nav-bg: rgba(10, 10, 12, 0.72);
-            --nav-blur: 24px;
+            --nav-blur: 16px;
             --nav-border: rgba(255, 255, 255, 0.07);
             --pill-bg: rgba(255, 255, 255, 0.05);
             /* Gradiente de borde naranja premium adaptado al estilo gota de agua */
@@ -95,7 +96,7 @@
 
             /* Liquid Glass Custom Variables (Modo Claro) */
             --nav-bg: rgba(255, 255, 255, 0.82);
-            --nav-blur: 14px;
+            --nav-blur: 10px;
             --nav-border: rgba(0, 0, 0, 0.08);
             --pill-bg: rgba(0, 0, 0, 0.03);
             /* Gradiente de borde naranja premium adaptado al modo claro */
@@ -140,7 +141,9 @@
             backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
             -webkit-backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
             border-top: 1px solid var(--nav-border) !important;
-            transition: background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
+            /* IMPORTANTE: nunca transicionar backdrop-filter en iOS (recosteo carísimo). */
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            will-change: auto;
         }
 
         /* EFECTO LIQUID ACTIVE PILL CON ESTILO "GOTA DE AGUA" */
@@ -192,15 +195,37 @@
         /* Animación fluida de brillo naranja premium estilo gota de agua sobre cristal */
         .active-pill.active-touch::before {
             background: var(--pill-border-gradient);
-            background-size: 200% auto;
-            animation: iridescence-glow 4s linear infinite;
+            background-size: 150% auto;
+            animation: iridescence-glow 6s linear infinite;
             filter: saturate(85%); 
+        }
+
+        /* La animación solo debe correr durante el toque (active-touch). Al soltar, se pausa. */
+        .active-pill::before {
+            animation-play-state: paused;
+        }
+        .active-pill.active-touch::before {
+            animation-play-state: running;
         }
 
         @keyframes iridescence-glow {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
+        }
+
+        /* Respeta a los usuarios con preferencia por menos movimiento (accesibilidad + batería) */
+        @media (prefers-reduced-motion: reduce) {
+            .active-pill::before,
+            .active-pill.active-touch::before {
+                animation: none !important;
+            }
+            .view-transition,
+            #view-player,
+            .unified-flyout,
+            #app-toast {
+                transition-duration: 0.15s !important;
+            }
         }
 
         /* MINIREPRODUCTOR FLOTANTE - MODO CLARO */
@@ -236,8 +261,6 @@
             flex-direction: row !important;
             align-items: center !important;
             width: 100% !important;
-            transition: transform 0.2s ease, background-color 0.2s ease !important;
-            will-change: transform;
         }
 
         /* Estilo protegido del Botón de Play Circular Naranja */
@@ -295,13 +318,16 @@
         }
 
         #player-bg-blur {
-            filter: blur(100px) brightness(0.35) saturate(1.8) !important;
+            filter: blur(60px) brightness(0.35) saturate(1.6) !important;
             opacity: 0.85 !important;
-            transition: background-image 0.6s ease-in-out;
+            transition: background-image 0.5s ease-in-out;
+            /* Promover a capa propia para que el filter no recomponga todo el árbol */
+            transform: scale(1.35) translateZ(0);
+            will-change: opacity;
         }
 
         body.light-theme #player-bg-blur {
-            filter: blur(100px) brightness(1.35) saturate(1.2) !important;
+            filter: blur(60px) brightness(1.3) saturate(1.1) !important;
             opacity: 0.55 !important;
         }
 
@@ -358,16 +384,16 @@
 
         .liquid-glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(25px) saturate(190%);
-            -webkit-backdrop-filter: blur(25px) saturate(190%);
+            backdrop-filter: blur(14px) saturate(180%);
+            -webkit-backdrop-filter: blur(14px) saturate(180%);
             border: 1px solid var(--glass-border);
-            transition: background 0.3s, border 0.3s;
+            transition: background 0.25s, border 0.25s;
         }
 
         .liquid-glass-dark {
             background: var(--glass-bg-darker);
-            backdrop-filter: blur(30px) saturate(200%);
-            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
             border-top: 1px solid var(--glass-border);
         }
 
@@ -396,8 +422,8 @@
 
         #wrapper-text {
             background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
         }
         body.light-theme #wrapper-text {
             background: rgba(242, 242, 247, 0.96);
@@ -410,19 +436,21 @@
             bottom: 72px;
             z-index: 40;
             background-color: var(--bg-color) !important;
-            transform: translateY(100%) scale(0.92);
+            transform: translateY(100%) scale(0.92) translateZ(0);
             opacity: 0;
             pointer-events: none;
-            /* Transición al MINIMIZARSE: Efecto rebote suave elástico hacia el fondo de la pantalla (overshoot elástico) */
+            /* IMPORTANTE: solo transform y opacity. Nunca animar backdrop-filter ni background aquí */
             transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease-in-out !important;
+            /* Promueve el view-player a su propia capa GPU para que el scale/translate no recomponga todo el árbol */
+            will-change: transform, opacity;
+            backface-visibility: hidden;
         }
 
         #view-player.player-active {
-            transform: translateY(0) scale(1) !important;
+            transform: translateY(0) scale(1) translateZ(0) !important;
             opacity: 1 !important;
             pointer-events: auto !important;
-            /* Transición al ACTIVARSE: Mantiene su rebote elástico hacia arriba */
-            transition: transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease !important;
+            transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease !important;
         }
 
         /* MENÚS EMERGENTES CON EFECTO FROSTED GLASS Y ANIMACIÓN DE REBOTE DYNAMIC SPRING */
@@ -430,13 +458,13 @@
             opacity: 0;
             transform: translateY(16px) scale(0.85); 
             pointer-events: none;
-            transition: transform 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.28), opacity 0.22s ease !important;
+            transition: transform 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.28), opacity 0.18s ease !important;
             z-index: 100;
             
             /* Premium Frosted Glass (coherente con la Dynamic Island) */
             background: rgba(15, 15, 20, 0.82) !important;
-            backdrop-filter: blur(20px) saturate(190%) !important;
-            -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+            backdrop-filter: blur(14px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
             border-radius: 24px !important;
@@ -532,9 +560,12 @@
         .ios-scroll {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
+            /* scroll-behavior: smooth provoca jank en iOS al animar scrollTop con scrollTo.
+               Lo quitamos; usamos 'auto' y dejamos que el OS haga el momentum nativo. */
             overscroll-behavior-y: contain;
-            will-change: scroll-position; /* misma optimización GPU que los carruseles, pero a toda lista vertical de la app (biblioteca, letra, capítulos, marcadores) */
+            /* Evita que el navegador haga layout de contenido fuera de viewport */
+            content-visibility: auto;
+            contain: layout paint style;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -582,13 +613,13 @@
             pointer-events: none;
             z-index: 100;
             background: rgba(15, 15, 20, 0.85);
-            backdrop-filter: blur(20px) saturate(190%);
-            -webkit-backdrop-filter: blur(20px) saturate(190%);
+            backdrop-filter: blur(14px) saturate(180%);
+            -webkit-backdrop-filter: blur(14px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             border-radius: 9999px; /* Diseño ultra redondeado de píldora */
             padding: 8px 18px;
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+            transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.22s ease;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -625,8 +656,6 @@
             width: 150px;        /* Reducido: el glow se cortaba contra el borde del canvas cuando era más ancho */
             overflow: visible;
             filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.15)); /* Halo suave que se funde con el fondo */
-            will-change: transform;
-            transform: translateZ(0); /* promueve su propia capa de composición (GPU) */
         }
 
         #wave-canvas {
@@ -634,24 +663,6 @@
             width: 100%;
             height: 100%;
             pointer-events: none; /* No absorbe clics, previene bloquear botones superiores */
-        }
-
-        /* Carruseles horizontales ("Continuar Leyendo" / "Completados"): scroll nativo fluido
-           con momentum, sin encadenar el scroll hacia la página y con su propia capa GPU. */
-        #reading-carousel,
-        #completed-carousel {
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-x: contain;
-            scroll-snap-type: x proximity;
-            will-change: scroll-position;
-        }
-
-        /* Tarjetas de portada: solo el transform se anima (no todas las propiedades),
-           así el compositor no recalcula box-shadow/border en cada frame del hover/scroll. */
-        #reading-carousel > div,
-        #completed-carousel > div {
-            transition: transform 0.3s ease;
-            will-change: transform;
         }
     
         .piper-progress-bar { height: 3px; background: var(--accent-color); transition: width 0.3s; border-radius: 2px; }
@@ -748,14 +759,19 @@
 <body class="h-full overflow-hidden select-none flex flex-col">
 
     <!-- Fondo líquido abstracto autogestionado -->
-    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
-        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[130px] animate-pulse transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
-        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[140px] animate-pulse transition-opacity duration-700" style="animation-duration: 8s; opacity: var(--blob-op);"></div>
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent" aria-hidden="true">
+        <!--
+            Reducido: blur 130-140px es carísimo en iOS (recosteo de textura completo).
+            Se baja a 60-70px y se quita animate-pulse (re-pinta constante del fondo).
+            El gradiente grande ya da la sensación líquida; el parpadeo no aporta.
+        -->
+        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
+        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
     </div>
 
     <!-- CONTENEDOR DE TRABAJO COMPLETO -->
-    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-0 md:p-6 transition-all duration-500">
-        <div id="device-wrapper" class="flex items-center justify-center transition-all duration-300">
+    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-0 md:p-6 transition-[padding] duration-300">
+        <div id="device-wrapper" class="flex items-center justify-center transition-[width,height,padding] duration-300">
             <div id="app-phone-container" class="phone-frame flex flex-col h-full overflow-hidden relative">
 
                 <!-- Notificación Unificada Inteligente (Dynamic Island / Notch Origin) -->
@@ -791,7 +807,7 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                            <div id="last-played-progress" class="h-full bg-orange-500 w-0 rounded-full transition-all duration-300"></div>
+                                            <div id="last-played-progress" class="h-full bg-orange-500 w-0 rounded-full transition-[width] duration-300"></div>
                                         </div>
                                         <div class="flex justify-between text-xs text-zinc-500">
                                             <span id="last-played-current">0:00</span>
@@ -997,8 +1013,8 @@
                     <div class="flex-1 flex flex-col justify-between px-6 pb-4 overflow-hidden">
                         <div class="h-6 shrink-0"></div>
 
-                        <div id="wrapper-cover" class="flex-1 flex flex-col justify-center items-center transition-all duration-300 min-h-0">
-                            <div class="relative h-[240px] md:h-[300px] w-auto max-w-[80%] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-6 mx-auto bg-black/15 flex items-center justify-center transition-all hover:scale-[1.02]">
+                        <div id="wrapper-cover" class="flex-1 flex flex-col justify-center items-center transition-opacity duration-300 min-h-0">
+                            <div class="relative h-[240px] md:h-[300px] w-auto max-w-[80%] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-6 mx-auto bg-black/15 flex items-center justify-center transition-transform duration-200 hover:scale-[1.02]">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="h-full w-auto object-contain">
                             </div>
                             <div class="text-center max-w-xs px-4">
@@ -1177,7 +1193,7 @@
                 </div>
 
                 <!-- MINIREPRODUCTOR FLOTANTE INFERIOR -->
-                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hover:bg-zinc-900 transition-all duration-300 hidden">
+                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hover:bg-zinc-900 transition-[background-color,transform] duration-200 hidden">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <img id="mini-player-cover" src="" class="w-10 h-10 rounded-lg object-cover bg-zinc-950 shadow" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
                         <div class="flex-1 min-w-0">
@@ -1578,25 +1594,50 @@
         }
 
         // --- STREAMING_CHUNK: Inicializando el Canvas de la Onda Siri de Alta Fidelidad... ---
+        let waveVisible = false; // sólo dibuja cuando el reproductor está visible
+        let waveLastDraw = 0;
+        const WAVE_FRAME_INTERVAL = 1000 / 60; // 60fps objetivo
+
         function initWaveCanvas() {
             waveCanvas = document.getElementById('wave-canvas');
             if (!waveCanvas) return;
-            waveCtx = waveCanvas.getContext('2d');
+            waveCtx = waveCanvas.getContext('2d', { alpha: true });
             
             resizeWaveCanvas();
-            window.addEventListener('resize', resizeWaveCanvas);
-            
-            // Iniciar ciclo de renderizado permanente
-            drawWaveLoop();
+            // throttle para no re-escalar en cada evento resize (múltiples disparos en iOS)
+            let resizeRaf = null;
+            window.addEventListener('resize', () => {
+                if (resizeRaf) cancelAnimationFrame(resizeRaf);
+                resizeRaf = requestAnimationFrame(resizeWaveCanvas);
+            });
+
+            // El loop arranca cuando el player se muestre (lo controla showFullPlayer/hideFullPlayer).
+            // No arrancamos aquí para no gastar CPU/GPU mientras el usuario navega por la biblioteca.
         }
 
         function resizeWaveCanvas() {
             if (!waveCanvas) return;
-            const dpr = window.devicePixelRatio || 1;
+            // Limitar DPR en móviles: iPhone tiene DPR 3, lo que multiplica por 9 los píxeles dibujados.
+            // Cap a 2 mantiene nitidez aceptable y reduce drásticamente el costo de pintado.
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
             const rect = waveCanvas.parentNode.getBoundingClientRect();
-            waveCanvas.width = rect.width * dpr;
-            waveCanvas.height = rect.height * dpr;
-            waveCtx.scale(dpr, dpr);
+            if (rect.width === 0 || rect.height === 0) return;
+            waveCanvas.width = Math.round(rect.width * dpr);
+            waveCanvas.height = Math.round(rect.height * dpr);
+            // reset previo para no acumular escala en cada resize
+            waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function startWaveLoop() {
+            if (waveAnimFrame !== null) return;
+            waveAnimFrame = requestAnimationFrame(drawWaveLoop);
+        }
+
+        function stopWaveLoop() {
+            if (waveAnimFrame !== null) {
+                cancelAnimationFrame(waveAnimFrame);
+                waveAnimFrame = null;
+            }
         }
 
         let vocalSyllable = 0.15;
@@ -1607,14 +1648,35 @@
 
         /* 
            CICLO DE RENDERIZADO DYNAMIC NEON SIRI WAVE (Estilo clásico iOS Apple)
-           Dibuja ondas continuas y fluidas con los colores del video de YouTube:
-           Teal/Cian, Magenta/Rosa, Morado y un núcleo blanco brillante superpuestos con fusión aditiva 'screen'.
+           Optimizado para iPhone:
+             - Solo dibuja cuando el reproductor está visible.
+             - Usa UN solo Path2D por capa (un stroke) en lugar de segmentos sueltos.
+             - El shadowBlur se aplica una vez por capa, no por segmento.
+             - Paso de muestreo de 3px (antes 2px): suficiente nitidez, ~33% menos cómputo.
+             - En reposo absoluto, baja a ~20fps para no chupar batería.
         */
-        function drawWaveLoop() {
+        function drawWaveLoop(ts) {
             waveAnimFrame = requestAnimationFrame(drawWaveLoop);
             if (!waveCanvas || !waveCtx) return;
-            
-            const dpr = window.devicePixelRatio || 1;
+
+            // No dibujar si el reproductor está oculto (el header está dentro de #view-player)
+            const playerOpen = document.getElementById('view-player') &&
+                document.getElementById('view-player').classList.contains('player-active');
+            if (!playerOpen) {
+                waveVisible = false;
+                return;
+            }
+            waveVisible = true;
+
+            // Limitar framerate en reposo: 20fps cuando no hay reproducción activa
+            if (!isPlaying) {
+                if (waveLastDraw && (ts - waveLastDraw) < 50) return;
+                waveLastDraw = ts;
+            } else {
+                waveLastDraw = ts;
+            }
+
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
             const w = waveCanvas.width / dpr;
             const h = waveCanvas.height / dpr;
             
@@ -1653,75 +1715,72 @@
                 wavePhase += 0.02;
             }
             
+            // Si estamos en reposo y la amplitud ya está cerca del mínimo, evitamos dibujar las 4 capas completas
+            const idleMode = !isPlaying && currentWaveAmp < 0.08;
+
             const time = wavePhase;
             const baseline = h / 2;
 
-            // Capas con paleta enriquecida: más saturación y un segundo armónico por capa
-            // para que el movimiento no se sienta como una sinusoide perfecta y repetitiva.
+            // Capas con paleta enriquecida
             const layers = [
                 {
-                    color: 'rgba(20, 250, 255, 0.9)', // Cian Brillante
-                    freq: 2.5,
-                    freq2: 5.1,
-                    phaseShift: 0,
-                    speed: 2.6,
-                    lineWidth: 0.8,
-                    glowWidth: 5,
+                    color: 'rgba(20, 250, 255, 0.9)',
+                    freq: 2.5, freq2: 5.1,
+                    phaseShift: 0, speed: 2.6,
+                    lineWidth: 0.8, glowWidth: 5,
                     shadowColor: 'rgba(20, 250, 255, 0.65)',
                     ampMultiplier: 0.8
                 },
                 {
-                    color: 'rgba(255, 25, 140, 0.9)', // Magenta/Rosa Neón
-                    freq: 3.2,
-                    freq2: 6.4,
-                    phaseShift: Math.PI * 0.4,
-                    speed: 3.3,
-                    lineWidth: 0.7,
-                    glowWidth: 5,
+                    color: 'rgba(255, 25, 140, 0.9)',
+                    freq: 3.2, freq2: 6.4,
+                    phaseShift: Math.PI * 0.4, speed: 3.3,
+                    lineWidth: 0.7, glowWidth: 5,
                     shadowColor: 'rgba(255, 25, 140, 0.6)',
                     ampMultiplier: 0.85
                 },
                 {
-                    color: 'rgba(150, 30, 255, 0.8)', // Morado Eléctrico
-                    freq: 1.8,
-                    freq2: 4.3,
-                    phaseShift: Math.PI * 0.8,
-                    speed: 1.9,
-                    lineWidth: 0.6,
-                    glowWidth: 4,
+                    color: 'rgba(150, 30, 255, 0.8)',
+                    freq: 1.8, freq2: 4.3,
+                    phaseShift: Math.PI * 0.8, speed: 1.9,
+                    lineWidth: 0.6, glowWidth: 4,
                     shadowColor: 'rgba(150, 30, 255, 0.5)',
                     ampMultiplier: 0.6
                 },
                 {
-                    color: 'rgba(255, 255, 255, 0.98)', // Núcleo Blanco Brillante
-                    freq: 4.0,
-                    freq2: 8.2,
-                    phaseShift: Math.PI * 1.2,
-                    speed: 3.8,
-                    lineWidth: 1.0,
-                    glowWidth: 1.5,
+                    color: 'rgba(255, 255, 255, 0.98)',
+                    freq: 4.0, freq2: 8.2,
+                    phaseShift: Math.PI * 1.2, speed: 3.8,
+                    lineWidth: 1.0, glowWidth: 1.5,
                     shadowColor: 'rgba(255, 255, 255, 0.7)',
                     ampMultiplier: 1.0
                 }
             ];
-            
-            // Fusión aditiva para crear destellos y superposiciones de luz ultra brillantes
+
             waveCtx.globalCompositeOperation = 'screen';
             waveCtx.lineCap = 'round';
             waveCtx.lineJoin = 'round';
 
-            // Precalculamos el trazo de cada capa una vez y lo dibujamos dos veces:
-            // un paso ancho y translúcido (glow/bloom) y un paso fino y nítido encima (núcleo).
-            const marginX = Math.min(10, w * 0.07); // deja aire a los costados para que el blur no choque con el borde del canvas
+            const marginX = Math.min(10, w * 0.07);
             const drawW = Math.max(1, w - marginX * 2);
+            // Paso de muestreo: 3px en reproducción, 5px en reposo (suficiente para la onda tenue)
+            const step = isPlaying ? 3 : 5;
+            const maxHeight = h * 0.22;
 
-            layers.forEach(layer => {
-                const points = [];
-                for (let i = 0; i <= drawW; i += 2) { // paso de 2px: igual de fluido, más liviano
+            // En reposo absoluto solo dibujamos la capa núcleo (4) para mantener
+            // una señal visual mínima sin gastar GPU en las 4 capas.
+            const layersToDraw = idleMode ? [layers[3]] : layers;
+
+            layersToDraw.forEach(layer => {
+                // Construir un único Path2D por capa: 1 beginPath + 1 moveTo + N lineTo + 1 stroke
+                // (antes: N beginPath/moveTo/lineTo/stroke = ~75 strokes por capa)
+                waveCtx.beginPath();
+                let started = false;
+
+                for (let i = 0; i <= drawW; i += step) {
                     const px = marginX + i;
                     const xFrac = i / drawW;
 
-                    // Modulación por envolvente dinámica que da forma a la onda
                     let envelope = 1.0;
                     if (vocalPattern < 0.8) {
                         envelope = Math.pow(Math.sin(xFrac * Math.PI), 3.5);
@@ -1735,48 +1794,38 @@
                         ? (0.75 + 0.25 * Math.sin(time * 3.0 + layer.phaseShift))
                         : (0.15 + 0.05 * Math.sin(time * 1.0 + layer.phaseShift));
 
-                    const maxHeight = h * 0.22; // un punto menos de altura, ritmo/velocidad intactos
                     const height = maxHeight * vocalSyllable * flow * currentWaveAmp * layer.ampMultiplier;
 
-                    // Onda principal + un segundo armónico de menor peso: rompe la periodicidad
-                    // perfecta y da un movimiento más "orgánico", como una voz real y no un tono puro.
                     const primary = Math.sin(layer.freq * xFrac * Math.PI * 2 - time * layer.speed + layer.phaseShift);
                     const harmonic = 0.3 * Math.sin(layer.freq2 * xFrac * Math.PI * 2 - time * layer.speed * 1.7 + layer.phaseShift * 1.3);
                     const y = baseline - height * envelope * (primary + harmonic);
 
-                    // Factor de ahusado: 0 exacto en los bordes del trazo, 1 en el centro.
-                    // Exponente más alto = ahusado más gradual (forma de "hoja", no aguja seca).
-                    const taper = Math.pow(Math.max(0, Math.sin(xFrac * Math.PI)), 0.6);
-
-                    points.push([px, y, taper]);
+                    if (!started) {
+                        waveCtx.moveTo(px, y);
+                        started = true;
+                    } else {
+                        waveCtx.lineTo(px, y);
+                    }
                 }
 
-                // Dibuja la curva como segmentos cortos, cada uno con su propio grosor y su propio
-                // blur (ambos escalados por el ahusado), logrando puntas afiladas y sin corte de glow.
-                const strokeTapered = (widthBase, blurAmt) => {
-                    for (let i = 0; i < points.length - 1; i++) {
-                        const [x0, y0, t0] = points[i];
-                        const [x1, y1, t1] = points[i + 1];
-                        const segTaper = (t0 + t1) / 2;
-                        waveCtx.lineWidth = Math.max(0.3, widthBase * segTaper);
-                        waveCtx.shadowBlur = blurAmt * segTaper;
-                        waveCtx.beginPath();
-                        waveCtx.moveTo(x0, y0);
-                        waveCtx.lineTo(x1, y1);
-                        waveCtx.stroke();
-                    }
-                };
-
-                // Paso 1: glow ancho y suave (bloom)
+                // Paso 1: glow ancho y suave (bloom) — 1 stroke con su propio shadowBlur
                 waveCtx.strokeStyle = layer.shadowColor;
                 waveCtx.shadowColor = layer.shadowColor;
-                strokeTapered(layer.glowWidth, 12);
+                waveCtx.shadowBlur = 12;
+                waveCtx.lineWidth = layer.glowWidth;
+                waveCtx.stroke();
 
-                // Paso 2: núcleo nítido de la línea
+                // Paso 2: núcleo nítido de la línea — 1 stroke
                 waveCtx.strokeStyle = layer.color;
                 waveCtx.shadowColor = layer.shadowColor;
-                strokeTapered(layer.lineWidth, 6);
+                waveCtx.shadowBlur = 6;
+                waveCtx.lineWidth = layer.lineWidth;
+                waveCtx.stroke();
             });
+
+            // Reset del shadowBlur al terminar para no afectar otros pintados
+            waveCtx.shadowBlur = 0;
+            waveCtx.globalCompositeOperation = 'source-over';
         }
 
         // Limpieza de cola de precarga TTS al reconfigurar o cambiar de voz
@@ -2138,8 +2187,11 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('hidden');
             
+            // Forzar layout antes de aplicar la clase de animación (evita parpadeo)
             requestAnimationFrame(() => {
                 viewPlayer.classList.add('player-active');
+                // Reanudar el loop de la onda solo cuando el player es visible
+                if (typeof startWaveLoop === 'function') startWaveLoop();
             });
 
             document.getElementById('mini-player').classList.add('hidden');
@@ -2151,6 +2203,9 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('player-active');
             
+            // Detener el loop de la onda para no chupar CPU/GPU mientras el player está oculto
+            if (typeof stopWaveLoop === 'function') stopWaveLoop();
+
             setTimeout(() => {
                 if (!viewPlayer.classList.contains('player-active')) {
                     viewPlayer.classList.add('hidden');
@@ -2421,7 +2476,7 @@
                 readingBooks.forEach((book) => {
                     const idx = currentBooks.findIndex(b => b.id === book.id);
                     const card = document.createElement('div');
-                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-all duration-300";
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-transform duration-200";
                     card.innerHTML = `
                         <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
                             <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
@@ -2441,7 +2496,7 @@
                 completedBooks.forEach((book) => {
                     const idx = currentBooks.findIndex(b => b.id === book.id);
                     const card = document.createElement('div');
-                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-all duration-300";
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-transform duration-200";
                     card.innerHTML = `
                         <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
                             <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
@@ -2926,45 +2981,46 @@
         }
 
         // --- STREAMING_CHUNK: Ejecutando el deslizamiento automático del texto sincronizado... ---
-        let sentenceScrollAnimId = null;
-        function easeOutCubicScroll(t) { return 1 - Math.pow(1 - t, 3); }
-
         function scrollToActiveSentence() {
-            const container = document.getElementById('lyrics-container');
             const active = document.getElementById(`sentence-${currentSentenceIndex}`);
-            if (!active || !container) return;
-
-            const targetTop = active.offsetTop - (container.clientHeight / 2);
-            const startTop = container.scrollTop;
-            const distance = targetTop - startTop;
-
-            // Si ya casi está en posición, no vale la pena animar
-            if (Math.abs(distance) < 1) return;
-
-            // Animación propia por requestAnimationFrame: se sincroniza con la frecuencia
-            // real de la pantalla (60/90/120Hz) en vez de depender del 'smooth' nativo del
-            // navegador, que en muchos motores usa una duración fija y se siente pesado/trabado.
-            if (sentenceScrollAnimId) cancelAnimationFrame(sentenceScrollAnimId);
-            const duration = 240; // ms: rápido y directo
-            const startTime = performance.now();
-
-            function step(now) {
-                const t = Math.min(1, (now - startTime) / duration);
-                container.scrollTop = startTop + distance * easeOutCubicScroll(t);
-                if (t < 1) {
-                    sentenceScrollAnimId = requestAnimationFrame(step);
-                } else {
-                    sentenceScrollAnimId = null;
-                }
+            if (!active) return;
+            // scrollIntoView con 'block: center' es mucho más barato que calcular offsetTop
+            // y llamar a scrollTo con 'smooth'. En iOS el momentum nativo es más fluido con 'auto'.
+            try {
+                active.scrollIntoView({ block: 'center', behavior: 'auto' });
+            } catch (_) {
+                active.scrollIntoView({ block: 'center' });
             }
-            sentenceScrollAnimId = requestAnimationFrame(step);
         }
+
+        // Caché de referencias DOM usadas en el bucle de progreso (cada frame).
+        // getElementById es rápido, pero hacerlo 5-7 veces por frame a 60fps suma.
+        const progressDomCache = {
+            bar: null, handle: null, cur: null, total: null,
+            lpBar: null, lpCur: null, lpRem: null,
+            refresh() {
+                this.bar = document.getElementById('progress-bar');
+                this.handle = document.getElementById('progress-handle');
+                this.cur = document.getElementById('time-current');
+                this.total = document.getElementById('time-total');
+                this.lpBar = document.getElementById('last-played-progress');
+                this.lpCur = document.getElementById('last-played-current');
+                this.lpRem = document.getElementById('last-played-remaining');
+            }
+        };
 
         function startProgressLoop() {
             stopProgressLoop();
-            function tick() {
+            progressDomCache.refresh();
+            let lastUpdate = 0;
+            // 30fps es suficiente para una barra de progreso. Reducir a la mitad el trabajo del RAF.
+            const INTERVAL = 1000 / 30;
+            function tick(ts) {
                 if (!isPlaying) return;
-                updateSmoothProgress();
+                if (ts - lastUpdate >= INTERVAL) {
+                    lastUpdate = ts;
+                    updateSmoothProgress();
+                }
                 animationFrameId = requestAnimationFrame(tick);
             }
             animationFrameId = requestAnimationFrame(tick);
@@ -2972,30 +3028,31 @@
 
         function stopProgressLoop() {
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
         }
 
         function updateSmoothProgress() {
             if (textSentences.length === 0) return;
-            let elapsed = (performance.now() - currentSentenceStartTime) / 1000;
+            const now = performance.now();
+            let elapsed = (now - currentSentenceStartTime) / 1000;
             let currentOffset = sentenceOffsets[currentSentenceIndex] || 0;
             let sentenceDur = estimatedDurations[currentSentenceIndex] || 4;
             let progressTime = currentOffset + Math.min(elapsed, sentenceDur);
 
             const ratio = progressTime / totalChapterDuration;
-            document.getElementById('progress-bar').style.width = `${ratio * 100}%`;
-            document.getElementById('progress-handle').style.left = `${ratio * 100}%`;
+            const pctStr = (ratio * 100) + '%';
 
-            document.getElementById('time-current').textContent = formatTime(progressTime);
-            document.getElementById('time-total').textContent = formatTime(totalChapterDuration);
+            // Usar la caché en vez de getElementById en cada frame
+            if (!progressDomCache.bar) progressDomCache.refresh();
+            if (progressDomCache.bar) progressDomCache.bar.style.width = pctStr;
+            if (progressDomCache.handle) progressDomCache.handle.style.left = pctStr;
+            if (progressDomCache.cur) progressDomCache.cur.textContent = formatTime(progressTime);
+            if (progressDomCache.total) progressDomCache.total.textContent = formatTime(totalChapterDuration);
 
-            // Sincronización precisa de barra de progreso en Último Reproducido
-            const lastProgress = document.getElementById('last-played-progress');
-            if (lastProgress) {
-                lastProgress.style.width = `${ratio * 100}%`;
-                const lpCurrent = document.getElementById('last-played-current');
-                const lpRemaining = document.getElementById('last-played-remaining');
-                if (lpCurrent) lpCurrent.textContent = formatTime(progressTime);
-                if (lpRemaining) lpRemaining.textContent = formatTime(Math.max(0, totalChapterDuration - progressTime)) + " restan";
+            if (progressDomCache.lpBar) {
+                progressDomCache.lpBar.style.width = pctStr;
+                if (progressDomCache.lpCur) progressDomCache.lpCur.textContent = formatTime(progressTime);
+                if (progressDomCache.lpRem) progressDomCache.lpRem.textContent = formatTime(Math.max(0, totalChapterDuration - progressTime)) + " restan";
             }
         }
 
