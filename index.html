@@ -11,11 +11,11 @@
     <meta name="apple-mobile-web-app-title" content="Audiolibros Diego">
     
     <!-- Apple Touch Icon oficial usando el recurso premium librook.png -->
-    <link rel="apple-touch-icon" href="librook.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="librook.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="librook.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="librook.png">
-    <link rel="icon" type="image/png" href="librook.png">
+    <link class="keep-white" rel="apple-touch-icon" href="librook.png">
+    <link class="keep-white" rel="apple-touch-icon" sizes="152x152" href="librook.png">
+    <link class="keep-white" rel="apple-touch-icon" sizes="180x180" href="librook.png">
+    <link class="keep-white" rel="apple-touch-icon" sizes="167x167" href="librook.png">
+    <link class="keep-white" rel="icon" type="image/png" href="librook.png">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -56,7 +56,6 @@
     <style>
         html {
             font-size: calc(16px * var(--font-scale, 1));
-            /* transition: font-size removed — recomposites entire document on iOS */
         }
         :root {
             --bg-color: #050508;
@@ -75,7 +74,6 @@
             --nav-blur: 8px;
             --nav-border: rgba(255, 255, 255, 0.07);
             --pill-bg: rgba(255, 255, 255, 0.05);
-            /* Gradiente de borde naranja premium adaptado al estilo gota de agua */
             --pill-border-gradient: linear-gradient(135deg, #ffa400 0%, #ffcc00 25%, #ff8800 50%, #ffcc00 75%, #ffa400 100%);
             --pill-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.2);
         }
@@ -98,7 +96,6 @@
             --nav-blur: 8px;
             --nav-border: rgba(0, 0, 0, 0.08);
             --pill-bg: rgba(0, 0, 0, 0.03);
-            /* Gradiente de borde naranja premium adaptado al modo claro */
             --pill-border-gradient: linear-gradient(135deg, #ffa400 0%, #ffb733 30%, #ffd666 60%, #ffa400 100%);
             --pill-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), inset 0 1px 2px rgba(255, 255, 255, 0.5);
         }
@@ -142,7 +139,7 @@
             -webkit-backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
             border-top: 1px solid var(--nav-border) !important;
             transition: background-color 0.4s ease, border-color 0.4s ease;
-            transform: translateZ(0);
+            transform: translate3d(0, 0, 0);
         }
 
         /* EFECTO LIQUID ACTIVE PILL CON ESTILO "GOTA DE AGUA" */
@@ -154,7 +151,7 @@
             z-index: 5;
             will-change: left, width, top, height, transform, opacity;
             box-sizing: border-box;
-            transform: translateZ(0);
+            transform: translate3d(0, 0, 0);
             background: var(--pill-bg);
             box-shadow: var(--pill-shadow);
             transition: left 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), width 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), top 0.5s ease, height 0.5s ease, transform 0.2s cubic-bezier(0.25, 1, 0.2, 1.2), opacity 0.2s ease;
@@ -176,7 +173,7 @@
             opacity: 1 !important;
             background: rgba(255, 164, 0, 0.08) !important;
             box-shadow: 0 10px 28px rgba(255, 164, 0, 0.25) !important;
-            transform: scale(0.95);
+            transform: scale(0.95) translate3d(0, 0, 0);
         }
 
         .active-pill::before {
@@ -300,15 +297,16 @@
         }
 
         #player-bg-blur {
-            filter: blur(60px) brightness(0.35) saturate(1.8) !important;
+            /* Optimizado de 60px a 40px para aceleración por hardware ultra fluida en Safari Mobile */
+            filter: blur(40px) brightness(0.35) saturate(1.8) !important;
             opacity: 0.85 !important;
             transition: background-image 0.6s ease-in-out;
-            transform: translateZ(0);
-            will-change: transform, opacity, filter;
+            transform: translate3d(0, 0, 0);
+            will-change: background-image;
         }
 
         body.light-theme #player-bg-blur {
-            filter: blur(60px) brightness(1.35) saturate(1.2) !important;
+            filter: blur(40px) brightness(1.35) saturate(1.2) !important;
             opacity: 0.55 !important;
         }
 
@@ -417,7 +415,7 @@
             bottom: 72px;
             z-index: 40;
             background-color: var(--bg-color) !important;
-            transform: translateY(100%) scale(0.92) translateZ(0);
+            transform: translateY(100%) scale(0.92) translate3d(0,0,0);
             opacity: 0;
             pointer-events: none;
             will-change: transform, opacity;
@@ -425,22 +423,20 @@
         }
 
         #view-player.player-active {
-            transform: translateY(0) scale(1) !important;
+            transform: translateY(0) scale(1) translate3d(0,0,0) !important;
             opacity: 1 !important;
             pointer-events: auto !important;
-            /* Transición al ACTIVARSE: Mantiene su rebote elástico hacia arriba */
             transition: transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease !important;
         }
 
         /* MENÚS EMERGENTES CON EFECTO FROSTED GLASS Y ANIMACIÓN DE REBOTE DYNAMIC SPRING */
         .unified-flyout {
             opacity: 0;
-            transform: translateY(16px) scale(0.85) translateZ(0); 
+            transform: translateY(16px) scale(0.85) translate3d(0,0,0); 
             pointer-events: none;
             transition: transform 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.28), opacity 0.22s ease !important;
             z-index: 100;
             
-            /* Premium Frosted Glass (coherente con la Dynamic Island) */
             background: rgba(15, 15, 20, 0.82) !important;
             backdrop-filter: blur(8px) saturate(190%) !important;
             -webkit-backdrop-filter: blur(8px) saturate(190%) !important;
@@ -453,16 +449,16 @@
         /* Estado visible para los flyouts con reajuste elástico */
         .unified-flyout.show-active {
             opacity: 1 !important;
-            transform: translateY(0) scale(1) !important;
+            transform: translateY(0) scale(1) translate3d(0,0,0) !important;
             pointer-events: auto !important;
         }
 
         /* Adaptación para elementos centrados como el Speed Flyout */
         #speed-flyout.unified-flyout {
-            transform: translate(-50%, 16px) scale(0.85) !important;
+            transform: translate3d(-50%, 16px, 0) scale(0.85) !important;
         }
         #speed-flyout.unified-flyout.show-active {
-            transform: translate(-50%, 0) scale(1) !important;
+            transform: translate3d(-50%, 0, 0) scale(1) !important;
         }
 
         /* Estilo frosted glass blanco impecable en Modo Claro */
@@ -587,8 +583,7 @@
             position: absolute;
             top: max(84px, calc(env(safe-area-inset-top) + 80px));
             left: 50%;
-            transform: translate(-50%, -40px) scale(0.8) translateZ(0);
-            transform: translate(-50%, -40px) scale(0.8);
+            transform: translate3d(-50%, -40px, 0) scale(0.8);
             opacity: 0;
             pointer-events: none;
             z-index: 100;
@@ -597,7 +592,7 @@
             -webkit-backdrop-filter: blur(8px) saturate(190%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            border-radius: 9999px; /* Diseño ultra redondeado de píldora */
+            border-radius: 9999px;
             padding: 8px 18px;
             transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
             display: flex;
@@ -612,7 +607,7 @@
 
         /* Animación de rebote físico Dynamic Island desde el notch central */
         #app-toast.show-active {
-            transform: translate(-50%, 12px) scale(1);
+            transform: translate3d(-50%, 12px, 0) scale(1);
             opacity: 1;
         }
 
@@ -632,17 +627,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 60px;        /* Antes 36px: ahora tiene presencia real, ya no parece un hilo */
-            width: 150px;        /* Reducido: el glow se cortaba contra el borde del canvas cuando era más ancho */
+            height: 60px;
+            width: 150px;
             overflow: visible;
-            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.15)); /* Halo suave que se funde con el fondo */
+            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.15));
         }
 
         #wave-canvas {
             display: block;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* No absorbe clics, previene bloquear botones superiores */
+            pointer-events: none;
         }
     
         .piper-progress-bar { height: 3px; background: var(--accent-color); transition: width 0.3s; border-radius: 2px; }
@@ -689,7 +684,7 @@
             background-color: #34c759;
         }
         input:checked + .ios-slider:before {
-            transform: translateX(20px);
+            transform: translate3d(20px, 0, 0);
         }
 
         .tone-dot {
@@ -697,7 +692,7 @@
             height: 8px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.25);
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color 0.2s ease, transform 0.2s ease;
             cursor: pointer;
         }
         body.light-theme .tone-dot {
@@ -705,7 +700,7 @@
         }
         .tone-dot.active {
             background-color: #ffa400 !important;
-            transform: scale(1.35);
+            transform: scale(1.35) translate3d(0, 0, 0);
         }
 
         /* Transiciones fluidas sobre botones generales */
@@ -715,7 +710,7 @@
             transition: color 0.4s cubic-bezier(0.25, 1, 0.2, 1), transform 0.2s ease, font-weight 0.4s cubic-bezier(0.25, 1, 0.2, 1);
         }
         .nav-tab-btn:active {
-            transform: scale(0.92);
+            transform: scale(0.92) translate3d(0, 0, 0);
         }
 
         /* Evitar scrolling al interactuar con la barra de navegación */
@@ -740,8 +735,8 @@
 
     <!-- Fondo líquido abstracto autogestionado -->
     <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
-        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translateZ(0); will-change: opacity;"></div>
-        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translateZ(0); will-change: opacity;"></div>
+        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translate3d(0,0,0); will-change: opacity;"></div>
+        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translate3d(0,0,0); will-change: opacity;"></div>
     </div>
 
     <!-- CONTENEDOR DE TRABAJO COMPLETO -->
@@ -887,7 +882,7 @@
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Gestión de Biblioteca</span>
                             <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="document.getElementById('file-input').click()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" onclick="document.getElementById('file-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -896,7 +891,7 @@
                                     </div>
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="document.getElementById('backup-import-input').click()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" onclick="document.getElementById('backup-import-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
                                             <i class="fa-solid fa-file-import"></i>
@@ -906,7 +901,7 @@
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
                                 <input type="file" id="backup-import-input" accept=".json" class="hidden">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="exportBackupJSON()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" onclick="exportBackupJSON()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
                                             <i class="fa-solid fa-file-export"></i>
@@ -965,7 +960,7 @@
 
                 <!-- REPRODUCTOR DE AUDIOLIBROS -->
                 <div id="view-player" class="flex flex-col h-full">
-                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center" style="transition: background-image 0.7s ease-in-out; transform: scale(1.35);" style="transform: scale(1.35);"></div>
+                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center" style="transition: background-image 0.7s ease-in-out; transform: scale(1.35) translate3d(0,0,0);"></div>
                     
                     <header class="flex flex-col gap-2.5 px-6 pt-8 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full relative">
@@ -997,15 +992,15 @@
                                 <p id="player-book-author" class="text-sm opacity-60 mt-0.5 line-clamp-1 text-zinc-300">Autor Desconocido</p>
                                 <p id="player-book-saga" class="text-[14px] font-semibold mt-1 uppercase tracking-wide">LIBRO ÚNICO</p>
                             </div>
-                            <button id="btn-leer-spotify" class="mt-5 flex items-center justify-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 font-semibold text-sm" style="transition: transform 0.2s ease, background 0.2s ease;">
-                                <i class="fa-solid fa-align-left text-xs"></i> <span>Leer</span>
+                            <button id="btn-leer-spotify" class="keep-white mt-5 flex items-center justify-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 font-semibold text-sm" style="transition: transform 0.2s ease, background-color 0.2s ease;">
+                                <i class="keep-white fa-solid fa-align-left text-xs"></i> <span class="keep-white">Leer</span>
                             </button>
                         </div>
 
                         <!-- Texto Sincronizado en Pantalla Completa -->
                         <div id="wrapper-text" class="hidden fixed inset-0 z-[60] flex flex-col overflow-hidden">
                             <header class="flex items-center px-6 py-4 safe-padding-top shrink-0">
-                                <button id="btn-close-text" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95" style="transition: transform 0.2s ease, background 0.2s ease;">
+                                <button id="btn-close-text" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95" style="transition: transform 0.2s ease, background-color 0.2s ease;">
                                     <i class="fa-solid fa-chevron-down text-sm"></i>
                                 </button>
                                 <div class="text-center flex-1 mx-3 overflow-hidden">
@@ -1168,7 +1163,7 @@
                 </div>
 
                 <!-- MINIREPRODUCTOR FLOTANTE INFERIOR -->
-                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hidden" style="transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;">
+                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hidden" style="transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease; transform: translate3d(0, 0, 0);">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <img id="mini-player-cover" src="" class="w-10 h-10 rounded-lg object-cover bg-zinc-950 shadow" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
                         <div class="flex-1 min-w-0">
@@ -1315,7 +1310,6 @@
                 analyserNode.fftSize = 256;
                 analyserNode.smoothingTimeConstant = 0.7;
                 waveFreqData = new Uint8Array(analyserNode.frequencyBinCount);
-                // El análisis pasa por el destino final para que el audio se siga escuchando
                 audioSourceNode.connect(analyserNode);
                 analyserNode.connect(audioCtx.destination);
                 audioAnalyserReady = true;
@@ -1341,11 +1335,9 @@
             const midAvg = midSum / Math.max(1, midEnd - lowEnd);
             const highAvg = highSum / Math.max(1, len - midEnd);
 
-            // Energía vocal ponderada (graves y medios dominan la voz humana)
             const overall = (lowAvg * 0.5 + midAvg * 0.35 + highAvg * 0.15) / 255;
             targetVocalSyllable = Math.min(1.0, Math.pow(overall, 0.6) * 1.7);
 
-            // El brillo espectral decide qué patrón de onda usar (consonantes vs vocales)
             const brightness = highAvg / (lowAvg + 1);
             if (overall < 0.1) targetVocalPattern = 2;
             else if (brightness > 0.85) targetVocalPattern = 1;
@@ -1543,11 +1535,31 @@
         let timerCountdown = null;
         let remainingTimerSeconds = 0;
 
+        // Despierta el servidor de Render en segundo plano para evitar "arranque en frío"
+        async function warmUpRenderServer() {
+            if (!EDGE_TTS_SERVER_URL) return;
+            try {
+                fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: "ping",
+                        voice: EDGE_SELECTED_VOICE,
+                        rate: "+0%",
+                        pitch: "+0Hz"
+                    })
+                }).then(() => {
+                    console.log("[Render Server] Warm-up ping exitoso.");
+                }).catch(() => {});
+            } catch(e) {}
+        }
+
         window.onload = function() {
             restoreTheme();
             restoreFontScale();
             initApp();
             initSpeechSynthesis();
+            warmUpRenderServer(); // Wake-up call directo al iniciar la app
 
             const savedLayout = localStorage.getItem('audiolibros_diego_pc_layout');
             if (savedLayout === 'true') {
@@ -1558,7 +1570,6 @@
             applyLayoutState();
             renderToneDots(); 
             
-            // Inicializar el canvas de onda de sonido fluida (Siri Wave Clásico Overlap)
             initWaveCanvas();
             
             setTimeout(updateNavPillPosition, 150);
@@ -1577,7 +1588,6 @@
             resizeWaveCanvas();
             window.addEventListener('resize', resizeWaveCanvas);
             
-            // Iniciar ciclo de renderizado permanente
             drawWaveLoop();
         }
 
@@ -1592,34 +1602,24 @@
 
         let vocalSyllable = 0.15;
         let targetVocalSyllable = 0.15;
-        let vocalPattern = 2; // 0: Centro enfocado, 1: Orillas enfocadas, 2: Balanceado
+        let vocalPattern = 2; 
         let targetVocalPattern = 2;
         let speechTimer = 0;
 
-        /* 
-           CICLO DE RENDERIZADO DYNAMIC NEON SIRI WAVE (Estilo clásico iOS Apple)
-           OPTIMIZADO PARA iOS:
-           - Solo dibuja con reproductor abierto
-           - DPR cap a 2 (iPhone 3x = 9× píxeles → ahora 4×)
-           - 20fps en reposo, solo capa núcleo
-           - GLOW: 1 solo Path2D por capa (sin taper) con shadowBlur → 1 draw call barato
-           - NÚCLEO: segmentos con lineWidth variable (taper) + shadowBlur=0 → puntas afiladas sin 600 shadow ops
-        */
         let waveLastFrameTime = 0;
-        const WAVE_IDLE_INTERVAL = 50; // ~20fps
-        const WAVE_ACTIVE_INTERVAL = 16; // ~60fps
+        const WAVE_IDLE_INTERVAL = 50; 
+        const WAVE_ACTIVE_INTERVAL = 16; 
 
+        // --- STREAMING_CHUNK: Optimizando el ciclo siri wave libre de cortes y 100% puntiagudo ---
         function drawWaveLoop(timestamp) {
             waveAnimFrame = requestAnimationFrame(drawWaveLoop);
 
-            // Solo dibujar cuando el reproductor está abierto
             const viewPlayer = document.getElementById('view-player');
             if (!viewPlayer || !viewPlayer.classList.contains('player-active')) {
                 if (waveAnimFrame) { cancelAnimationFrame(waveAnimFrame); waveAnimFrame = null; }
                 return;
             }
 
-            // Throttle: 20fps en reposo, 60fps reproduciendo
             const interval = isPlaying ? WAVE_ACTIVE_INTERVAL : WAVE_IDLE_INTERVAL;
             if (timestamp - waveLastFrameTime < interval) return;
             waveLastFrameTime = timestamp;
@@ -1664,61 +1664,61 @@
             const time = wavePhase;
             const baseline = h / 2;
 
+            // Configuración estética de capas con colores y opacidades calibrados
             const layers = [
                 {
-                    color: 'rgba(20, 250, 255, 0.9)',
+                    color: 'rgba(20, 250, 255, 0.95)',
+                    innerGlowColor: 'rgba(20, 250, 255, 0.35)',
+                    shadowColor: 'rgba(20, 250, 255, 0.1)',
                     freq: 2.5, freq2: 5.1, phaseShift: 0, speed: 2.6,
-                    lineWidth: 0.8, glowWidth: 5,
-                    shadowColor: 'rgba(20, 250, 255, 0.65)', ampMultiplier: 0.8
+                    lineWidth: 1.5, glowWidth: 4, ampMultiplier: 0.8
                 },
                 {
-                    color: 'rgba(255, 25, 140, 0.9)',
+                    color: 'rgba(255, 25, 140, 0.95)',
+                    innerGlowColor: 'rgba(255, 25, 140, 0.3)',
+                    shadowColor: 'rgba(255, 25, 140, 0.08)',
                     freq: 3.2, freq2: 6.4, phaseShift: Math.PI * 0.4, speed: 3.3,
-                    lineWidth: 0.7, glowWidth: 5,
-                    shadowColor: 'rgba(255, 25, 140, 0.6)', ampMultiplier: 0.85
+                    lineWidth: 1.2, glowWidth: 4, ampMultiplier: 0.85
                 },
                 {
-                    color: 'rgba(150, 30, 255, 0.8)',
+                    color: 'rgba(150, 30, 255, 0.85)',
+                    innerGlowColor: 'rgba(150, 30, 255, 0.25)',
+                    shadowColor: 'rgba(150, 30, 255, 0.06)',
                     freq: 1.8, freq2: 4.3, phaseShift: Math.PI * 0.8, speed: 1.9,
-                    lineWidth: 0.6, glowWidth: 4,
-                    shadowColor: 'rgba(150, 30, 255, 0.5)', ampMultiplier: 0.6
+                    lineWidth: 1.0, glowWidth: 3, ampMultiplier: 0.6
                 },
                 {
                     color: 'rgba(255, 255, 255, 0.98)',
+                    innerGlowColor: 'rgba(255, 255, 255, 0.4)',
+                    shadowColor: 'rgba(255, 255, 255, 0.12)',
                     freq: 4.0, freq2: 8.2, phaseShift: Math.PI * 1.2, speed: 3.8,
-                    lineWidth: 1.0, glowWidth: 1,
-                    shadowColor: 'rgba(255, 255, 255, 0.7)', ampMultiplier: 1.0
+                    lineWidth: 1.8, glowWidth: 2, ampMultiplier: 1.0
                 }
             ];
             
             waveCtx.globalCompositeOperation = 'screen';
-            waveCtx.lineCap = 'butt';
-            waveCtx.lineJoin = 'miter';
+            waveCtx.lineCap = 'round';
+            waveCtx.lineJoin = 'round';
 
-            const marginX = 0; // Sin margen: las líneas llegan a los bordes con puntas visibles
+            // MARGEN SEGURO DEL 12% a los lados: Evita que la onda toque los límites físicos y se corte
+            const marginX = w * 0.12; 
             const drawW = Math.max(1, w - marginX * 2);
 
             const isIdle = !isPlaying;
-            const layerStart = isIdle ? 3 : 0; // Solo capa núcleo en reposo
-            const step = isIdle ? 2 : 1; // Mayor resolución para puntas definidas
+            const layerStart = isIdle ? 3 : 0; 
+            const step = 2; // Paso equilibrado para curvas fluidas a 60fps sin sobrecargar CPU
 
             for (let li = layerStart; li < layers.length; li++) {
                 const layer = layers[li];
-
-                // --- PASO 1: Calcular todos los puntos con taper ---
                 const points = [];
+
+                // --- PASO 1: Calcular todos los puntos con el nuevo envolvente ultra afilado ---
                 for (let i = 0; i <= drawW; i += step) {
                     const px = marginX + i;
                     const xFrac = i / drawW;
 
-                    let envelope = 1.0;
-                    if (vocalPattern < 0.8) {
-                        envelope = Math.pow(Math.sin(xFrac * Math.PI), 3.5);
-                    } else if (vocalPattern < 1.6) {
-                        envelope = Math.pow(Math.sin(xFrac * Math.PI), 1.5) * Math.pow(Math.cos(xFrac * Math.PI), 2.0) * 2.2;
-                    } else {
-                        envelope = Math.pow(Math.sin(xFrac * Math.PI), 2.0);
-                    }
+                    // Envolvente sinusoidal al cubo para jalar la amplitud suavemente a cero en los márgenes
+                    const envelope = Math.pow(Math.sin(xFrac * Math.PI), 2.5);
 
                     const flow = isPlaying
                         ? (0.75 + 0.25 * Math.sin(time * 3.0 + layer.phaseShift))
@@ -1731,48 +1731,58 @@
                     const harmonic = 0.3 * Math.sin(layer.freq2 * xFrac * Math.PI * 2 - time * layer.speed * 1.7 + layer.phaseShift * 1.3);
                     const y = baseline - height * envelope * (primary + harmonic);
 
-                    // Factor de ahusado: 0 en bordes, 1 en centro → líneas puntiagudas
-                    const taper = Math.pow(Math.max(0, Math.sin(xFrac * Math.PI)), 1.2);
-                    points.push([px, y, taper]);
+                    // Multiplicador de ahusado: decrece orgánicamente a 0 en las puntas extremas
+                    const taperWidth = Math.pow(Math.sin(xFrac * Math.PI), 2.0);
+                    points.push({ x: px, y: y, t: taperWidth });
                 }
 
-                // --- PASO 2: GLOW con segmentos taper (puntas puntiagudas) + shadowBlur ---
+                if (points.length < 2) continue;
+
+                // --- PASO 2: RENDERIZAR BRILLO EXTERIOR TRANSLÚCIDO (Puntiagudo) ---
                 waveCtx.strokeStyle = layer.shadowColor;
-                waveCtx.shadowColor = layer.shadowColor;
-                waveCtx.shadowBlur = isIdle ? 2 : 6;
-                const glowStep = isIdle ? 4 : 3;
-                for (let i = 0; i < points.length - 1; i += 1) {
-                    if (i % glowStep !== 0 && i !== points.length - 2) continue;
-                    const [x0, y0, t0] = points[i];
-                    const ni = Math.min(i + glowStep, points.length - 1);
-                    const [x1, y1, t1] = points[ni];
-                    const segTaper = (t0 + t1) / 2;
-                    waveCtx.lineWidth = Math.max(0.1, layer.glowWidth * segTaper * (isIdle ? 0.5 : 1));
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p0 = points[i];
+                    const p1 = points[i + 1];
+                    const avgT = (p0.t + p1.t) / 2;
+                    
+                    waveCtx.lineWidth = layer.glowWidth * 3.5 * avgT;
                     waveCtx.beginPath();
-                    waveCtx.moveTo(x0, y0);
-                    waveCtx.lineTo(x1, y1);
+                    waveCtx.moveTo(p0.x, p0.y);
+                    waveCtx.lineTo(p1.x, p1.y);
                     waveCtx.stroke();
                 }
 
-                // --- PASO 3: NÚCLEO con segmentos taper (lineWidth variable) + SIN shadowBlur ---
-                // Puntas afiladas en todos los colores
-                waveCtx.shadowBlur = 0;
-                waveCtx.shadowColor = 'transparent';
+                // --- PASO 3: RENDERIZAR BRILLO INTERIOR SUAVE (Puntiagudo) ---
+                waveCtx.strokeStyle = layer.innerGlowColor;
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p0 = points[i];
+                    const p1 = points[i + 1];
+                    const avgT = (p0.t + p1.t) / 2;
+                    
+                    waveCtx.lineWidth = layer.glowWidth * 1.8 * avgT;
+                    waveCtx.beginPath();
+                    waveCtx.moveTo(p0.x, p0.y);
+                    waveCtx.lineTo(p1.x, p1.y);
+                    waveCtx.stroke();
+                }
+
+                // --- PASO 4: RENDERIZAR NÚCLEO NÍTIDO PRINCIPAL (Puntiagudo a 0px) ---
                 waveCtx.strokeStyle = layer.color;
                 for (let i = 0; i < points.length - 1; i++) {
-                    const [x0, y0, t0] = points[i];
-                    const [x1, y1, t1] = points[i + 1];
-                    const segTaper = (t0 + t1) / 2;
-                    waveCtx.lineWidth = Math.max(0.05, layer.lineWidth * segTaper);
+                    const p0 = points[i];
+                    const p1 = points[i + 1];
+                    const avgT = (p0.t + p1.t) / 2;
+                    
+                    // Termina en punta absoluta (espesor 0) al acercarse a las márgenes
+                    waveCtx.lineWidth = Math.max(0.01, layer.lineWidth * avgT);
                     waveCtx.beginPath();
-                    waveCtx.moveTo(x0, y0);
-                    waveCtx.lineTo(x1, y1);
+                    waveCtx.moveTo(p0.x, p0.y);
+                    waveCtx.lineTo(p1.x, p1.y);
                     waveCtx.stroke();
                 }
             }
         }
 
-        // Re-iniciar el ciclo de onda cuando se abre el reproductor
         function ensureWaveLoop() {
             if (!waveAnimFrame) {
                 waveLastFrameTime = 0;
@@ -1780,7 +1790,7 @@
             }
         }
 
-                // Limpieza de cola de precarga TTS al reconfigurar o cambiar de voz
+        // Limpieza de cola de precarga TTS al reconfigurar o cambiar de voz
         function clearTtsCache() {
             edgePrefetchCache.clear();
             edgePrefetchAbortControllers.forEach(ctrl => {
@@ -2076,6 +2086,7 @@
             });
         }
 
+        // --- STREAMING_CHUNK: Cambiando pestañas en barra inferior de iOS... ---
         function switchTab(tabName) {
             currentActiveTab = tabName;
             const views = {
@@ -2130,7 +2141,6 @@
             pill.style.top = `${relativeTop}px`;
         }
 
-        // --- STREAMING_CHUNK: Controlando transiciones de apertura/cierre de la pantalla del reproductor... ---
         function showFullPlayer() {
             document.getElementById('view-listening').classList.add('hidden');
             document.getElementById('view-library').classList.add('hidden');
@@ -2244,7 +2254,6 @@
             return stack.join('/');
         }
 
-        // --- STREAMING_CHUNK: Parsing de EPUBs y metadata multimedia... ---
         async function extractEpubCover(zip, opfDoc, manifestItems, opfFolder) {
             try {
                 let coverHref = null;
@@ -2308,6 +2317,7 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Decodificando documentos EPUB a texto legible ---
         function parseEPUBFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -2364,7 +2374,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- STREAMING_CHUNK: Parsing de PDFs mediante PDFJS de forma estructurada... ---
         function parsePDFFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -2405,6 +2414,7 @@
             updateHomeListeningViews();
         }
 
+        // --- STREAMING_CHUNK: Generando carruseles para Continuar Leyendo y libros completados ---
         function updateHomeListeningViews() {
             const carousel = document.getElementById('reading-carousel');
             const completedCarousel = document.getElementById('completed-carousel');
@@ -2416,7 +2426,6 @@
             const readingBooks = currentBooks.filter(b => !b.completed);
             const completedBooks = currentBooks.filter(b => b.completed);
 
-            // Renderizar Continuar Leyendo
             if (readingBooks.length === 0) {
                 carousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros en progreso</div>`;
             } else {
@@ -2437,7 +2446,6 @@
                 });
             }
 
-            // Renderizar Libros Completados
             if (completedBooks.length === 0) {
                 completedCarousel.innerHTML = `<div class="text-zinc-500 text-sm py-8 text-center w-full">No hay libros completados todavía</div>`;
             } else {
@@ -2461,7 +2469,6 @@
                 });
             }
 
-            // Actualizar la tarjeta de "Último Reproducido" con el libro que esté activo, o el primero por defecto
             let activeOrLastBook = activeBookIndex !== null ? currentBooks[activeBookIndex] : currentBooks[0];
             if (activeOrLastBook) {
                 document.getElementById('last-played-title').textContent = activeOrLastBook.title;
@@ -2471,7 +2478,6 @@
                 const lpIdx = currentBooks.findIndex(b => b.id === activeOrLastBook.id);
                 document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(lpIdx);
                 
-                // Calcular progreso visual
                 if (activeBookIndex === null) {
                     const ratio = activeOrLastBook.progressChapter / Math.max(1, activeOrLastBook.chapters.length);
                     document.getElementById('last-played-progress').style.width = `${ratio * 100}%`;
@@ -2492,7 +2498,6 @@
             storageAdapter.save(book);
         }
 
-        // --- STREAMING_CHUNK: Renderizando la colección de la biblioteca en lista vertical... ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             if (!grid) return;
@@ -2555,7 +2560,6 @@
             document.getElementById('player-cover-img').src = book.cover;
             document.getElementById('player-bg-blur').style.backgroundImage = `url(${book.cover})`;
 
-            // Sincronizar instantáneamente "Último reproducido" con el libro cargado
             document.getElementById('last-played-title').textContent = book.title;
             document.getElementById('last-played-author').textContent = book.author;
             document.getElementById('last-played-cover').src = book.cover;
@@ -2609,14 +2613,12 @@
             totalChapterDuration = acc;
         }
 
-        // --- STREAMING_CHUNK: Controlando eventos multimedia y Playback del reproductor... ---
+        // --- STREAMING_CHUNK: Habilitando contexto de audio con gestos de usuario ---
         function unlockAudio() {
             const silent = document.getElementById('silent-keepalive');
             if (silent) {
                 silent.play().catch(() => {});
             }
-            // Engancha el analizador de audio real en este mismo gesto del usuario
-            // (los navegadores exigen un gesto para crear/reanudar el AudioContext)
             ensureAudioAnalyser();
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume().catch(() => {});
@@ -2672,7 +2674,6 @@
                     speakSentence(0);
                 } else {
                     pauseAudio();
-                    // Marcar libro como terminado
                     currentBooks[activeBookIndex].completed = true;
                     saveCurrentProgress();
                     updateHomeListeningViews();
@@ -2822,7 +2823,6 @@
                     });
                 edgePrefetchCache.set(key, p);
             }
-            // Limpiar claves antiguas de cache para evitar fugas de memoria
             if (edgePrefetchCache.size > 30) {
                 const keys = Array.from(edgePrefetchCache.keys());
                 for (let i = 0; i < keys.length - 20; i++) {
@@ -2895,7 +2895,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Creando funciones de sincronización de texto y marcadores... ---
         function jumpToSentence(idx) {
             currentSentenceIndex = idx;
             saveCurrentProgress();
@@ -2929,7 +2928,7 @@
             updateBookmarkButtonState();
         }
 
-        // --- STREAMING_CHUNK: Ejecutando el deslizamiento automático del texto sincronizado... ---
+        // --- STREAMING_CHUNK: Moviendo el scroll del visor de lectura activa ---
         function scrollToActiveSentence() {
             const container = document.getElementById('lyrics-container');
             const active = document.getElementById(`sentence-${currentSentenceIndex}`);
@@ -2941,7 +2940,6 @@
             }
         }
 
-        // Caché de referencias DOM para updateSmoothProgress (evita 7 getElementById por frame)
         let _cachedProgressBar = null;
         let _cachedProgressHandle = null;
         let _cachedTimeCurrent = null;
@@ -2966,7 +2964,7 @@
             stopProgressLoop();
             if (!_progressDomCacheReady) cacheProgressDomRefs();
             let lastTick = 0;
-            const TICK_INTERVAL = 33; // ~30fps throttle
+            const TICK_INTERVAL = 33; 
             function tick(timestamp) {
                 if (!isPlaying) return;
                 if (timestamp - lastTick < TICK_INTERVAL) {
@@ -3036,7 +3034,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Creando el sistema de guardado de marcadores persistentes... ---
         function toggleBookmark() {
             const book = currentBooks[activeBookIndex];
             if (!book) return;
@@ -3130,7 +3127,6 @@
             });
         }
 
-        // --- STREAMING_CHUNK: Creando el control de tono interactivo... ---
         const TONE_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5];
 
         function renderToneDots() {
@@ -3342,8 +3338,9 @@
                         const newUrl = urlField.value.trim().replace(/\/$/, '');
                         EDGE_TTS_SERVER_URL = newUrl;
                         localStorage.setItem('audiolibros_diego_edge_server_url', newUrl);
-                        clearTtsCache(); // Limpiar cache y cancelar solicitudes pendientes instantáneamente
+                        clearTtsCache(); 
                         showToast("URL de Render Guardada", "fa-circle-check text-green-400");
+                        warmUpRenderServer(); 
                     });
                 }
             }, 100);
@@ -3446,13 +3443,10 @@
                 btn.classList.toggle('active-opt', isMatch);
             });
 
-            // Limpiar cache de pre-búsqueda para asegurar de que cargue la nueva voz instantáneamente sin retardos
             clearTtsCache();
-
             closeAllFlyouts();
             showToast(`Voz: ${displayLabel}`, "fa-microphone text-orange-500");
 
-            // Si está reproduciendo, detener reproducción actual e iniciar con la nueva voz inmediatamente
             if (isPlaying) {
                 window.speechSynthesis.cancel();
                 if (ttsAudioEl) {
@@ -3463,7 +3457,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Creando el disparador unificado de las notificaciones flotantes... ---
         function showToast(msg, icon = "fa-circle-info") {
             const el = document.getElementById('app-toast');
             const iconEl = document.getElementById('app-toast-icon');
