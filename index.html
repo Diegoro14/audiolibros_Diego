@@ -56,8 +56,7 @@
     <style>
         html {
             font-size: calc(16px * var(--font-scale, 1));
-            /* Sin transition: animar font-size en html fuerza recalcular el layout
-               de TODO el documento en cada frame. Mejor cambio instantáneo. */
+            /* transition: font-size removed — recomposites entire document on iOS */
         }
         :root {
             --bg-color: #050508;
@@ -73,7 +72,7 @@
 
             /* Liquid Glass Custom Variables (Modo Oscuro) */
             --nav-bg: rgba(10, 10, 12, 0.72);
-            --nav-blur: 16px;
+            --nav-blur: 8px;
             --nav-border: rgba(255, 255, 255, 0.07);
             --pill-bg: rgba(255, 255, 255, 0.05);
             /* Gradiente de borde naranja premium adaptado al estilo gota de agua */
@@ -96,7 +95,7 @@
 
             /* Liquid Glass Custom Variables (Modo Claro) */
             --nav-bg: rgba(255, 255, 255, 0.82);
-            --nav-blur: 10px;
+            --nav-blur: 8px;
             --nav-border: rgba(0, 0, 0, 0.08);
             --pill-bg: rgba(0, 0, 0, 0.03);
             /* Gradiente de borde naranja premium adaptado al modo claro */
@@ -137,13 +136,13 @@
 
         /* BARRA INFERIOR DE NAVEGACIÓN - CRISTAL LÍQUIDO */
         #bottom-navbar {
+            will-change: transform;
             background-color: var(--nav-bg) !important;
             backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
             -webkit-backdrop-filter: blur(var(--nav-blur)) saturate(190%) !important;
             border-top: 1px solid var(--nav-border) !important;
-            /* IMPORTANTE: nunca transicionar backdrop-filter en iOS (recosteo carísimo). */
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            will-change: auto;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+            transform: translateZ(0);
         }
 
         /* EFECTO LIQUID ACTIVE PILL CON ESTILO "GOTA DE AGUA" */
@@ -153,7 +152,9 @@
             border-radius: 24px;
             pointer-events: none;
             z-index: 5;
+            will-change: left, width, top, height, transform, opacity;
             box-sizing: border-box;
+            transform: translateZ(0);
             background: var(--pill-bg);
             box-shadow: var(--pill-shadow);
             transition: left 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), width 0.5s cubic-bezier(0.25, 1, 0.2, 1.1), top 0.5s ease, height 0.5s ease, transform 0.2s cubic-bezier(0.25, 1, 0.2, 1.2), opacity 0.2s ease;
@@ -190,42 +191,23 @@
             mask-composite: exclude;
             pointer-events: none;
             transition: background 0.3s ease, filter 0.3s ease, opacity 0.3s ease;
+            animation: iridescence-glow 4s linear infinite;
+            animation-play-state: paused;
         }
 
         /* Animación fluida de brillo naranja premium estilo gota de agua sobre cristal */
         .active-pill.active-touch::before {
             background: var(--pill-border-gradient);
-            background-size: 150% auto;
-            animation: iridescence-glow 6s linear infinite;
-            filter: saturate(85%); 
-        }
-
-        /* La animación solo debe correr durante el toque (active-touch). Al soltar, se pausa. */
-        .active-pill::before {
-            animation-play-state: paused;
-        }
-        .active-pill.active-touch::before {
+            background-size: 200% auto;
+            animation: iridescence-glow 4s linear infinite;
             animation-play-state: running;
+            filter: saturate(85%); 
         }
 
         @keyframes iridescence-glow {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
-        }
-
-        /* Respeta a los usuarios con preferencia por menos movimiento (accesibilidad + batería) */
-        @media (prefers-reduced-motion: reduce) {
-            .active-pill::before,
-            .active-pill.active-touch::before {
-                animation: none !important;
-            }
-            .view-transition,
-            #view-player,
-            .unified-flyout,
-            #app-toast {
-                transition-duration: 0.15s !important;
-            }
         }
 
         /* MINIREPRODUCTOR FLOTANTE - MODO CLARO */
@@ -318,16 +300,15 @@
         }
 
         #player-bg-blur {
-            filter: blur(60px) brightness(0.35) saturate(1.6) !important;
+            filter: blur(60px) brightness(0.35) saturate(1.8) !important;
             opacity: 0.85 !important;
-            transition: background-image 0.5s ease-in-out;
-            /* Promover a capa propia para que el filter no recomponga todo el árbol */
-            transform: scale(1.35) translateZ(0);
-            will-change: opacity;
+            transition: background-image 0.6s ease-in-out;
+            transform: translateZ(0);
+            will-change: transform, opacity, filter;
         }
 
         body.light-theme #player-bg-blur {
-            filter: blur(60px) brightness(1.3) saturate(1.1) !important;
+            filter: blur(60px) brightness(1.35) saturate(1.2) !important;
             opacity: 0.55 !important;
         }
 
@@ -384,16 +365,16 @@
 
         .liquid-glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(14px) saturate(180%);
-            -webkit-backdrop-filter: blur(14px) saturate(180%);
+            backdrop-filter: blur(8px) saturate(190%);
+            -webkit-backdrop-filter: blur(8px) saturate(190%);
             border: 1px solid var(--glass-border);
-            transition: background 0.25s, border 0.25s;
+            transition: background 0.3s, border 0.3s;
         }
 
         .liquid-glass-dark {
             background: var(--glass-bg-darker);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            backdrop-filter: blur(12px) saturate(200%);
+            -webkit-backdrop-filter: blur(12px) saturate(200%);
             border-top: 1px solid var(--glass-border);
         }
 
@@ -422,8 +403,8 @@
 
         #wrapper-text {
             background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            backdrop-filter: blur(8px) saturate(180%);
+            -webkit-backdrop-filter: blur(8px) saturate(180%);
         }
         body.light-theme #wrapper-text {
             background: rgba(242, 242, 247, 0.96);
@@ -439,32 +420,30 @@
             transform: translateY(100%) scale(0.92) translateZ(0);
             opacity: 0;
             pointer-events: none;
-            /* IMPORTANTE: solo transform y opacity. Nunca animar backdrop-filter ni background aquí */
-            transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease-in-out !important;
-            /* Promueve el view-player a su propia capa GPU para que el scale/translate no recomponga todo el árbol */
             will-change: transform, opacity;
-            backface-visibility: hidden;
+            transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease-in-out !important;
         }
 
         #view-player.player-active {
-            transform: translateY(0) scale(1) translateZ(0) !important;
+            transform: translateY(0) scale(1) !important;
             opacity: 1 !important;
             pointer-events: auto !important;
-            transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1.15), opacity 0.4s ease !important;
+            /* Transición al ACTIVARSE: Mantiene su rebote elástico hacia arriba */
+            transition: transform 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease !important;
         }
 
         /* MENÚS EMERGENTES CON EFECTO FROSTED GLASS Y ANIMACIÓN DE REBOTE DYNAMIC SPRING */
         .unified-flyout {
             opacity: 0;
-            transform: translateY(16px) scale(0.85); 
+            transform: translateY(16px) scale(0.85) translateZ(0); 
             pointer-events: none;
-            transition: transform 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.28), opacity 0.18s ease !important;
+            transition: transform 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.28), opacity 0.22s ease !important;
             z-index: 100;
             
             /* Premium Frosted Glass (coherente con la Dynamic Island) */
             background: rgba(15, 15, 20, 0.82) !important;
-            backdrop-filter: blur(14px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+            backdrop-filter: blur(8px) saturate(190%) !important;
+            -webkit-backdrop-filter: blur(8px) saturate(190%) !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
             border-radius: 24px !important;
@@ -498,7 +477,7 @@
             background-color: rgba(255, 255, 255, 0.04);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
         }
         body.light-theme .unified-trigger {
             background-color: rgba(0, 0, 0, 0.06) !important;
@@ -514,7 +493,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
             cursor: pointer;
         }
         body.light-theme .flyout-option {
@@ -534,6 +513,7 @@
         }
 
         .phone-frame {
+            will-change: transform;
             width: 430px;
             height: 932px;
             border: 12px solid #222;
@@ -560,12 +540,10 @@
         .ios-scroll {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            /* scroll-behavior: smooth provoca jank en iOS al animar scrollTop con scrollTo.
-               Lo quitamos; usamos 'auto' y dejamos que el OS haga el momentum nativo. */
             overscroll-behavior-y: contain;
-            /* Evita que el navegador haga layout de contenido fuera de viewport */
             content-visibility: auto;
-            contain: layout paint style;
+            contain-intrinsic-size: auto 500px;
+            contain: layout style;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -605,21 +583,23 @@
 
         /* NOTIFICACIÓN ESTILO NOTCH DYNAMIC ISLAND MEJORADO CON FROSTED GLASS COMPACTO */
         #app-toast {
+            will-change: transform, opacity;
             position: absolute;
             top: max(84px, calc(env(safe-area-inset-top) + 80px));
             left: 50%;
+            transform: translate(-50%, -40px) scale(0.8) translateZ(0);
             transform: translate(-50%, -40px) scale(0.8);
             opacity: 0;
             pointer-events: none;
             z-index: 100;
             background: rgba(15, 15, 20, 0.85);
-            backdrop-filter: blur(14px) saturate(180%);
-            -webkit-backdrop-filter: blur(14px) saturate(180%);
+            backdrop-filter: blur(8px) saturate(190%);
+            -webkit-backdrop-filter: blur(8px) saturate(190%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             border-radius: 9999px; /* Diseño ultra redondeado de píldora */
             padding: 8px 18px;
-            transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.22s ease;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -717,7 +697,7 @@
             height: 8px;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0.25);
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
             cursor: pointer;
         }
         body.light-theme .tone-dot {
@@ -759,19 +739,14 @@
 <body class="h-full overflow-hidden select-none flex flex-col">
 
     <!-- Fondo líquido abstracto autogestionado -->
-    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent" aria-hidden="true">
-        <!--
-            Reducido: blur 130-140px es carísimo en iOS (recosteo de textura completo).
-            Se baja a 60-70px y se quita animate-pulse (re-pinta constante del fondo).
-            El gradiente grande ya da la sensación líquida; el parpadeo no aporta.
-        -->
-        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
-        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op);"></div>
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
+        <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translateZ(0); will-change: opacity;"></div>
+        <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translateZ(0); will-change: opacity;"></div>
     </div>
 
     <!-- CONTENEDOR DE TRABAJO COMPLETO -->
-    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-0 md:p-6 transition-[padding] duration-300">
-        <div id="device-wrapper" class="flex items-center justify-center transition-[width,height,padding] duration-300">
+    <div id="app-workspace" class="flex items-center justify-center flex-1 min-h-0 w-full p-0 md:p-6" style="transition: padding 0.5s ease;">
+        <div id="device-wrapper" class="flex items-center justify-center" style="transition: width 0.3s ease, height 0.3s ease;">
             <div id="app-phone-container" class="phone-frame flex flex-col h-full overflow-hidden relative">
 
                 <!-- Notificación Unificada Inteligente (Dynamic Island / Notch Origin) -->
@@ -787,7 +762,7 @@
                             <span class="text-[12px] font-bold text-orange-500 uppercase tracking-widest block">Mis Libros</span>
                             <h1 class="text-3xl font-bold tracking-tight text-white">Escuchando</h1>
                         </div>
-                        <button class="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(255,149,0,0.3)]" onclick="document.getElementById('file-input').click()">
+                        <button class="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center shadow-[0_4px_15px_rgba(255,149,0,0.3)]" style="transition: transform 0.2s ease, background-color 0.2s ease;" onclick="document.getElementById('file-input').click()">
                             <i class="fa-solid fa-plus text-base"></i>
                         </button>
                     </header>
@@ -796,7 +771,7 @@
                         <!-- Último Reproducido -->
                         <div>
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Último Reproducido</span>
-                            <div id="last-played-card" class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 flex gap-4 cursor-pointer hover:bg-zinc-900/80 transition-all">
+                            <div id="last-played-card" class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 flex gap-4 cursor-pointer hover:bg-zinc-900/80" style="transition: background-color 0.2s ease;">
                                 <div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden shadow-lg bg-zinc-950 flex items-center justify-center relative">
                                     <img id="last-played-cover" src="https://placehold.co/400x600/101012/ffffff?text=Diego" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
                                 </div>
@@ -807,7 +782,7 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                            <div id="last-played-progress" class="h-full bg-orange-500 w-0 rounded-full transition-[width] duration-300"></div>
+                                            <div id="last-played-progress" class="h-full bg-orange-500 w-0 rounded-full" style="transition: width 0.3s ease;"></div>
                                         </div>
                                         <div class="flex justify-between text-xs text-zinc-500">
                                             <span id="last-played-current">0:00</span>
@@ -844,16 +819,16 @@
                             <h1 class="text-3xl font-bold tracking-tight text-white">Audiolibros</h1>
                         </div>
                         <div class="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/5 liquid-glass">
-                            <button class="btn-toggle-theme w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-sm" title="Cambiar Tema">
+                            <button class="btn-toggle-theme w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 text-sm" style="transition: transform 0.2s ease, background-color 0.2s ease;" title="Cambiar Tema">
                                 <i class="fa-solid fa-moon theme-icon"></i>
                             </button>
-                            <button class="btn-font-dec w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Reducir Letra">A-</button>
-                            <button class="btn-font-inc w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-[15px] font-bold" title="Aumentar Letra">A+</button>
+                            <button class="btn-font-dec w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 text-[15px] font-bold" style="transition: transform 0.2s ease, background-color 0.2s ease;" title="Reducir Letra">A-</button>
+                            <button class="btn-font-inc w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 text-[15px] font-bold" style="transition: transform 0.2s ease, background-color 0.2s ease;" title="Aumentar Letra">A+</button>
                         </div>
                     </header>
 
                     <!-- Zona de Carga de Archivos -->
-                    <div id="drop-zone" class="relative group mt-1 mb-3 p-3 shrink-0 rounded-2xl border-2 border-dashed border-white/20 hover:border-orange-500/50 transition-all flex items-center gap-3 bg-white/5 cursor-pointer">
+                    <div id="drop-zone" class="relative group mt-1 mb-3 p-3 shrink-0 rounded-2xl border-2 border-dashed border-white/20 hover:border-orange-500/50 flex items-center gap-3 bg-white/5 cursor-pointer" style="transition: border-color 0.2s ease, background-color 0.2s ease;">
                         <input type="file" id="file-input" accept=".epub,.pdf" class="hidden">
                         <div class="w-10 h-10 shrink-0 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 transition-transform group-hover:scale-110">
                             <i class="fa-solid fa-cloud-arrow-up text-base"></i>
@@ -869,7 +844,7 @@
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                             <i class="fa-solid fa-magnifying-glass text-[14px]"></i>
                         </span>
-                        <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[15px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-orange-500 transition-all" placeholder="Buscar por Nombre, Autor o Saga...">
+                        <input type="text" id="library-search" class="w-full py-2 pl-8 pr-3 rounded-xl liquid-glass text-[15px] outline-none bg-white/5 placeholder-zinc-400 focus:ring-1 focus:ring-orange-500" style="transition: box-shadow 0.2s ease;" placeholder="Buscar por Nombre, Autor o Saga...">
                     </div>
 
                     <!-- Área de scroll -->
@@ -912,7 +887,7 @@
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Gestión de Biblioteca</span>
                             <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="document.getElementById('file-input').click()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="document.getElementById('file-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                                             <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -921,7 +896,7 @@
                                     </div>
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="document.getElementById('backup-import-input').click()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="document.getElementById('backup-import-input').click()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
                                             <i class="fa-solid fa-file-import"></i>
@@ -931,7 +906,7 @@
                                     <i class="fa-solid fa-chevron-right text-xs text-zinc-500"></i>
                                 </div>
                                 <input type="file" id="backup-import-input" accept=".json" class="hidden">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all cursor-pointer" onclick="exportBackupJSON()">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" style="transition: background-color 0.2s ease;" style="transition: background-color 0.2s ease;" onclick="exportBackupJSON()">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
                                             <i class="fa-solid fa-file-export"></i>
@@ -947,7 +922,7 @@
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Preferencias</span>
                             <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
                                             <i class="fa-solid fa-moon text-sm"></i>
@@ -959,7 +934,7 @@
                                         <span class="ios-slider"></span>
                                     </label>
                                 </div>
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
                                             <i class="fa-solid fa-text-height"></i>
@@ -971,7 +946,7 @@
                                         <button class="btn-font-inc w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-xs font-bold text-white">A+</button>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
                                             <i class="fa-solid fa-desktop"></i>
@@ -990,12 +965,12 @@
 
                 <!-- REPRODUCTOR DE AUDIOLIBROS -->
                 <div id="view-player" class="flex flex-col h-full">
-                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center transition-all duration-700" style="transform: scale(1.35);"></div>
+                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center" style="transition: background-image 0.7s ease-in-out; transform: scale(1.35);" style="transform: scale(1.35);"></div>
                     
                     <header class="flex flex-col gap-2.5 px-6 pt-8 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full relative">
                             <!-- Botón Cerrar: Protegido con z-50 para garantizar que sea interactivo sin obstrucción -->
-                            <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all font-semibold text-sm z-50" title="Volver">
+                            <button id="btn-back" class="flex items-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 font-semibold text-sm z-50" title="Volver" style="transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;">
                                 <i class="fa-solid fa-chevron-left"></i>
                                 <span>Cerrar</span>
                             </button>
@@ -1004,7 +979,7 @@
                                 <canvas id="wave-canvas" class="opacity-95"></canvas>
                             </div>
                             <!-- Botón de Tema: Protegido con z-50 -->
-                            <button class="btn-toggle-theme w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all z-50" title="Cambiar Tema">
+                            <button class="btn-toggle-theme w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 z-50" title="Cambiar Tema" style="transition: transform 0.2s ease, opacity 0.2s ease;">
                                 <i class="fa-solid fa-moon theme-icon"></i>
                             </button>
                         </div>
@@ -1013,8 +988,8 @@
                     <div class="flex-1 flex flex-col justify-between px-6 pb-4 overflow-hidden">
                         <div class="h-6 shrink-0"></div>
 
-                        <div id="wrapper-cover" class="flex-1 flex flex-col justify-center items-center transition-opacity duration-300 min-h-0">
-                            <div class="relative h-[240px] md:h-[300px] w-auto max-w-[80%] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-6 mx-auto bg-black/15 flex items-center justify-center transition-transform duration-200 hover:scale-[1.02]">
+                        <div id="wrapper-cover" class="flex-1 flex flex-col justify-center items-center min-h-0" style="transition: transform 0.3s ease, opacity 0.3s ease;">
+                            <div class="relative h-[240px] md:h-[300px] w-auto max-w-[80%] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden border border-white/10 group mb-6 mx-auto bg-black/15 flex items-center justify-center hover:scale-[1.02]" style="transition: transform 0.3s ease;">
                                 <img id="player-cover-img" src="https://placehold.co/400x600/101012/ffffff?text=Cargando" alt="Cover" class="h-full w-auto object-contain">
                             </div>
                             <div class="text-center max-w-xs px-4">
@@ -1022,7 +997,7 @@
                                 <p id="player-book-author" class="text-sm opacity-60 mt-0.5 line-clamp-1 text-zinc-300">Autor Desconocido</p>
                                 <p id="player-book-saga" class="text-[14px] font-semibold mt-1 uppercase tracking-wide">LIBRO ÚNICO</p>
                             </div>
-                            <button id="btn-leer-spotify" class="mt-5 flex items-center justify-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 transition-all font-semibold text-sm">
+                            <button id="btn-leer-spotify" class="mt-5 flex items-center justify-center gap-1.5 px-3 h-9 rounded-full liquid-glass hover:bg-white/20 active:scale-95 font-semibold text-sm" style="transition: transform 0.2s ease, background 0.2s ease;">
                                 <i class="fa-solid fa-align-left text-xs"></i> <span>Leer</span>
                             </button>
                         </div>
@@ -1030,7 +1005,7 @@
                         <!-- Texto Sincronizado en Pantalla Completa -->
                         <div id="wrapper-text" class="hidden fixed inset-0 z-[60] flex flex-col overflow-hidden">
                             <header class="flex items-center px-6 py-4 safe-padding-top shrink-0">
-                                <button id="btn-close-text" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95 transition-all">
+                                <button id="btn-close-text" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95" style="transition: transform 0.2s ease, background 0.2s ease;">
                                     <i class="fa-solid fa-chevron-down text-sm"></i>
                                 </button>
                                 <div class="text-center flex-1 mx-3 overflow-hidden">
@@ -1050,9 +1025,9 @@
                         <div class="space-y-1 pb-2">
                             <div class="relative group py-1.5 cursor-pointer" id="progress-container">
                                 <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
-                                    <div id="progress-bar" class="h-full bg-orange-500 w-0 rounded-full transition-all duration-100"></div>
+                                    <div id="progress-bar" class="h-full bg-orange-500 w-0 rounded-full" style="transition: width 0.1s linear;"></div>
                                 </div>
-                                <div id="progress-handle" class="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-gray-300 scale-0 group-hover:scale-100 transition-all" style="left: 0%;"></div>
+                                <div id="progress-handle" class="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-md border border-gray-300 scale-0 group-hover:scale-100" style="transition: transform 0.2s ease, left 0.1s linear;" style="left: 0%;"></div>
                             </div>
                             <div class="flex justify-between text-[12px] opacity-60 px-1 font-semibold text-zinc-400">
                                 <span id="time-current">0:00</span>
@@ -1063,7 +1038,7 @@
                         <div class="grid grid-cols-4 gap-2">
                             <!-- Voz -->
                             <div class="flex flex-col relative" id="voice-dropdown-container">
-                                <button id="btn-voice-trigger" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all w-full">
+                                <button id="btn-voice-trigger" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-full" style="transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;">
                                     <i class="fa-solid fa-microphone text-[10px]"></i>
                                     <span id="voice-display-value" class="truncate max-w-[45px]">Voz</span>
                                 </button>
@@ -1074,7 +1049,7 @@
 
                             <!-- Velocidad y Tono -->
                             <div class="flex flex-col relative" id="speed-dropdown-container">
-                                <button id="btn-speed-trigger" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all w-full">
+                                <button id="btn-speed-trigger" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-full" style="transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;">
                                     <i class="fa-solid fa-gauge-high text-[10px]"></i>
                                     <span id="speed-display-value">1.0x</span>
                                 </button>
@@ -1103,11 +1078,11 @@
                                             <span id="tone-value" class="text-orange-500">Normal (1.0x)</span>
                                         </div>
                                         <div class="flex items-center justify-between gap-1 px-1">
-                                            <button id="btn-pitch-dec" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-orange-500 active:scale-90 transition-all">
+                                            <button id="btn-pitch-dec" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-orange-500 active:scale-90" style="transition: transform 0.2s ease, color 0.2s ease;">
                                                 <i class="fa-solid fa-volume-low text-sm"></i>
                                             </button>
                                             <div id="pitch-dots-row" class="flex items-center justify-between flex-1 px-1 gap-1"></div>
-                                            <button id="btn-pitch-inc" class="w-8 h-8 flex items-center justify-center text-orange-500 hover:text-orange-600 active:scale-90 transition-all">
+                                            <button id="btn-pitch-inc" class="w-8 h-8 flex items-center justify-center text-orange-500 hover:text-orange-600 active:scale-90" style="transition: transform 0.2s ease, color 0.2s ease;">
                                                 <i class="fa-solid fa-volume-high text-sm"></i>
                                             </button>
                                         </div>
@@ -1117,7 +1092,7 @@
 
                             <!-- Capítulos -->
                             <div class="flex flex-col relative" id="chapters-dropdown-container">
-                                <button id="btn-trigger-chapters" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all w-full">
+                                <button id="btn-trigger-chapters" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-full" style="transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;">
                                     <i class="fa-solid fa-list text-[10px]"></i>
                                     <span id="player-chapter-display" class="truncate max-w-[45px]">Cap</span>
                                 </button>
@@ -1129,7 +1104,7 @@
 
                             <!-- Apagado -->
                             <div class="flex flex-col relative" id="timer-dropdown-container">
-                                <button id="btn-timer" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 transition-all w-full">
+                                <button id="btn-timer" class="unified-trigger py-2.5 px-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-full" style="transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;">
                                     <i class="fa-regular fa-clock text-[10px]"></i>
                                     <span id="timer-label">Off</span>
                                 </button>
@@ -1153,11 +1128,11 @@
 
                         <!-- Botones de Acción de Reproducción -->
                         <div class="flex justify-between items-center px-0 pt-4 safe-padding-bottom">
-                            <button id="btn-bookmark" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90 transition-all duration-200">
+                            <button id="btn-bookmark" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90" style="transition: transform 0.2s ease;">
                                 <i id="btn-bookmark-icon" class="fa-regular fa-bookmark text-2xl"></i>
                             </button>
                             
-                            <button id="btn-rewind" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95 transition-all">
+                            <button id="btn-rewind" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95" style="transition: transform 0.2s ease, background-color 0.2s ease;">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
                                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke-linecap="round" stroke-linejoin="round"/>
                                     <path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1169,7 +1144,7 @@
                                 <i id="play-icon" class="fa-solid fa-play text-2xl ml-0.5 keep-white"></i>
                             </button>
                             
-                            <button id="btn-forward" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95 transition-all">
+                            <button id="btn-forward" class="w-14 h-14 rounded-full flex items-center justify-center text-white bg-white/5 shadow hover:scale-105 active:scale-95" style="transition: transform 0.2s ease, background-color 0.2s ease;">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-7 h-7">
                                     <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke-linecap="round" stroke-linejoin="round"/>
                                     <path d="M21 3v5h-5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1178,7 +1153,7 @@
                             </button>
 
                             <div class="relative" id="bookmarks-dropdown-container">
-                                <button id="btn-list-bookmarks" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90 transition-all">
+                                <button id="btn-list-bookmarks" class="w-12 h-12 rounded-full flex items-center justify-center text-orange-500 hover:scale-105 active:scale-90" style="transition: transform 0.2s ease;">
                                     <i id="btn-list-bookmarks-icon" class="fa-regular fa-star text-2xl"></i>
                                 </button>
                                 <div id="bookmarks-flyout" class="unified-flyout absolute bottom-full mb-2 right-0 w-[21rem] space-y-2">
@@ -1193,7 +1168,7 @@
                 </div>
 
                 <!-- MINIREPRODUCTOR FLOTANTE INFERIOR -->
-                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hover:bg-zinc-900 transition-[background-color,transform] duration-200 hidden">
+                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hidden" style="transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <img id="mini-player-cover" src="" class="w-10 h-10 rounded-lg object-cover bg-zinc-950 shadow" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
                         <div class="flex-1 min-w-0">
@@ -1205,7 +1180,7 @@
                         <button id="mini-player-prev" class="w-8 h-8 flex items-center justify-center text-zinc-300 hover:text-white active:scale-95" onclick="skipSeconds(-15)">
                             <i class="fa-solid fa-backward-step"></i>
                         </button>
-                        <button id="mini-player-play" class="w-8 h-8 flex items-center justify-center text-white bg-orange-500 rounded-full shadow hover:scale-105 active:scale-95 transition-all">
+                        <button id="mini-player-play" class="w-8 h-8 flex items-center justify-center text-white bg-orange-500 rounded-full shadow hover:scale-105 active:scale-95" style="transition: transform 0.2s ease;">
                             <i id="mini-player-play-icon" class="fa-solid fa-play text-xs pl-0.5"></i>
                         </button>
                     </div>
@@ -1215,15 +1190,15 @@
                 <nav id="bottom-navbar" class="absolute bottom-0 left-0 right-0 h-[76px] py-2.5 px-6 flex justify-between items-center z-50 overflow-hidden">
                     <div id="nav-active-pill" class="active-pill"></div>
 
-                    <button id="nav-btn-listening" class="nav-tab-btn flex flex-col items-center gap-1 text-orange-500 font-bold flex-1 transition-all">
+                    <button id="nav-btn-listening" class="nav-tab-btn flex flex-col items-center gap-1 text-orange-500 font-bold flex-1">
                         <i class="fa-solid fa-headphones text-lg"></i>
                         <span class="text-[10px]">Escuchando</span>
                     </button>
-                    <button id="nav-btn-library" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1 transition-all">
+                    <button id="nav-btn-library" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1">
                         <i class="fa-solid fa-book-open text-lg"></i>
                         <span class="text-[10px]">Biblioteca</span>
                     </button>
-                    <button id="nav-btn-settings" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1 transition-all">
+                    <button id="nav-btn-settings" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1">
                         <i class="fa-solid fa-gear text-lg"></i>
                         <span class="text-[10px]">Ajustes</span>
                     </button>
@@ -1243,8 +1218,8 @@
             <h3 class="font-bold text-base mb-2" id="confirm-title">¿Eliminar Libro?</h3>
             <p class="text-[15px] opacity-70 mb-5 leading-normal" id="confirm-message">Esta acción borrará de forma permanente el libro.</p>
             <div class="flex gap-3 justify-center text-sm font-semibold">
-                <button id="btn-confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white">Cancelar</button>
-                <button id="btn-confirm-action" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white active:scale-95 transition-all">Eliminar</button>
+                <button id="btn-confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white" style="transition: transform 0.2s ease, background-color 0.2s ease;">Cancelar</button>
+                <button id="btn-confirm-action" class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white active:scale-95" style="transition: transform 0.2s ease, background-color 0.2s ease;">Eliminar</button>
             </div>
         </div>
     </div>
@@ -1594,50 +1569,25 @@
         }
 
         // --- STREAMING_CHUNK: Inicializando el Canvas de la Onda Siri de Alta Fidelidad... ---
-        let waveVisible = false; // sólo dibuja cuando el reproductor está visible
-        let waveLastDraw = 0;
-        const WAVE_FRAME_INTERVAL = 1000 / 60; // 60fps objetivo
-
         function initWaveCanvas() {
             waveCanvas = document.getElementById('wave-canvas');
             if (!waveCanvas) return;
-            waveCtx = waveCanvas.getContext('2d', { alpha: true });
+            waveCtx = waveCanvas.getContext('2d');
             
             resizeWaveCanvas();
-            // throttle para no re-escalar en cada evento resize (múltiples disparos en iOS)
-            let resizeRaf = null;
-            window.addEventListener('resize', () => {
-                if (resizeRaf) cancelAnimationFrame(resizeRaf);
-                resizeRaf = requestAnimationFrame(resizeWaveCanvas);
-            });
-
-            // El loop arranca cuando el player se muestre (lo controla showFullPlayer/hideFullPlayer).
-            // No arrancamos aquí para no gastar CPU/GPU mientras el usuario navega por la biblioteca.
+            window.addEventListener('resize', resizeWaveCanvas);
+            
+            // Iniciar ciclo de renderizado permanente
+            drawWaveLoop();
         }
 
         function resizeWaveCanvas() {
             if (!waveCanvas) return;
-            // Limitar DPR en móviles: iPhone tiene DPR 3, lo que multiplica por 9 los píxeles dibujados.
-            // Cap a 2 mantiene nitidez aceptable y reduce drásticamente el costo de pintado.
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             const rect = waveCanvas.parentNode.getBoundingClientRect();
-            if (rect.width === 0 || rect.height === 0) return;
-            waveCanvas.width = Math.round(rect.width * dpr);
-            waveCanvas.height = Math.round(rect.height * dpr);
-            // reset previo para no acumular escala en cada resize
-            waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        }
-
-        function startWaveLoop() {
-            if (waveAnimFrame !== null) return;
-            waveAnimFrame = requestAnimationFrame(drawWaveLoop);
-        }
-
-        function stopWaveLoop() {
-            if (waveAnimFrame !== null) {
-                cancelAnimationFrame(waveAnimFrame);
-                waveAnimFrame = null;
-            }
+            waveCanvas.width = rect.width * dpr;
+            waveCanvas.height = rect.height * dpr;
+            waveCtx.scale(dpr, dpr);
         }
 
         let vocalSyllable = 0.15;
@@ -1648,57 +1598,53 @@
 
         /* 
            CICLO DE RENDERIZADO DYNAMIC NEON SIRI WAVE (Estilo clásico iOS Apple)
-           Optimizado para iPhone:
-             - Solo dibuja cuando el reproductor está visible.
-             - Usa UN solo Path2D por capa (un stroke) en lugar de segmentos sueltos.
-             - El shadowBlur se aplica una vez por capa, no por segmento.
-             - Paso de muestreo de 3px (antes 2px): suficiente nitidez, ~33% menos cómputo.
-             - En reposo absoluto, baja a ~20fps para no chupar batería.
+           OPTIMIZADO PARA iOS:
+           - Solo dibuja con reproductor abierto
+           - DPR cap a 2 (iPhone 3x = 9× píxeles → ahora 4×)
+           - 20fps en reposo, solo capa núcleo
+           - GLOW: 1 solo Path2D por capa (sin taper) con shadowBlur → 1 draw call barato
+           - NÚCLEO: segmentos con lineWidth variable (taper) + shadowBlur=0 → puntas afiladas sin 600 shadow ops
         */
-        function drawWaveLoop(ts) {
-            waveAnimFrame = requestAnimationFrame(drawWaveLoop);
-            if (!waveCanvas || !waveCtx) return;
+        let waveLastFrameTime = 0;
+        const WAVE_IDLE_INTERVAL = 50; // ~20fps
+        const WAVE_ACTIVE_INTERVAL = 16; // ~60fps
 
-            // No dibujar si el reproductor está oculto (el header está dentro de #view-player)
-            const playerOpen = document.getElementById('view-player') &&
-                document.getElementById('view-player').classList.contains('player-active');
-            if (!playerOpen) {
-                waveVisible = false;
+        function drawWaveLoop(timestamp) {
+            waveAnimFrame = requestAnimationFrame(drawWaveLoop);
+
+            // Solo dibujar cuando el reproductor está abierto
+            const viewPlayer = document.getElementById('view-player');
+            if (!viewPlayer || !viewPlayer.classList.contains('player-active')) {
+                if (waveAnimFrame) { cancelAnimationFrame(waveAnimFrame); waveAnimFrame = null; }
                 return;
             }
-            waveVisible = true;
 
-            // Limitar framerate en reposo: 20fps cuando no hay reproducción activa
-            if (!isPlaying) {
-                if (waveLastDraw && (ts - waveLastDraw) < 50) return;
-                waveLastDraw = ts;
-            } else {
-                waveLastDraw = ts;
-            }
+            // Throttle: 20fps en reposo, 60fps reproduciendo
+            const interval = isPlaying ? WAVE_ACTIVE_INTERVAL : WAVE_IDLE_INTERVAL;
+            if (timestamp - waveLastFrameTime < interval) return;
+            waveLastFrameTime = timestamp;
 
+            if (!waveCanvas || !waveCtx) return;
+            
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             const w = waveCanvas.width / dpr;
             const h = waveCanvas.height / dpr;
             
             waveCtx.clearRect(0, 0, w, h);
             
-            // Transición suave de amplitud general
             targetWaveAmp = isPlaying ? 1.0 : 0.05; 
             currentWaveAmp += (targetWaveAmp - currentWaveAmp) * 0.08; 
 
-            // ¿Hay audio real del relator sonando ahora mismo? (motor Edge TTS con <audio>)
             const usingRealAudio = isPlaying && audioAnalyserReady && ttsAudioEl &&
                 !ttsAudioEl.paused && !ttsAudioEl.ended && ttsAudioEl.currentTime > 0;
 
             if (isPlaying) {
                 if (usingRealAudio) {
-                    // La onda se mueve con la energía vocal real: reacción rápida y natural
                     updateVocalFromRealAudio();
                     vocalSyllable += (targetVocalSyllable - vocalSyllable) * 0.35;
                     vocalPattern += (targetVocalPattern - vocalPattern) * 0.15;
                     wavePhase += 0.06 + vocalSyllable * 0.09;
                 } else {
-                    // Sin acceso al audio (voces de sistema): simulación de cadencia por sílabas
                     speechTimer++;
                     if (speechTimer > 35) {
                         speechTimer = 0;
@@ -1715,68 +1661,52 @@
                 wavePhase += 0.02;
             }
             
-            // Si estamos en reposo y la amplitud ya está cerca del mínimo, evitamos dibujar las 4 capas completas
-            const idleMode = !isPlaying && currentWaveAmp < 0.08;
-
             const time = wavePhase;
             const baseline = h / 2;
 
-            // Capas con paleta enriquecida
             const layers = [
                 {
                     color: 'rgba(20, 250, 255, 0.9)',
-                    freq: 2.5, freq2: 5.1,
-                    phaseShift: 0, speed: 2.6,
+                    freq: 2.5, freq2: 5.1, phaseShift: 0, speed: 2.6,
                     lineWidth: 0.8, glowWidth: 5,
-                    shadowColor: 'rgba(20, 250, 255, 0.65)',
-                    ampMultiplier: 0.8
+                    shadowColor: 'rgba(20, 250, 255, 0.65)', ampMultiplier: 0.8
                 },
                 {
                     color: 'rgba(255, 25, 140, 0.9)',
-                    freq: 3.2, freq2: 6.4,
-                    phaseShift: Math.PI * 0.4, speed: 3.3,
+                    freq: 3.2, freq2: 6.4, phaseShift: Math.PI * 0.4, speed: 3.3,
                     lineWidth: 0.7, glowWidth: 5,
-                    shadowColor: 'rgba(255, 25, 140, 0.6)',
-                    ampMultiplier: 0.85
+                    shadowColor: 'rgba(255, 25, 140, 0.6)', ampMultiplier: 0.85
                 },
                 {
                     color: 'rgba(150, 30, 255, 0.8)',
-                    freq: 1.8, freq2: 4.3,
-                    phaseShift: Math.PI * 0.8, speed: 1.9,
+                    freq: 1.8, freq2: 4.3, phaseShift: Math.PI * 0.8, speed: 1.9,
                     lineWidth: 0.6, glowWidth: 4,
-                    shadowColor: 'rgba(150, 30, 255, 0.5)',
-                    ampMultiplier: 0.6
+                    shadowColor: 'rgba(150, 30, 255, 0.5)', ampMultiplier: 0.6
                 },
                 {
                     color: 'rgba(255, 255, 255, 0.98)',
-                    freq: 4.0, freq2: 8.2,
-                    phaseShift: Math.PI * 1.2, speed: 3.8,
-                    lineWidth: 1.0, glowWidth: 1.5,
-                    shadowColor: 'rgba(255, 255, 255, 0.7)',
-                    ampMultiplier: 1.0
+                    freq: 4.0, freq2: 8.2, phaseShift: Math.PI * 1.2, speed: 3.8,
+                    lineWidth: 1.0, glowWidth: 1,
+                    shadowColor: 'rgba(255, 255, 255, 0.7)', ampMultiplier: 1.0
                 }
             ];
-
+            
             waveCtx.globalCompositeOperation = 'screen';
-            waveCtx.lineCap = 'round';
-            waveCtx.lineJoin = 'round';
+            waveCtx.lineCap = 'butt';
+            waveCtx.lineJoin = 'miter';
 
-            const marginX = Math.min(10, w * 0.07);
+            const marginX = 0; // Sin margen: las líneas llegan a los bordes con puntas visibles
             const drawW = Math.max(1, w - marginX * 2);
-            // Paso de muestreo: 3px en reproducción, 5px en reposo (suficiente para la onda tenue)
-            const step = isPlaying ? 3 : 5;
-            const maxHeight = h * 0.22;
 
-            // En reposo absoluto solo dibujamos la capa núcleo (4) para mantener
-            // una señal visual mínima sin gastar GPU en las 4 capas.
-            const layersToDraw = idleMode ? [layers[3]] : layers;
+            const isIdle = !isPlaying;
+            const layerStart = isIdle ? 3 : 0; // Solo capa núcleo en reposo
+            const step = isIdle ? 2 : 1; // Mayor resolución para puntas definidas
 
-            layersToDraw.forEach(layer => {
-                // Construir un único Path2D por capa: 1 beginPath + 1 moveTo + N lineTo + 1 stroke
-                // (antes: N beginPath/moveTo/lineTo/stroke = ~75 strokes por capa)
-                waveCtx.beginPath();
-                let started = false;
+            for (let li = layerStart; li < layers.length; li++) {
+                const layer = layers[li];
 
+                // --- PASO 1: Calcular todos los puntos con taper ---
+                const points = [];
                 for (let i = 0; i <= drawW; i += step) {
                     const px = marginX + i;
                     const xFrac = i / drawW;
@@ -1794,41 +1724,63 @@
                         ? (0.75 + 0.25 * Math.sin(time * 3.0 + layer.phaseShift))
                         : (0.15 + 0.05 * Math.sin(time * 1.0 + layer.phaseShift));
 
+                    const maxHeight = h * 0.22;
                     const height = maxHeight * vocalSyllable * flow * currentWaveAmp * layer.ampMultiplier;
 
                     const primary = Math.sin(layer.freq * xFrac * Math.PI * 2 - time * layer.speed + layer.phaseShift);
                     const harmonic = 0.3 * Math.sin(layer.freq2 * xFrac * Math.PI * 2 - time * layer.speed * 1.7 + layer.phaseShift * 1.3);
                     const y = baseline - height * envelope * (primary + harmonic);
 
-                    if (!started) {
-                        waveCtx.moveTo(px, y);
-                        started = true;
-                    } else {
-                        waveCtx.lineTo(px, y);
-                    }
+                    // Factor de ahusado: 0 en bordes, 1 en centro → líneas puntiagudas
+                    const taper = Math.pow(Math.max(0, Math.sin(xFrac * Math.PI)), 1.2);
+                    points.push([px, y, taper]);
                 }
 
-                // Paso 1: glow ancho y suave (bloom) — 1 stroke con su propio shadowBlur
+                // --- PASO 2: GLOW con segmentos taper (puntas puntiagudas) + shadowBlur ---
                 waveCtx.strokeStyle = layer.shadowColor;
                 waveCtx.shadowColor = layer.shadowColor;
-                waveCtx.shadowBlur = 12;
-                waveCtx.lineWidth = layer.glowWidth;
-                waveCtx.stroke();
+                waveCtx.shadowBlur = isIdle ? 2 : 6;
+                const glowStep = isIdle ? 4 : 3;
+                for (let i = 0; i < points.length - 1; i += 1) {
+                    if (i % glowStep !== 0 && i !== points.length - 2) continue;
+                    const [x0, y0, t0] = points[i];
+                    const ni = Math.min(i + glowStep, points.length - 1);
+                    const [x1, y1, t1] = points[ni];
+                    const segTaper = (t0 + t1) / 2;
+                    waveCtx.lineWidth = Math.max(0.1, layer.glowWidth * segTaper * (isIdle ? 0.5 : 1));
+                    waveCtx.beginPath();
+                    waveCtx.moveTo(x0, y0);
+                    waveCtx.lineTo(x1, y1);
+                    waveCtx.stroke();
+                }
 
-                // Paso 2: núcleo nítido de la línea — 1 stroke
+                // --- PASO 3: NÚCLEO con segmentos taper (lineWidth variable) + SIN shadowBlur ---
+                // Puntas afiladas en todos los colores
+                waveCtx.shadowBlur = 0;
+                waveCtx.shadowColor = 'transparent';
                 waveCtx.strokeStyle = layer.color;
-                waveCtx.shadowColor = layer.shadowColor;
-                waveCtx.shadowBlur = 6;
-                waveCtx.lineWidth = layer.lineWidth;
-                waveCtx.stroke();
-            });
-
-            // Reset del shadowBlur al terminar para no afectar otros pintados
-            waveCtx.shadowBlur = 0;
-            waveCtx.globalCompositeOperation = 'source-over';
+                for (let i = 0; i < points.length - 1; i++) {
+                    const [x0, y0, t0] = points[i];
+                    const [x1, y1, t1] = points[i + 1];
+                    const segTaper = (t0 + t1) / 2;
+                    waveCtx.lineWidth = Math.max(0.05, layer.lineWidth * segTaper);
+                    waveCtx.beginPath();
+                    waveCtx.moveTo(x0, y0);
+                    waveCtx.lineTo(x1, y1);
+                    waveCtx.stroke();
+                }
+            }
         }
 
-        // Limpieza de cola de precarga TTS al reconfigurar o cambiar de voz
+        // Re-iniciar el ciclo de onda cuando se abre el reproductor
+        function ensureWaveLoop() {
+            if (!waveAnimFrame) {
+                waveLastFrameTime = 0;
+                drawWaveLoop(performance.now());
+            }
+        }
+
+                // Limpieza de cola de precarga TTS al reconfigurar o cambiar de voz
         function clearTtsCache() {
             edgePrefetchCache.clear();
             edgePrefetchAbortControllers.forEach(ctrl => {
@@ -2187,11 +2139,9 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('hidden');
             
-            // Forzar layout antes de aplicar la clase de animación (evita parpadeo)
             requestAnimationFrame(() => {
                 viewPlayer.classList.add('player-active');
-                // Reanudar el loop de la onda solo cuando el player es visible
-                if (typeof startWaveLoop === 'function') startWaveLoop();
+                ensureWaveLoop();
             });
 
             document.getElementById('mini-player').classList.add('hidden');
@@ -2203,9 +2153,6 @@
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('player-active');
             
-            // Detener el loop de la onda para no chupar CPU/GPU mientras el player está oculto
-            if (typeof stopWaveLoop === 'function') stopWaveLoop();
-
             setTimeout(() => {
                 if (!viewPlayer.classList.contains('player-active')) {
                     viewPlayer.classList.add('hidden');
@@ -2476,7 +2423,8 @@
                 readingBooks.forEach((book) => {
                     const idx = currentBooks.findIndex(b => b.id === book.id);
                     const card = document.createElement('div');
-                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-transform duration-200";
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105";
+                    card.style.transition = "transform 0.3s ease";
                     card.innerHTML = `
                         <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
                             <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
@@ -2496,7 +2444,8 @@
                 completedBooks.forEach((book) => {
                     const idx = currentBooks.findIndex(b => b.id === book.id);
                     const card = document.createElement('div');
-                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105 transition-transform duration-200";
+                    card.className = "flex-shrink-0 w-36 cursor-pointer snap-start hover:scale-105";
+                    card.style.transition = "transform 0.3s ease";
                     card.innerHTML = `
                         <div class="w-36 h-52 rounded-xl overflow-hidden shadow-lg border border-orange-500/20 bg-zinc-950 mb-2 relative">
                             <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Audiolibro'">
@@ -2563,7 +2512,7 @@
             filtered.forEach((book) => {
                 const idx = currentBooks.findIndex(b => b.id === book.id);
                 const card = document.createElement('div');
-                card.className = "book-card flex items-center gap-3.5 p-3 rounded-xl liquid-glass bg-zinc-900/40 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all w-full";
+                card.className = "book-card flex items-center gap-3.5 p-3 rounded-xl liquid-glass bg-zinc-900/40 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-[0.98] w-full";
                 card.innerHTML = `
                     <div class="relative w-14 h-[72px] shrink-0 rounded-lg overflow-hidden shadow-md bg-zinc-900/40">
                         <img src="${book.cover}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/101012/ffffff?text=Epub'">
@@ -2573,7 +2522,7 @@
                         <p class="text-[15px] opacity-60 truncate mt-1 text-zinc-300">${book.author}</p>
                         <span class="text-xs text-orange-500 font-bold uppercase block mt-1">${book.chapters.length} Caps</span>
                     </div>
-                    <button class="w-10 h-10 shrink-0 text-zinc-500 hover:text-red-400 active:scale-95 transition-all flex items-center justify-center rounded-full" onclick="deleteBook(event, ${idx})">
+                    <button class="w-10 h-10 shrink-0 text-zinc-500 hover:text-red-400 active:scale-95 flex items-center justify-center rounded-full" style="transition: transform 0.2s ease, color 0.2s ease;" onclick="deleteBook(event, ${idx})">
                         <i class="fa-solid fa-trash-can text-sm"></i>
                     </button>
                 `;
@@ -2982,45 +2931,50 @@
 
         // --- STREAMING_CHUNK: Ejecutando el deslizamiento automático del texto sincronizado... ---
         function scrollToActiveSentence() {
+            const container = document.getElementById('lyrics-container');
             const active = document.getElementById(`sentence-${currentSentenceIndex}`);
-            if (!active) return;
-            // scrollIntoView con 'block: center' es mucho más barato que calcular offsetTop
-            // y llamar a scrollTo con 'smooth'. En iOS el momentum nativo es más fluido con 'auto'.
-            try {
-                active.scrollIntoView({ block: 'center', behavior: 'auto' });
-            } catch (_) {
-                active.scrollIntoView({ block: 'center' });
+            if (active && container) {
+                container.scrollTo({
+                    top: active.offsetTop - (container.clientHeight / 2),
+                    behavior: 'auto'
+                });
             }
         }
 
-        // Caché de referencias DOM usadas en el bucle de progreso (cada frame).
-        // getElementById es rápido, pero hacerlo 5-7 veces por frame a 60fps suma.
-        const progressDomCache = {
-            bar: null, handle: null, cur: null, total: null,
-            lpBar: null, lpCur: null, lpRem: null,
-            refresh() {
-                this.bar = document.getElementById('progress-bar');
-                this.handle = document.getElementById('progress-handle');
-                this.cur = document.getElementById('time-current');
-                this.total = document.getElementById('time-total');
-                this.lpBar = document.getElementById('last-played-progress');
-                this.lpCur = document.getElementById('last-played-current');
-                this.lpRem = document.getElementById('last-played-remaining');
-            }
-        };
+        // Caché de referencias DOM para updateSmoothProgress (evita 7 getElementById por frame)
+        let _cachedProgressBar = null;
+        let _cachedProgressHandle = null;
+        let _cachedTimeCurrent = null;
+        let _cachedTimeTotal = null;
+        let _cachedLastProgress = null;
+        let _cachedLpCurrent = null;
+        let _cachedLpRemaining = null;
+        let _progressDomCacheReady = false;
+
+        function cacheProgressDomRefs() {
+            _cachedProgressBar = document.getElementById('progress-bar');
+            _cachedProgressHandle = document.getElementById('progress-handle');
+            _cachedTimeCurrent = document.getElementById('time-current');
+            _cachedTimeTotal = document.getElementById('time-total');
+            _cachedLastProgress = document.getElementById('last-played-progress');
+            _cachedLpCurrent = document.getElementById('last-played-current');
+            _cachedLpRemaining = document.getElementById('last-played-remaining');
+            _progressDomCacheReady = true;
+        }
 
         function startProgressLoop() {
             stopProgressLoop();
-            progressDomCache.refresh();
-            let lastUpdate = 0;
-            // 30fps es suficiente para una barra de progreso. Reducir a la mitad el trabajo del RAF.
-            const INTERVAL = 1000 / 30;
-            function tick(ts) {
+            if (!_progressDomCacheReady) cacheProgressDomRefs();
+            let lastTick = 0;
+            const TICK_INTERVAL = 33; // ~30fps throttle
+            function tick(timestamp) {
                 if (!isPlaying) return;
-                if (ts - lastUpdate >= INTERVAL) {
-                    lastUpdate = ts;
-                    updateSmoothProgress();
+                if (timestamp - lastTick < TICK_INTERVAL) {
+                    animationFrameId = requestAnimationFrame(tick);
+                    return;
                 }
+                lastTick = timestamp;
+                updateSmoothProgress();
                 animationFrameId = requestAnimationFrame(tick);
             }
             animationFrameId = requestAnimationFrame(tick);
@@ -3028,31 +2982,25 @@
 
         function stopProgressLoop() {
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
         }
 
         function updateSmoothProgress() {
             if (textSentences.length === 0) return;
-            const now = performance.now();
-            let elapsed = (now - currentSentenceStartTime) / 1000;
+            let elapsed = (performance.now() - currentSentenceStartTime) / 1000;
             let currentOffset = sentenceOffsets[currentSentenceIndex] || 0;
             let sentenceDur = estimatedDurations[currentSentenceIndex] || 4;
             let progressTime = currentOffset + Math.min(elapsed, sentenceDur);
 
             const ratio = progressTime / totalChapterDuration;
-            const pctStr = (ratio * 100) + '%';
+            if (_cachedProgressBar) _cachedProgressBar.style.width = `${ratio * 100}%`;
+            if (_cachedProgressHandle) _cachedProgressHandle.style.left = `${ratio * 100}%`;
+            if (_cachedTimeCurrent) _cachedTimeCurrent.textContent = formatTime(progressTime);
+            if (_cachedTimeTotal) _cachedTimeTotal.textContent = formatTime(totalChapterDuration);
 
-            // Usar la caché en vez de getElementById en cada frame
-            if (!progressDomCache.bar) progressDomCache.refresh();
-            if (progressDomCache.bar) progressDomCache.bar.style.width = pctStr;
-            if (progressDomCache.handle) progressDomCache.handle.style.left = pctStr;
-            if (progressDomCache.cur) progressDomCache.cur.textContent = formatTime(progressTime);
-            if (progressDomCache.total) progressDomCache.total.textContent = formatTime(totalChapterDuration);
-
-            if (progressDomCache.lpBar) {
-                progressDomCache.lpBar.style.width = pctStr;
-                if (progressDomCache.lpCur) progressDomCache.lpCur.textContent = formatTime(progressTime);
-                if (progressDomCache.lpRem) progressDomCache.lpRem.textContent = formatTime(Math.max(0, totalChapterDuration - progressTime)) + " restan";
+            if (_cachedLastProgress) {
+                _cachedLastProgress.style.width = `${ratio * 100}%`;
+                if (_cachedLpCurrent) _cachedLpCurrent.textContent = formatTime(progressTime);
+                if (_cachedLpRemaining) _cachedLpRemaining.textContent = formatTime(Math.max(0, totalChapterDuration - progressTime)) + " restan";
             }
         }
 
@@ -3139,7 +3087,7 @@
                         <h4 class="font-bold text-sm text-white truncate max-w-[190px]">${book.chapters[b.chapter].title}</h4>
                         <p class="text-[11px] text-zinc-400 mt-0.5">Guardado: ${b.dateStr || '17-07-2026 19:43'}</p>
                     </div>
-                    <button class="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-white/10 transition-all shadow-none border-none outline-none shrink-0" onclick="deleteBookmarkDirect(event, ${originalIndex})">
+                    <button class="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-white/10 shadow-none border-none outline-none shrink-0" style="transition: transform 0.2s ease, color 0.2s ease, background-color 0.2s ease;" onclick="deleteBookmarkDirect(event, ${originalIndex})">
                         <i class="fa-solid fa-trash-can text-sm"></i>
                     </button>
                 `;
@@ -3378,7 +3326,7 @@
                 </div>
                 <div class="flex gap-1.5">
                     <input id="edge-url-field" type="text" value="${EDGE_TTS_SERVER_URL}" class="flex-1 bg-black/45 border border-white/15 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-orange-500">
-                    <button id="btn-save-edge-url" class="px-3 rounded-lg bg-orange-500 text-white font-bold transition-all active:scale-95">OK</button>
+                    <button id="btn-save-edge-url" class="px-3 rounded-lg bg-orange-500 text-white font-bold active:scale-95" style="transition: transform 0.2s ease;">OK</button>
                 </div>
                 <p class="text-[9px] opacity-40 mt-1">Voces neurales con precarga (sin silencios entre párrafos)</p>
             `;
