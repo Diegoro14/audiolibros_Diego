@@ -236,6 +236,8 @@
             flex-direction: row !important;
             align-items: center !important;
             width: 100% !important;
+            transition: transform 0.2s ease, background-color 0.2s ease !important;
+            will-change: transform;
         }
 
         /* Estilo protegido del Botón de Play Circular Naranja */
@@ -532,6 +534,7 @@
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
             overscroll-behavior-y: contain;
+            will-change: scroll-position; /* misma optimización GPU que los carruseles, pero a toda lista vertical de la app (biblioteca, letra, capítulos, marcadores) */
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -622,6 +625,8 @@
             width: 150px;        /* Reducido: el glow se cortaba contra el borde del canvas cuando era más ancho */
             overflow: visible;
             filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.15)); /* Halo suave que se funde con el fondo */
+            will-change: transform;
+            transform: translateZ(0); /* promueve su propia capa de composición (GPU) */
         }
 
         #wave-canvas {
@@ -629,6 +634,24 @@
             width: 100%;
             height: 100%;
             pointer-events: none; /* No absorbe clics, previene bloquear botones superiores */
+        }
+
+        /* Carruseles horizontales ("Continuar Leyendo" / "Completados"): scroll nativo fluido
+           con momentum, sin encadenar el scroll hacia la página y con su propia capa GPU. */
+        #reading-carousel,
+        #completed-carousel {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scroll-snap-type: x proximity;
+            will-change: scroll-position;
+        }
+
+        /* Tarjetas de portada: solo el transform se anima (no todas las propiedades),
+           así el compositor no recalcula box-shadow/border en cada frame del hover/scroll. */
+        #reading-carousel > div,
+        #completed-carousel > div {
+            transition: transform 0.3s ease;
+            will-change: transform;
         }
     
         .piper-progress-bar { height: 3px; background: var(--accent-color); transition: width 0.3s; border-radius: 2px; }
@@ -1154,7 +1177,7 @@
                 </div>
 
                 <!-- MINIREPRODUCTOR FLOTANTE INFERIOR -->
-                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-3 z-30 flex items-center justify-between shadow-xl cursor-pointer hover:bg-zinc-900 transition-all duration-300 hidden">
+                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hover:bg-zinc-900 transition-all duration-300 hidden">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <img id="mini-player-cover" src="" class="w-10 h-10 rounded-lg object-cover bg-zinc-950 shadow" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
                         <div class="flex-1 min-w-0">
@@ -1676,7 +1699,7 @@
                     phaseShift: Math.PI * 1.2,
                     speed: 3.8,
                     lineWidth: 1.0,
-                    glowWidth: 2,
+                    glowWidth: 1.5,
                     shadowColor: 'rgba(255, 255, 255, 0.7)',
                     ampMultiplier: 1.0
                 }
@@ -2903,15 +2926,38 @@
         }
 
         // --- STREAMING_CHUNK: Ejecutando el deslizamiento automático del texto sincronizado... ---
+        let sentenceScrollAnimId = null;
+        function easeOutCubicScroll(t) { return 1 - Math.pow(1 - t, 3); }
+
         function scrollToActiveSentence() {
             const container = document.getElementById('lyrics-container');
             const active = document.getElementById(`sentence-${currentSentenceIndex}`);
-            if (active && container) {
-                container.scrollTo({
-                    top: active.offsetTop - (container.clientHeight / 2),
-                    behavior: 'smooth'
-                });
+            if (!active || !container) return;
+
+            const targetTop = active.offsetTop - (container.clientHeight / 2);
+            const startTop = container.scrollTop;
+            const distance = targetTop - startTop;
+
+            // Si ya casi está en posición, no vale la pena animar
+            if (Math.abs(distance) < 1) return;
+
+            // Animación propia por requestAnimationFrame: se sincroniza con la frecuencia
+            // real de la pantalla (60/90/120Hz) en vez de depender del 'smooth' nativo del
+            // navegador, que en muchos motores usa una duración fija y se siente pesado/trabado.
+            if (sentenceScrollAnimId) cancelAnimationFrame(sentenceScrollAnimId);
+            const duration = 240; // ms: rápido y directo
+            const startTime = performance.now();
+
+            function step(now) {
+                const t = Math.min(1, (now - startTime) / duration);
+                container.scrollTop = startTop + distance * easeOutCubicScroll(t);
+                if (t < 1) {
+                    sentenceScrollAnimId = requestAnimationFrame(step);
+                } else {
+                    sentenceScrollAnimId = null;
+                }
             }
+            sentenceScrollAnimId = requestAnimationFrame(step);
         }
 
         function startProgressLoop() {
