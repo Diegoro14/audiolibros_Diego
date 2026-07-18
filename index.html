@@ -209,9 +209,9 @@
 
         /* MINIREPRODUCTOR FLOTANTE - MODO CLARO */
         body.light-theme #mini-player {
-            background-color: rgba(255, 255, 255, 0.92) !important;
+            background-color: rgba(255, 255, 255, 0.94) !important;
             border-color: rgba(0, 0, 0, 0.08) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.07) !important;
         }
         body.light-theme #mini-player h4 { color: #1c1c1e !important; }
         body.light-theme #mini-player p { color: #636366 !important; }
@@ -297,7 +297,6 @@
         }
 
         #player-bg-blur {
-            /* Optimizado de 60px a 40px para aceleración por hardware ultra fluida en Safari Mobile */
             filter: blur(40px) brightness(0.35) saturate(1.8) !important;
             opacity: 0.85 !important;
             transition: background-image 0.6s ease-in-out;
@@ -960,7 +959,7 @@
 
                 <!-- REPRODUCTOR DE AUDIOLIBROS -->
                 <div id="view-player" class="flex flex-col h-full">
-                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center" style="transition: background-image 0.7s ease-in-out; transform: scale(1.35) translate3d(0,0,0);"></div>
+                    <div id="player-bg-blur" class="absolute inset-0 -z-10 bg-cover bg-center" style="transition: background-image 0.7s ease-in-out; transform: scale(1.35) translate3d(0,0,0); will-change: background-image;"></div>
                     
                     <header class="flex flex-col gap-2.5 px-6 pt-8 pb-2 safe-padding-top shrink-0">
                         <div class="flex justify-between items-center w-full relative">
@@ -1163,20 +1162,20 @@
                 </div>
 
                 <!-- MINIREPRODUCTOR FLOTANTE INFERIOR -->
-                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-4 z-30 flex items-center justify-between shadow-xl cursor-pointer hidden" style="transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease; transform: translate3d(0, 0, 0);">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <img id="mini-player-cover" src="" class="w-10 h-10 rounded-lg object-cover bg-zinc-950 shadow" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
+                <div id="mini-player" class="absolute bottom-[80px] left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-[18px] z-30 flex items-center justify-between shadow-xl cursor-pointer hidden" style="transition: background-color 0.3s ease, transform 0.3s ease, opacity 0.3s ease; transform: translate3d(0, 0, 0);">
+                    <div class="flex items-center gap-3.5 flex-1 min-w-0">
+                        <img id="mini-player-cover" src="" class="w-12 h-12 rounded-xl object-cover bg-zinc-950 shadow-md" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Cover'">
                         <div class="flex-1 min-w-0">
-                            <h4 id="mini-player-title" class="font-bold text-sm text-white truncate">Ningún audiolibro</h4>
-                            <p id="mini-player-author" class="text-xs text-zinc-400 truncate">Elige un libro para reproducir</p>
+                            <h4 id="mini-player-title" class="font-bold text-[15px] text-white truncate leading-tight">Ningún audiolibro</h4>
+                            <p id="mini-player-author" class="text-[13px] text-zinc-400 truncate mt-0.5">Elige un libro para reproducir</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                        <button id="mini-player-prev" class="w-8 h-8 flex items-center justify-center text-zinc-300 hover:text-white active:scale-95" onclick="skipSeconds(-15)">
-                            <i class="fa-solid fa-backward-step"></i>
+                    <div class="flex items-center gap-2.5" onclick="event.stopPropagation()">
+                        <button id="mini-player-prev" class="w-10 h-10 flex items-center justify-center text-zinc-300 hover:text-white active:scale-90" onclick="skipSeconds(-15)">
+                            <i class="fa-solid fa-backward-step text-base"></i>
                         </button>
-                        <button id="mini-player-play" class="w-8 h-8 flex items-center justify-center text-white bg-orange-500 rounded-full shadow hover:scale-105 active:scale-95" style="transition: transform 0.2s ease;">
-                            <i id="mini-player-play-icon" class="fa-solid fa-play text-xs pl-0.5"></i>
+                        <button id="mini-player-play" class="w-10 h-10 flex items-center justify-center text-white bg-orange-500 rounded-full shadow hover:scale-105 active:scale-90" style="transition: transform 0.2s ease;">
+                            <i id="mini-player-play-icon" class="fa-solid fa-play text-sm pl-0.5"></i>
                         </button>
                     </div>
                 </div>
@@ -1205,7 +1204,8 @@
 
     <!-- Elementos de Audio -->
     <audio id="tts-audio-player" playsinline preload="auto" style="display:none;"></audio>
-    <audio id="silent-keepalive" playsinline loop preload="auto" style="display:none;"></audio>
+    <!-- Keep-alive con audio MP3 de silencio absoluto integrado para mantener activa la sesión de hardware en iOS -->
+    <audio id="silent-keepalive" playsinline loop preload="auto" src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGFtZTMuOTguNFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/gQCkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGgAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf/gQCkAxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGgAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf/gQCkExAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGgAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf/gQCkUxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGgAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" style="display:none;"></audio>
 
     <div id="modal-confirm" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-6">
         <div class="w-full max-w-xs rounded-2xl liquid-glass text-white overflow-hidden shadow-2xl p-5 text-center">
@@ -1415,6 +1415,17 @@
         const PIPER_DB_NAME = 'PiperTTS';
         const PIPER_STORE = 'models';
         const PIPER_DB_KEY = 'es_MX-claude-high';
+
+        // Despierta el servidor de Render en segundo plano para evitar "arranque en frío"
+        async function warmUpRenderServer() {
+            if (!EDGE_TTS_SERVER_URL) return;
+            try {
+                // Un simple GET a la raíz despierta Render de forma súper eficiente sin CORS bloqueante
+                fetch(EDGE_TTS_SERVER_URL + '/', { method: 'GET', mode: 'no-cors' })
+                    .then(() => console.log("[Render Server] Wake-up probe (GET /) enviado."))
+                    .catch(() => {});
+            } catch(e) {}
+        }
 
         // --- STREAMING_CHUNK: Creando el almacén IndexedDB para persistir voces locales... ---
         function openPiperDB() {
@@ -1664,7 +1675,6 @@
             const time = wavePhase;
             const baseline = h / 2;
 
-            // Configuración estética de capas con colores y opacidades calibrados
             const layers = [
                 {
                     color: 'rgba(20, 250, 255, 0.95)',
@@ -1700,24 +1710,21 @@
             waveCtx.lineCap = 'round';
             waveCtx.lineJoin = 'round';
 
-            // MARGEN SEGURO DEL 12% a los lados: Evita que la onda toque los límites físicos y se corte
             const marginX = w * 0.12; 
             const drawW = Math.max(1, w - marginX * 2);
 
             const isIdle = !isPlaying;
             const layerStart = isIdle ? 3 : 0; 
-            const step = 2; // Paso equilibrado para curvas fluidas a 60fps sin sobrecargar CPU
+            const step = 2; 
 
             for (let li = layerStart; li < layers.length; li++) {
                 const layer = layers[li];
                 const points = [];
 
-                // --- PASO 1: Calcular todos los puntos con el nuevo envolvente ultra afilado ---
                 for (let i = 0; i <= drawW; i += step) {
                     const px = marginX + i;
                     const xFrac = i / drawW;
 
-                    // Envolvente sinusoidal al cubo para jalar la amplitud suavemente a cero en los márgenes
                     const envelope = Math.pow(Math.sin(xFrac * Math.PI), 2.5);
 
                     const flow = isPlaying
@@ -1731,14 +1738,13 @@
                     const harmonic = 0.3 * Math.sin(layer.freq2 * xFrac * Math.PI * 2 - time * layer.speed * 1.7 + layer.phaseShift * 1.3);
                     const y = baseline - height * envelope * (primary + harmonic);
 
-                    // Multiplicador de ahusado: decrece orgánicamente a 0 en las puntas extremas
                     const taperWidth = Math.pow(Math.sin(xFrac * Math.PI), 2.0);
                     points.push({ x: px, y: y, t: taperWidth });
                 }
 
                 if (points.length < 2) continue;
 
-                // --- PASO 2: RENDERIZAR BRILLO EXTERIOR TRANSLÚCIDO (Puntiagudo) ---
+                // --- PASO 2: RENDERIZAR BRILLO EXTERIOR TRANSLÚCIDO ---
                 waveCtx.strokeStyle = layer.shadowColor;
                 for (let i = 0; i < points.length - 1; i++) {
                     const p0 = points[i];
@@ -1752,7 +1758,7 @@
                     waveCtx.stroke();
                 }
 
-                // --- PASO 3: RENDERIZAR BRILLO INTERIOR SUAVE (Puntiagudo) ---
+                // --- PASO 3: RENDERIZAR BRILLO INTERIOR SUAVE ---
                 waveCtx.strokeStyle = layer.innerGlowColor;
                 for (let i = 0; i < points.length - 1; i++) {
                     const p0 = points[i];
@@ -1766,14 +1772,13 @@
                     waveCtx.stroke();
                 }
 
-                // --- PASO 4: RENDERIZAR NÚCLEO NÍTIDO PRINCIPAL (Puntiagudo a 0px) ---
+                // --- PASO 4: RENDERIZAR NÚCLEO NÍTIDO PRINCIPAL ---
                 waveCtx.strokeStyle = layer.color;
                 for (let i = 0; i < points.length - 1; i++) {
                     const p0 = points[i];
                     const p1 = points[i + 1];
                     const avgT = (p0.t + p1.t) / 2;
                     
-                    // Termina en punta absoluta (espesor 0) al acercarse a las márgenes
                     waveCtx.lineWidth = Math.max(0.01, layer.lineWidth * avgT);
                     waveCtx.beginPath();
                     waveCtx.moveTo(p0.x, p0.y);
@@ -1799,6 +1804,7 @@
             edgePrefetchAbortControllers.clear();
         }
 
+        // --- STREAMING_CHUNK: Registrando eventos clave y listeners multimedia de la app... ---
         function initApp() {
             migrateAndLoadLibrary();
 
@@ -1825,7 +1831,10 @@
             }
 
             setupDropdown('btn-speed-trigger', 'speed-flyout');
-            setupDropdown('btn-voice-trigger', 'voice-flyout', () => buildVoiceFlyout());
+            setupDropdown('btn-voice-trigger', 'voice-flyout', () => {
+                warmUpRenderServer(); // Despertar servidor proactivamente al abrir el menú de voces
+                buildVoiceFlyout();
+            });
             setupDropdown('btn-trigger-chapters', 'chapters-flyout', () => renderChaptersFlyoutList());
             setupDropdown('btn-timer', 'timer-flyout');
             setupDropdown('btn-list-bookmarks', 'bookmarks-flyout', () => {
@@ -1976,6 +1985,7 @@
             setTimeout(updateNavPillPosition, 150);
         }
 
+        // --- STREAMING_CHUNK: Manejando gestos táctiles de deslizamiento sobre la barra inferior... ---
         /* GESTOS TÁCTILES AVANZADOS Y DESLIZAMIENTO DE LA BARRA DE NAVEGACIÓN */
         let isDraggingPill = false;
         let navContainer = null;
@@ -2141,6 +2151,7 @@
             pill.style.top = `${relativeTop}px`;
         }
 
+        // --- STREAMING_CHUNK: Controlando transiciones de apertura/cierre de la pantalla del reproductor... ---
         function showFullPlayer() {
             document.getElementById('view-listening').classList.add('hidden');
             document.getElementById('view-library').classList.add('hidden');
@@ -2254,6 +2265,7 @@
             return stack.join('/');
         }
 
+        // --- STREAMING_CHUNK: Parsing de EPUBs y metadata multimedia... ---
         async function extractEpubCover(zip, opfDoc, manifestItems, opfFolder) {
             try {
                 let coverHref = null;
@@ -2317,7 +2329,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK: Decodificando documentos EPUB a texto legible ---
         function parseEPUBFile(file) {
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -2498,6 +2509,7 @@
             storageAdapter.save(book);
         }
 
+        // --- STREAMING_CHUNK: Renderizando la biblioteca en lista vertical... ---
         function renderLibrary() {
             const grid = document.getElementById('books-grid');
             if (!grid) return;
@@ -2560,10 +2572,14 @@
             document.getElementById('player-cover-img').src = book.cover;
             document.getElementById('player-bg-blur').style.backgroundImage = `url(${book.cover})`;
 
+            // Sincronizar instantáneamente "Último reproducido" con el libro cargado
             document.getElementById('last-played-title').textContent = book.title;
             document.getElementById('last-played-author').textContent = book.author;
             document.getElementById('last-played-cover').src = book.cover;
             document.getElementById('last-played-card').onclick = () => loadAudiobookPlayer(index);
+
+            // Despertar de forma proactiva el servidor de Render al cargar el reproductor
+            warmUpRenderServer();
 
             setupChapterMedia(activeChapterIndex);
             showFullPlayer();
@@ -2613,12 +2629,13 @@
             totalChapterDuration = acc;
         }
 
-        // --- STREAMING_CHUNK: Habilitando contexto de audio con gestos de usuario ---
+        // --- STREAMING_CHUNK: Controlando eventos multimedia y Playback del reproductor... ---
         function unlockAudio() {
             const silent = document.getElementById('silent-keepalive');
             if (silent) {
                 silent.play().catch(() => {});
             }
+            // Engancha el analizador de audio real en este mismo gesto del usuario
             ensureAudioAnalyser();
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume().catch(() => {});
@@ -2649,8 +2666,18 @@
             isPlaying = true;
             document.getElementById('play-icon').className = "fa-solid fa-pause text-2xl keep-white";
             document.getElementById('mini-player-play-icon').className = "fa-solid fa-pause text-xs";
+            
+            // Reproducir silenciosamente keep-alive continuo para engañar al motor de Safari en segundo plano
+            const silent = document.getElementById('silent-keepalive');
+            if (silent) {
+                silent.play().catch(() => {});
+            }
+
             speakSentence(currentSentenceIndex);
             startProgressLoop();
+            
+            // Sincronizar estado de reproducción con la pantalla de bloqueo de iOS
+            updateMediaSession();
         }
 
         function pauseAudio() {
@@ -2659,10 +2686,20 @@
             document.getElementById('mini-player-play-icon').className = "fa-solid fa-play text-xs pl-0.5";
             window.speechSynthesis.cancel();
             if (ttsAudioEl) ttsAudioEl.pause();
+            
+            // Pausar keep-alive para liberar recursos de hardware de audio en iOS
+            const silent = document.getElementById('silent-keepalive');
+            if (silent) {
+                silent.pause();
+            }
+
             ttsEngineToken++; 
             stopProgressLoop();
             saveCurrentProgress();
             updateHomeListeningViews();
+            
+            // Sincronizar pausa con la pantalla de bloqueo de iOS
+            updateMediaSession();
         }
 
         function speakSentence(index) {
@@ -2690,6 +2727,9 @@
             ttsEngineToken++;
             const myToken = ttsEngineToken;
             const text = textSentences[index];
+
+            // Sincronizar metadatos para reflejar la posición del reproductor en la barra de tareas de iOS
+            updateMediaSession();
 
             if (typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
                 speakSentenceEdge(index, text, myToken);
@@ -2772,33 +2812,74 @@
             if (!EDGE_TTS_SERVER_URL) {
                 throw new Error('Configura la URL del servidor Edge TTS en Ajustes de Voz');
             }
-            const resp = await fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: text,
-                    voice: voiceId,
-                    rate: speedRateToEdgeRate(activeSpeedRate),
-                    pitch: pitchToEdgeHz(activePitch),
-                    volume: '+0%'
-                }),
-                signal: signal
-            });
-
-            if (!resp.ok) {
-                let msg = 'Error del servidor (' + resp.status + ')';
+            
+            let lastError = null;
+            const maxAttempts = 5;
+            
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
+                
                 try {
-                    const j = await resp.json();
-                    if (j && j.error) msg = j.error;
-                } catch (_) {}
-                throw new Error(msg);
-            }
+                    if (attempt > 1) {
+                        showToast(`Conectando con la nube... (Intento ${attempt}/${maxAttempts})`, "fa-wifi text-orange-400 animate-pulse");
+                        await new Promise((resolve, reject) => {
+                            const t = setTimeout(resolve, 2500);
+                            if (signal) {
+                                signal.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); });
+                            }
+                        });
+                    }
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 12000); 
+                    
+                    if (signal) {
+                        signal.addEventListener('abort', () => controller.abort());
+                    }
 
-            const blob = await resp.blob();
-            if (!blob || blob.size < 100) {
-                throw new Error('Audio vacío recibido del servidor');
+                    const resp = await fetch(EDGE_TTS_SERVER_URL + '/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: text,
+                            voice: voiceId,
+                            rate: speedRateToEdgeRate(activeSpeedRate),
+                            pitch: pitchToEdgeHz(activePitch),
+                            volume: '+0%'
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+                        throw new Error("El servidor está despertando de su reposo");
+                    }
+
+                    if (!resp.ok) {
+                        let msg = 'Error del servidor (' + resp.status + ')';
+                        try {
+                            const j = await resp.json();
+                            if (j && j.error) msg = j.error;
+                        } catch (_) {}
+                        throw new Error(msg);
+                    }
+
+                    const blob = await resp.blob();
+                    if (!blob || blob.size < 100) {
+                        throw new Error('Audio vacío recibido del servidor');
+                    }
+                    
+                    return blob; 
+                } catch (err) {
+                    lastError = err;
+                    if (signal && signal.aborted) {
+                        throw new DOMException("Aborted", "AbortError");
+                    }
+                    console.warn(`Intento ${attempt}/${maxAttempts} para Edge TTS falló:`, err.message);
+                }
             }
-            return blob;
+            throw lastError || new Error("No se pudo conectar al servidor de voz después de múltiples intentos");
         }
 
         function prefetchEdgeAhead(fromIndex) {
@@ -3034,6 +3115,7 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Guardando y listando los marcadores dinámicos... ---
         function toggleBookmark() {
             const book = currentBooks[activeBookIndex];
             if (!book) return;
@@ -3443,10 +3525,13 @@
                 btn.classList.toggle('active-opt', isMatch);
             });
 
+            // Limpiar cache de pre-búsqueda para asegurar de que cargue la nueva voz instantáneamente sin retardos
             clearTtsCache();
+
             closeAllFlyouts();
             showToast(`Voz: ${displayLabel}`, "fa-microphone text-orange-500");
 
+            // Si está reproduciendo, detener reproducción actual e iniciar con la nueva voz inmediatamente
             if (isPlaying) {
                 window.speechSynthesis.cancel();
                 if (ttsAudioEl) {
@@ -3457,6 +3542,50 @@
             }
         }
 
+        function updateMediaSession() {
+            if (!('mediaSession' in navigator) || activeBookIndex === null) return;
+            const book = currentBooks[activeBookIndex];
+            const chapter = book.chapters[activeChapterIndex];
+            
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: book.title,
+                artist: book.author,
+                album: chapter ? chapter.title : 'Audiolibros Diego',
+                artwork: [
+                    { src: book.cover, sizes: '512x512', type: 'image/png' },
+                    { src: book.cover, sizes: '256x256', type: 'image/png' }
+                ]
+            });
+
+            // Sincronizar estado físico del reproductor con iOS
+            navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+        }
+
+        function initMediaSessionHandlers() {
+            if (!('mediaSession' in navigator)) return;
+            
+            // Vincular controles de la pantalla de bloqueo física del iPhone con funciones JS
+            navigator.mediaSession.setActionHandler('play', () => {
+                playAudio();
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                pauseAudio();
+            });
+            navigator.mediaSession.setActionHandler('seekbackward', () => {
+                skipSeconds(-15);
+            });
+            navigator.mediaSession.setActionHandler('seekforward', () => {
+                skipSeconds(15);
+            });
+            navigator.mediaSession.setActionHandler('previoustrack', () => {
+                skipSeconds(-15);
+            });
+            navigator.mediaSession.setActionHandler('nexttrack', () => {
+                skipSeconds(15);
+            });
+        }
+
+        // --- STREAMING_CHUNK: Creando el disparador unificado de las notificaciones flotantes... ---
         function showToast(msg, icon = "fa-circle-info") {
             const el = document.getElementById('app-toast');
             const iconEl = document.getElementById('app-toast-icon');
