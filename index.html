@@ -1298,57 +1298,65 @@
         let waveAnimFrame = null;
 
         // --- Análisis de audio real para que la onda reaccione a la voz del relator ---
-        let audioCtx = null;
-        let analyserNode = null;
-        let audioSourceNode = null;
-        let waveFreqData = null;
+        // IMPORTANTE: esto ya NO conecta el <audio> que suena (ttsAudioEl) a la Web Audio API.
+        // Antes se usaba createMediaElementSource() sobre ese mismo elemento, y eso hacía que
+        // TODO el sonido dependiera de un AudioContext que iOS suspende al bloquear la pantalla
+        // (y que luego no se puede reanudar sin un gesto directo del usuario) — por eso el audio
+        // se cortaba al apagar/bloquear la pantalla. Ahora se decodifica el audio de cada frase
+        // por separado, en un AudioContext que nunca se conecta a los parlantes (solo se usa para
+        // leer la forma de onda), así el <audio> real sigue su ruta de salida normal, que sí
+        // sobrevive con la pantalla bloqueada.
+        let decodeAudioCtx = null;
+        let currentEnvelope = null;
+        let currentEnvelopeStep = 0.04;
         let audioAnalyserReady = false;
-        let audioAnalyserAttempted = false;
 
-        // Se llama una sola vez, disparada por un gesto del usuario (desbloqueo de audio)
-        function ensureAudioAnalyser() {
-            if (audioAnalyserAttempted) return;
-            audioAnalyserAttempted = true;
-            if (!ttsAudioEl) return;
+        // Decodifica el blob de una frase (sin tocar el audio que se está reproduciendo) y
+        // calcula la energía (RMS) en pequeñas ventanas de tiempo, para poder leerla luego
+        // sincronizada con ttsAudioEl.currentTime.
+        async function computeEnvelope(blob) {
             try {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AC();
-                audioSourceNode = audioCtx.createMediaElementSource(ttsAudioEl);
-                analyserNode = audioCtx.createAnalyser();
-                analyserNode.fftSize = 256;
-                analyserNode.smoothingTimeConstant = 0.7;
-                waveFreqData = new Uint8Array(analyserNode.frequencyBinCount);
-                audioSourceNode.connect(analyserNode);
-                analyserNode.connect(audioCtx.destination);
-                audioAnalyserReady = true;
+                if (!decodeAudioCtx) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    decodeAudioCtx = new AC();
+                }
+                const arrayBuf = await blob.arrayBuffer();
+                const audioBuffer = await decodeAudioCtx.decodeAudioData(arrayBuf);
+                const channelData = audioBuffer.getChannelData(0);
+                const sampleRate = audioBuffer.sampleRate;
+                const windowSize = Math.max(1, Math.round(sampleRate * 0.04));
+                const numWindows = Math.ceil(channelData.length / windowSize);
+                const envelope = new Float32Array(numWindows);
+                let maxVal = 0;
+                for (let w = 0; w < numWindows; w++) {
+                    const start = w * windowSize;
+                    const end = Math.min(channelData.length, start + windowSize);
+                    let sumSq = 0;
+                    for (let i = start; i < end; i++) sumSq += channelData[i] * channelData[i];
+                    const rms = Math.sqrt(sumSq / Math.max(1, end - start));
+                    envelope[w] = rms;
+                    if (rms > maxVal) maxVal = rms;
+                }
+                if (maxVal > 0) {
+                    for (let w = 0; w < numWindows; w++) envelope[w] = envelope[w] / maxVal;
+                }
+                return { envelope, step: windowSize / sampleRate };
             } catch (e) {
-                console.warn('Análisis de audio en tiempo real no disponible, se usará simulación:', e);
-                audioAnalyserReady = false;
+                console.warn('No se pudo analizar el audio real de esta frase, se usará simulación:', e);
+                return null;
             }
         }
 
-        // Lee el espectro real del relator y traduce energía de voz en amplitud/forma de la onda
+        // Lee la energía real del relator (ya decodificada) en el instante actual y la traduce
+        // en amplitud/forma de la onda.
         function updateVocalFromRealAudio() {
-            analyserNode.getByteFrequencyData(waveFreqData);
-            const len = waveFreqData.length;
-            const lowEnd = Math.max(4, Math.floor(len * 0.18));
-            const midEnd = Math.floor(len * 0.5);
-            let lowSum = 0, midSum = 0, highSum = 0;
-            for (let i = 0; i < len; i++) {
-                if (i < lowEnd) lowSum += waveFreqData[i];
-                else if (i < midEnd) midSum += waveFreqData[i];
-                else highSum += waveFreqData[i];
-            }
-            const lowAvg = lowSum / lowEnd;
-            const midAvg = midSum / Math.max(1, midEnd - lowEnd);
-            const highAvg = highSum / Math.max(1, len - midEnd);
+            if (!currentEnvelope || currentEnvelope.length === 0 || !ttsAudioEl) return 0;
+            const idx = Math.min(currentEnvelope.length - 1, Math.max(0, Math.floor(ttsAudioEl.currentTime / currentEnvelopeStep)));
+            const overall = currentEnvelope[idx];
+            targetVocalSyllable = Math.min(1.0, Math.pow(overall, 0.6) * 1.4);
 
-            const overall = (lowAvg * 0.5 + midAvg * 0.35 + highAvg * 0.15) / 255;
-            targetVocalSyllable = Math.min(1.0, Math.pow(overall, 0.6) * 1.7);
-
-            const brightness = highAvg / (lowAvg + 1);
-            if (overall < 0.1) targetVocalPattern = 2;
-            else if (brightness > 0.85) targetVocalPattern = 1;
+            if (overall < 0.12) targetVocalPattern = 2;
+            else if (overall > 0.55) targetVocalPattern = 1;
             else targetVocalPattern = 0;
 
             return overall;
@@ -2691,11 +2699,6 @@
             if (silent) {
                 silent.play().catch(() => {});
             }
-            // Engancha el analizador de audio real en este mismo gesto del usuario
-            ensureAudioAnalyser();
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume().catch(() => {});
-            }
             if (ttsAudioEl) {
                 ttsAudioEl.play().then(() => {
                     ttsAudioEl.pause();
@@ -2779,6 +2782,8 @@
             currentSentenceStartTime = performance.now();
             highlightCurrentSentence();
             scrollToActiveSentence();
+            audioAnalyserReady = false;
+            currentEnvelope = null;
 
             ttsEngineToken++;
             const myToken = ttsEngineToken;
@@ -3005,9 +3010,14 @@
                 }
                 edgeCurrentObjectUrl = URL.createObjectURL(blob);
                 ttsAudioEl.src = edgeCurrentObjectUrl;
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume().catch(() => {});
-                }
+                audioAnalyserReady = false;
+                currentEnvelope = null;
+                computeEnvelope(blob).then(result => {
+                    if (myToken !== ttsEngineToken || !isPlaying || !result) return;
+                    currentEnvelope = result.envelope;
+                    currentEnvelopeStep = result.step;
+                    audioAnalyserReady = true;
+                });
                 await ttsAudioEl.play();
             } catch (err) {
                 edgePrefetchCache.delete(key);
