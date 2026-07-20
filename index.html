@@ -1016,7 +1016,7 @@
                                 </div>
                                 <div class="w-10"></div>
                             </header>
-                            <div id="lyrics-container" class="flex-1 ios-scroll px-6 py-6 space-y-5 text-center text-lg md:text-xl font-medium leading-relaxed select-none text-white">
+                            <div id="lyrics-container" class="flex-1 ios-scroll px-6 py-6 space-y-5 text-center text-xl md:text-2xl font-medium leading-relaxed select-none text-white">
                                 <div class="opacity-40 py-12 text-sm">Carga un libro para iniciar la lectura sincronizada.</div>
                             </div>
                         </div>
@@ -1581,7 +1581,22 @@
             } catch(e) {}
         }
 
-        window.onload = function() {
+        // Este <script> corre al final del <body>, por lo que el DOM ya está
+        // disponible en este punto. Antes se esperaba el evento 'load' (que no
+        // dispara hasta que bajan Tailwind CDN, fuentes, FontAwesome, JSZip,
+        // pdf.js, onnxruntime y el icono librook.png), lo que retrasaba
+        // innecesariamente la carga de la biblioteca de libros. Usamos
+        // 'DOMContentLoaded' en vez de ejecutar directo aquí mismo, porque el
+        // script todavía tiene variables (let/const) declaradas más abajo
+        // -por ejemplo navContainer- que este bloque necesita; DOMContentLoaded
+        // dispara recién cuando el parser terminó TODO el documento (así esas
+        // variables ya están inicializadas) pero sigue sin esperar imágenes,
+        // hojas de estilo ni fuentes como sí hace 'load'. warmUpRenderServer()
+        // sigue saliendo mucho antes que con 'load', dándole más margen al
+        // servidor Render para despertar antes del play. No cambia nada del
+        // audio, TTS ni la animación de la onda: esas rutinas se disparan por
+        // gestos del usuario, no por este arranque.
+        document.addEventListener('DOMContentLoaded', function() {
             restoreTheme();
             restoreFontScale();
             initApp();
@@ -1600,7 +1615,7 @@
             initWaveCanvas();
             
             setTimeout(updateNavPillPosition, 150);
-        };
+        });
 
         function isOnlineVoiceSelected() {
             return selectedVoiceValue === "online";
