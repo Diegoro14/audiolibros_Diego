@@ -389,6 +389,23 @@
 
         .view-transition {
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+            position: absolute;
+            inset: 0;
+            transform: translateX(0);
+            will-change: transform, opacity;
+        }
+        /* Estados transitorios para la animación de "página deslizante" entre
+           Escuchando / Biblioteca / Ajustes. Sin clase extra = pestaña activa,
+           centrada. Estas clases sólo se agregan/quitan desde switchTab(). */
+        .view-transition.tab-slide-in-right,
+        .view-transition.tab-slide-out-right {
+            transform: translateX(100%);
+            pointer-events: none;
+        }
+        .view-transition.tab-slide-in-left,
+        .view-transition.tab-slide-out-left {
+            transform: translateX(-100%);
+            pointer-events: none;
         }
 
         .word-active {
@@ -1541,6 +1558,7 @@
         let activeChapterIndex = 0;
         let activeUtterance = null;
         let isPlaying = false;
+        let isAudioBuffering = false; // true mientras se espera que la oración actual empiece a sonar de verdad
         let synthesisVoices = [];
         let bestOnlineVoiceIndex = null;
         let onlineTtsFailed = false;
@@ -2131,8 +2149,10 @@
         }
 
         // --- STREAMING_CHUNK: Cambiando pestañas en barra inferior de iOS... ---
+        const TAB_ORDER = ['listening', 'library', 'settings'];
+        let isTabAnimating = false;
+
         function switchTab(tabName) {
-            currentActiveTab = tabName;
             const views = {
                 listening: document.getElementById('view-listening'),
                 library: document.getElementById('view-library'),
@@ -2145,11 +2165,13 @@
                 settings: document.getElementById('nav-btn-settings')
             };
 
-            Object.keys(views).forEach(key => {
-                if (views[key]) {
-                    if (key === tabName) views[key].classList.remove('hidden');
-                    else views[key].classList.add('hidden');
-                }
+            const toView = views[tabName];
+            if (!toView) return;
+
+            const prevTab = currentActiveTab;
+            const fromView = views[prevTab];
+
+            Object.keys(buttons).forEach(key => {
                 if (buttons[key]) {
                     if (key === tabName) {
                         buttons[key].classList.replace('text-zinc-500', 'text-orange-500');
@@ -2161,7 +2183,51 @@
                 }
             });
 
+            currentActiveTab = tabName;
             updateNavPillPosition();
+
+            // Caso sin animación: llamada para re-mostrar la misma pestaña
+            // (p. ej. hideFullPlayer() al cerrar el reproductor, donde las 3
+            // vistas ya están 'hidden' y sólo hay que restaurar la actual).
+            // Se mantiene el comportamiento original: instantáneo, sin deslizar.
+            if (prevTab === tabName || !fromView || fromView === toView || fromView.classList.contains('hidden')) {
+                Object.keys(views).forEach(key => {
+                    if (!views[key]) return;
+                    views[key].classList.remove('tab-slide-in-left', 'tab-slide-in-right', 'tab-slide-out-left', 'tab-slide-out-right');
+                    if (key === tabName) views[key].classList.remove('hidden');
+                    else views[key].classList.add('hidden');
+                });
+                return;
+            }
+
+            // --- Transición animada tipo "página deslizante" entre pestañas ---
+            isTabAnimating = true;
+            const dir = TAB_ORDER.indexOf(tabName) > TAB_ORDER.indexOf(prevTab) ? 1 : -1; // 1: avanza, -1: retrocede
+
+            toView.classList.remove('hidden', 'tab-slide-in-left', 'tab-slide-in-right', 'tab-slide-out-left', 'tab-slide-out-right');
+            toView.classList.add(dir === 1 ? 'tab-slide-in-right' : 'tab-slide-in-left');
+
+            // Forzar reflow para que el navegador registre la posición inicial
+            // antes de animar al estado final (mismo truco que usa el resto
+            // de la app para sus transiciones con transform).
+            void toView.offsetWidth;
+
+            requestAnimationFrame(() => {
+                toView.classList.remove('tab-slide-in-left', 'tab-slide-in-right');
+                fromView.classList.add(dir === 1 ? 'tab-slide-out-left' : 'tab-slide-out-right');
+            });
+
+            const finishTabTransition = () => {
+                fromView.classList.add('hidden');
+                fromView.classList.remove('tab-slide-out-left', 'tab-slide-out-right');
+                isTabAnimating = false;
+                toView.removeEventListener('transitionend', onTabTransitionEnd);
+            };
+            const onTabTransitionEnd = (e) => {
+                if (e.target === toView && e.propertyName === 'transform') finishTabTransition();
+            };
+            toView.addEventListener('transitionend', onTabTransitionEnd);
+            setTimeout(finishTabTransition, 450); // red de seguridad si transitionend no dispara
         }
 
         function updateNavPillPosition() {
@@ -2184,6 +2250,55 @@
             pill.style.width = `${targetWidth}px`;
             pill.style.top = `${relativeTop}px`;
         }
+
+        // --- Gesto de deslizar el dedo para cambiar entre Escuchando / Biblioteca / Ajustes ---
+        // Sólo se activa con un swipe horizontal claro (no interfiere con el
+        // scroll vertical de las listas, ni con carruseles horizontales
+        // internos, ni con la navbar -que ya tiene su propio gesto para la
+        // "pill"-, ni cuando el reproductor a pantalla completa está abierto.
+        (function setupTabSwipeGesture() {
+            const phoneContainer = document.getElementById('app-phone-container');
+            if (!phoneContainer) return;
+
+            let swipeStartX = 0;
+            let swipeStartY = 0;
+            let swipeTracking = false;
+
+            phoneContainer.addEventListener('touchstart', (e) => {
+                const viewPlayer = document.getElementById('view-player');
+                if (viewPlayer && viewPlayer.classList.contains('player-active')) { swipeTracking = false; return; }
+                if (isTabAnimating) { swipeTracking = false; return; }
+                if (e.touches.length !== 1) { swipeTracking = false; return; }
+                if (e.target.closest('#bottom-navbar')) { swipeTracking = false; return; }
+                if (e.target.closest('.overflow-x-auto')) { swipeTracking = false; return; }
+
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                swipeTracking = true;
+            }, { passive: true });
+
+            phoneContainer.addEventListener('touchend', (e) => {
+                if (!swipeTracking) return;
+                swipeTracking = false;
+
+                const touch = e.changedTouches[0];
+                if (!touch) return;
+
+                const dx = touch.clientX - swipeStartX;
+                const dy = touch.clientY - swipeStartY;
+
+                // Umbral: al menos 65px de recorrido horizontal, y claramente
+                // más horizontal que vertical, para no confundirlo con scroll.
+                if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+                const idx = TAB_ORDER.indexOf(currentActiveTab);
+                if (dx < 0 && idx < TAB_ORDER.length - 1) {
+                    switchTab(TAB_ORDER[idx + 1]); // deslizó hacia la izquierda -> siguiente pestaña
+                } else if (dx > 0 && idx > 0) {
+                    switchTab(TAB_ORDER[idx - 1]); // deslizó hacia la derecha -> pestaña anterior
+                }
+            }, { passive: true });
+        })();
 
         // --- STREAMING_CHUNK: Controlando transiciones de apertura/cierre de la pantalla del reproductor... ---
         function showFullPlayer() {
@@ -2456,8 +2571,27 @@
 
         async function migrateAndLoadLibrary() {
             currentBooks = await storageAdapter.getAll();
+
+            // Restaurar qué libro se estaba escuchando la última vez. Antes
+            // 'activeBookIndex' sólo vivía en memoria y se perdía al recargar
+            // la app, por lo que "Último Reproducido" y el mini-reproductor
+            // siempre mostraban el primer libro de la biblioteca en vez del
+            // que realmente estabas escuchando.
+            if (activeBookIndex === null) {
+                const lastBookId = localStorage.getItem('audiolibros_diego_last_book_id');
+                if (lastBookId) {
+                    const restoredIdx = currentBooks.findIndex(b => b.id === lastBookId);
+                    if (restoredIdx !== -1) {
+                        activeBookIndex = restoredIdx;
+                        activeChapterIndex = currentBooks[restoredIdx].progressChapter || 0;
+                        currentSentenceIndex = currentBooks[restoredIdx].progressSentence || 0;
+                    }
+                }
+            }
+
             renderLibrary();
             updateHomeListeningViews();
+            updateMiniPlayer();
         }
 
         function updateHomeListeningViews() {
@@ -2633,6 +2767,7 @@
             showCustomConfirm("¿Eliminar Libro?", `¿Estás seguro de borrar "${book.title}"?`, async () => {
                 if (activeBookIndex === index) {
                     activeBookIndex = null;
+                    localStorage.removeItem('audiolibros_diego_last_book_id');
                 }
                 await storageAdapter.delete(book.id);
                 migrateAndLoadLibrary();
@@ -2643,6 +2778,7 @@
         function loadAudiobookPlayer(index) {
             activeBookIndex = index;
             const book = currentBooks[index];
+            localStorage.setItem('audiolibros_diego_last_book_id', book.id);
             activeChapterIndex = book.progressChapter || 0;
             currentSentenceIndex = book.progressSentence || 0;
 
@@ -2738,8 +2874,11 @@
         function playAudio() {
             if (textSentences.length === 0) return;
             isPlaying = true;
-            document.getElementById('play-icon').className = "fa-solid fa-pause text-2xl keep-white";
-            document.getElementById('mini-player-play-icon').className = "fa-solid fa-pause text-xs";
+            isAudioBuffering = true;
+            // Ícono de carga (no "pausa" todavía): recién cambia a pausa cuando
+            // el audio realmente empieza a sonar, en markAudioPlaybackStarted().
+            document.getElementById('play-icon').className = "fa-solid fa-spinner fa-spin text-2xl keep-white";
+            document.getElementById('mini-player-play-icon').className = "fa-solid fa-spinner fa-spin text-xs";
             
             // Reproducir silenciosamente keep-alive continuo para engañar al motor de Safari en segundo plano
             const silent = document.getElementById('silent-keepalive');
@@ -2756,6 +2895,7 @@
 
         function pauseAudio() {
             isPlaying = false;
+            isAudioBuffering = false;
             document.getElementById('play-icon').className = "fa-solid fa-play text-2xl ml-0.5 keep-white";
             document.getElementById('mini-player-play-icon').className = "fa-solid fa-play text-xs pl-0.5";
             window.speechSynthesis.cancel();
@@ -2794,7 +2934,7 @@
             }
 
             currentSentenceIndex = index;
-            currentSentenceStartTime = performance.now();
+            isAudioBuffering = true; // se pone en true en cada oración; markAudioPlaybackStarted() la apaga cuando el sonido realmente arranca
             highlightCurrentSentence();
             scrollToActiveSentence();
             audioAnalyserReady = false;
@@ -2823,6 +2963,18 @@
             }
 
             speakSentenceSystem(text);
+        }
+
+        // Se llama justo cuando el audio de la oración actual REALMENTE empieza
+        // a sonar (no cuando se pide, ni cuando se toca Play). Recién acá el
+        // ícono pasa de "cargando" a "pausa" y arranca a contar el progreso,
+        // para que la interfaz no mienta mientras se está esperando al servidor.
+        function markAudioPlaybackStarted() {
+            if (!isAudioBuffering) return;
+            isAudioBuffering = false;
+            currentSentenceStartTime = performance.now();
+            document.getElementById('play-icon').className = "fa-solid fa-pause text-2xl keep-white";
+            document.getElementById('mini-player-play-icon').className = "fa-solid fa-pause text-xs";
         }
 
         function initializePiperVoiceAndSpeak(text) {
@@ -2860,6 +3012,9 @@
                 if (esVoice) activeUtterance.voice = esVoice;
             }
 
+            activeUtterance.onstart = () => {
+                markAudioPlaybackStarted();
+            };
             activeUtterance.onend = () => {
                 if (isPlaying) speakSentence(currentSentenceIndex + 1);
             };
@@ -3034,6 +3189,7 @@
                     audioAnalyserReady = true;
                 });
                 await ttsAudioEl.play();
+                markAudioPlaybackStarted();
             } catch (err) {
                 edgePrefetchCache.delete(key);
                 if (myToken !== ttsEngineToken || !isPlaying) return;
@@ -3129,6 +3285,13 @@
             const TICK_INTERVAL = 33; 
             function tick(timestamp) {
                 if (!isPlaying) return;
+                if (isAudioBuffering) {
+                    // No avanzar el progreso mientras se espera el audio real;
+                    // sólo seguir pidiendo el próximo frame para retomar apenas
+                    // markAudioPlaybackStarted() reinicie el cronómetro.
+                    animationFrameId = requestAnimationFrame(tick);
+                    return;
+                }
                 if (timestamp - lastTick < TICK_INTERVAL) {
                     animationFrameId = requestAnimationFrame(tick);
                     return;
