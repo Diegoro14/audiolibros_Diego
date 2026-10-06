@@ -940,8 +940,8 @@
                         <!-- PREFERENCIAS -->
                         <div class="space-y-3">
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block px-1">Preferencias</span>
-                            <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
+                            <div class="bg-zinc-900/60 border border-white/5 rounded-2xl overflow-visible divide-y divide-white/5">
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 rounded-t-2xl">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
                                             <i class="fa-solid fa-moon text-sm"></i>
@@ -976,6 +976,42 @@
                                         <input type="checkbox" id="pc-view-toggle" onchange="toggleDeviceView()">
                                         <span class="ios-slider"></span>
                                     </label>
+                                </div>
+                                <div class="relative">
+                                    <div id="wave-style-row" class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer ">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                                                <i class="fa-solid fa-wave-square"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Estilo de onda</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span id="wave-style-label" class="text-sm" style="color:var(--text-secondary)"></span>
+                                            <i class="fa-solid fa-chevron-up text-[10px] text-zinc-500"></i>
+                                        </div>
+                                    </div>
+                                    <div id="wave-style-flyout" class="unified-flyout absolute right-4 w-60 space-y-1">
+                                        <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Estilo de onda</div>
+                                        <div id="wave-style-list" class="max-h-[220px] ios-scroll space-y-1 pr-1"></div>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <div id="wave-color-row" class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer rounded-b-2xl">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                                                <i class="fa-solid fa-palette"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Color de onda</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span id="wave-color-label" class="text-sm" style="color:var(--text-secondary)"></span>
+                                            <i class="fa-solid fa-chevron-up text-[10px] text-zinc-500"></i>
+                                        </div>
+                                    </div>
+                                    <div id="wave-color-flyout" class="unified-flyout absolute right-4 w-60 space-y-1">
+                                        <div class="text-[13px] font-bold opacity-60 uppercase tracking-wider px-2 py-1.5 border-b border-white/10">Color de onda</div>
+                                        <div id="wave-color-list" class="max-h-[220px] ios-scroll space-y-1 pr-1"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1314,6 +1350,112 @@
         let currentWaveAmp = 0;
         let waveAnimFrame = null;
 
+        // ===== Estilos de onda alternativos (se eligen en Ajustes) =====
+        const WaveAlt=(function(){
+            let ctx,W,H,a,v,amp,ph,playing,theme,colr,col,gr;
+            const PAL={dark:['20,250,255','150,30,255','255,25,140'],light:['0,175,205','120,30,220','230,20,120']};
+            function grad(x0,x1){const g=ctx.createLinearGradient(x0,0,x1,0),p=PAL[theme];g.addColorStop(0,'rgb('+p[0]+')');g.addColorStop(.5,'rgb('+p[1]+')');g.addColorStop(1,'rgb('+p[2]+')');return g}
+            function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fill()}
+            const L=[['20,250,255',2.5,5.1,0,2.6,1.5,4,.8,[.95,.35,.1]],['255,25,140',3.2,6.4,.4,3.3,1.2,4,.85,[.95,.3,.08]],['150,30,255',1.8,4.3,.8,1.9,1,3,.6,[.85,.25,.06]],['255,255,255',4,8.2,1.2,3.8,1.8,2,1,[.98,.4,.12]]];
+            function lc(i,c){const lt=theme==='light';if(colr==='orange')return lt?['255,164,0','230,120,0','255,190,40','190,95,0'][i]:['255,164,0','255,136,0','255,200,60','255,232,170'][i];if(colr==='auto')return lt?'28,28,30':'255,255,255';return lt?['0,175,205','230,20,120','120,30,220','255,255,255'][i]:c}
+            const draw={
+            siri(){ctx.globalCompositeOperation=theme==='light'?'source-over':'screen';ctx.lineJoin='round';const mx=W*.12,dw=W-mx*2;
+            for(let li=playing?0:3;li<4;li++){const [c0,f1,f2,ps,sp,lw,gw,am,al]=L[li],c=lc(li,c0),P=ps*Math.PI,pts=[];
+            for(let i=0;i<=dw;i+=2){const x=i/dw,env=Math.pow(Math.sin(x*Math.PI),2.5),flow=playing?.75+.25*Math.sin(ph*3+P):.15+.05*Math.sin(ph+P),h=H*.22*v*flow*amp*am;
+            pts.push([mx+i,H/2-h*env*(Math.sin(f1*x*6.2832-ph*sp+P)+.3*Math.sin(f2*x*6.2832-ph*sp*1.7+P*1.3)),Math.pow(Math.sin(x*Math.PI),2)])}
+            [[al[2],gw*3.5],[al[1],gw*1.8],[al[0],lw]].forEach(([o,w])=>{ctx.strokeStyle='rgba('+c+','+o+')';for(let i=0;i<pts.length-1;i++){const p=pts[i],q=pts[i+1];ctx.lineWidth=Math.max(.01,w*(p[2]+q[2])/2);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke()}})}
+            ctx.globalCompositeOperation='source-over'},
+            bars(){const n=22,x0=W*.1,s=W*.8/n,bw=s*.65;for(let i=0;i<n;i++){const hh=Math.max(3,H*.75*a*(.3+.7*Math.abs(Math.sin(ph*2.2+i*.8)))*(.6+.4*Math.sin((i+.5)/n*Math.PI)));
+            ctx.fillRect(x0+i*s,H*.88-hh,bw,hh)}},
+            round(){const n=30,x0=W*.1,s=W*.8/n,bw=s*.6;for(let i=0;i<n;i++){const e=Math.pow(Math.sin((i+.5)/n*Math.PI),.8),hh=Math.max(bw,H*.8*a*e*(.3+.7*Math.abs(Math.sin(ph*2.2+i*.8))));
+            rr(x0+i*s,(H-hh)/2,bw,hh,Math.min(bw/2,hh/2))}},
+            thin(){const n=28,x0=W*.1,s=W*.8/n,bw=s*.36;for(let i=0;i<n;i++){const e=Math.pow(Math.sin((i+.5)/n*Math.PI),.8),hh=Math.max(bw,H*.8*a*e*(.25+.75*Math.abs(Math.sin(ph*2.4+i*.7))));rr(x0+i*s+(s-bw)/2,(H-hh)/2,bw,hh,Math.min(bw/2,hh/2))}},
+            line(){const mx=W*.1,dw=W*.8;ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<=dw;i+=2){const x=i/dw,e=Math.pow(Math.sin(x*Math.PI),1.5),y=H/2-H*.34*a*e*(Math.sin(x*18.85-ph*3)+.4*Math.sin(x*44-ph*4.5))/1.4;i?ctx.lineTo(mx+i,y):ctx.moveTo(mx+i,y)}ctx.stroke()},
+            dots(){const n=13;for(let i=0;i<n;i++){const x=W*.1+W*.8*i/(n-1),e=Math.sin((i+.5)/n*Math.PI),b=Math.sin(ph*2.5+i*.7),r=3+a*7*(.5+.5*b)*e;ctx.beginPath();ctx.arc(x,H/2-a*H*.2*b*e,r,0,6.2832);ctx.fill()}},
+            ring(){const cx=W/2,cy=H/2,base=H*.28+H*.1*a*(.5+.5*Math.sin(ph*2));if(gr)ctx.strokeStyle=grad(cx-H*.45,cx+H*.45);[[1,2.5,1],[1.25,1.5,.3]].forEach(([k,lw,o])=>{ctx.globalAlpha=o;ctx.lineWidth=lw;ctx.beginPath();for(let j=0;j<=80;j++){const t=j/80*6.2832,r=base*k*(1+.12*a*Math.sin(5*t+ph*3)+.06*a*Math.sin(9*t-ph*4));j?ctx.lineTo(cx+r*Math.cos(t),cy+r*Math.sin(t)):ctx.moveTo(cx+r*Math.cos(t),cy+r*Math.sin(t))}ctx.closePath();ctx.stroke()});ctx.globalAlpha=1},
+            fill(){const mx=W*.1,dw=W*.8,top=[],bot=[];for(let i=0;i<=dw;i+=3){const x=i/dw,e=Math.pow(Math.sin(x*Math.PI),1.6),d=H*.34*a*e*Math.abs(Math.sin(x*13.8-ph*2.4)*.7+Math.sin(x*31-ph*3.7)*.3)+1.5;top.push([mx+i,H/2-d]);bot.push([mx+i,H/2+d])}
+            ctx.beginPath();top.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));for(let i=bot.length-1;i>=0;i--)ctx.lineTo(bot[i][0],bot[i][1]);ctx.closePath();ctx.globalAlpha=.35;ctx.fill();ctx.globalAlpha=1;ctx.lineWidth=1.5;
+            [top,bot].forEach(arr=>{ctx.beginPath();arr.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke()})},
+            neon(){const mx=W*.04,dw=W*.92;ctx.lineJoin='round';ctx.globalAlpha=.45;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+            [[1,1,0],[.6,.65,1.3],[.35,.4,2.6]].forEach(([sc,al,o])=>{const p=new Path2D();
+            for(let i=0;i<=dw;i+=2){const x=i/dw,env=Math.pow(Math.sin(x*Math.PI),1.2),s1=Math.sin(x*22-ph*3+o),s2=Math.sin(x*47+ph*4.1+o*2),val=(Math.sign(s1)*Math.pow(Math.abs(s1),2.2)+.45*Math.sign(s2)*Math.pow(Math.abs(s2),1.5))/1.4,y=H/2-H*.4*a*env*val*sc;i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}
+            [[6,.12],[2.5,.3],[1.2,1]].forEach(([w,o2])=>{ctx.globalAlpha=al*o2;ctx.lineWidth=w;ctx.stroke(p)})});ctx.globalAlpha=1},
+            ribbon(){const mx=W*.04,dw=W*.92,n=16;ctx.globalCompositeOperation=theme==='dark'?'lighter':'source-over';ctx.lineWidth=.9;ctx.globalAlpha=.55;
+            for(let j=0;j<n;j++){const f=j/(n-1),p=new Path2D();for(let i=0;i<=dw;i+=3){const x=i/dw,env=Math.pow(Math.sin(x*Math.PI),1.4),y=H/2-H*.36*a*env*(Math.sin(x*9.4-ph*2.2+f*1.7)*(.55+.45*Math.sin(x*5+ph*1.3+f*3))+.25*Math.sin(x*17+ph*3-f*2));i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}ctx.stroke(p)}
+            ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'},
+            spec(){const mx=W*.04,dw=W*.92,st=3.2,n=Math.floor(dw/st);ctx.lineWidth=1.2;ctx.globalAlpha=.85;ctx.lineCap='butt';ctx.beginPath();
+            for(let i=0;i<=n;i++){const x=i/n,e=Math.pow(Math.sin(x*Math.PI),.7),r=Math.abs(Math.sin(i*.9+ph*3.1)*Math.cos(i*.31-ph*2.3)+.5*Math.sin(i*2.3+ph*4.7))/1.5,h=Math.max(1,H*.46*a*e*(.2+.8*r));ctx.moveTo(mx+i*st,H/2-h);ctx.lineTo(mx+i*st,H/2+h)}ctx.stroke();
+            [[5,.2],[1.6,.9]].forEach(([w,o])=>{ctx.globalAlpha=o;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke()});ctx.globalAlpha=1;ctx.lineCap='round'},
+cg(cx,r){if(gr){const g=grad(cx-r,cx+r);ctx.strokeStyle=ctx.fillStyle=g}},
+ecg(){const mx=W*.04,dw=W*.92,g=(u,c,w)=>Math.exp(-Math.pow((u-c)/w,2)),p=new Path2D();
+for(let i=0;i<=dw;i+=2){const xf=i/dw,u=(((xf*3-ph*.18)%1)+1)%1,y=H/2-H*.4*(.06+a)*Math.pow(Math.sin(xf*Math.PI),.5)*(.18*g(u,.15,.05)+g(u,.42,.016)-.4*g(u,.47,.02)+.25*g(u,.72,.06));i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}
+[[5,.12],[2,1]].forEach(([w,o])=>{ctx.globalAlpha=o;ctx.lineWidth=w;ctx.stroke(p)});ctx.globalAlpha=1},
+led(){const n=16,R=8,cw=W*.8/n,ch=H*.8/R,sz=Math.min(cw,ch)*.78,x0=W*.1+(cw-sz)/2,y0=H*.9;
+for(let i=0;i<n;i++){const e=Math.pow(Math.sin((i+.5)/n*Math.PI),.7),lv=R*a*e*(.3+.7*Math.abs(Math.sin(ph*2.2+i*.8)));
+for(let r=0;r<R;r++){ctx.globalAlpha=r<lv?1:.13;rr(x0+i*cw,y0-(r+1)*ch+(ch-sz)/2,sz,sz,sz*.25)}}ctx.globalAlpha=1},
+ripple(){const cx=W/2,cy=H/2,R=H*.48;draw.cg(cx,R);for(let k=0;k<4;k++){const t=(((ph*.12+k/4)%1)+1)%1;ctx.globalAlpha=(1-t)*(.25+.75*Math.min(1,a*1.3));ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(cx,cy,R*(.12+.88*t),0,6.2832);ctx.stroke()}
+ctx.globalAlpha=1;ctx.beginPath();ctx.arc(cx,cy,H*.05*(1+a*.9),0,6.2832);ctx.fill()},
+orb(){const cx=W/2,cy=H/2,r=H*(.12+.12*a)*(1+.05*Math.sin(ph*3));draw.cg(cx,r*2);
+[[1.9,.1],[1.4,.2],[1,.5]].forEach(([k,o])=>{ctx.globalAlpha=o;ctx.beginPath();ctx.arc(cx,cy,r*k,0,6.2832);ctx.fill()});
+ctx.globalAlpha=1;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,6.2832);ctx.stroke()},
+particles(){const mx=W*.06,dw=W*.88,n=46;for(let k=0;k<2;k++){ctx.globalAlpha=1-k*.55;for(let i=0;i<n;i++){const xf=i/(n-1),env=Math.pow(Math.sin(xf*Math.PI),.9),s=Math.sin(xf*12.5-ph*3+k*1.1),y=H/2-H*.32*(.04+a)*env*s,r=(1.2+1.8*Math.abs(s)*(.3+a))*(1-k*.3);ctx.beginPath();ctx.arc(mx+dw*xf,y,r,0,6.2832);ctx.fill()}}ctx.globalAlpha=1},
+helix(){const mx=W*.06,dw=W*.88;for(let s=0;s<2;s++){const p=new Path2D();for(let i=0;i<=dw;i+=2){const xf=i/dw,env=Math.pow(Math.sin(xf*Math.PI),.8),y=H/2+(s?1:-1)*H*.3*(.05+a)*env*Math.sin(xf*14-ph*2.4);i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}ctx.globalAlpha=s?.55:1;ctx.lineWidth=1.8;ctx.stroke(p)}
+ctx.globalAlpha=.3;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<=dw;i+=7){const xf=i/dw,env=Math.pow(Math.sin(xf*Math.PI),.8),d=H*.3*(.05+a)*env*Math.sin(xf*14-ph*2.4);ctx.moveTo(mx+i,H/2-d);ctx.lineTo(mx+i,H/2+d)}ctx.stroke();ctx.globalAlpha=1},
+hills(){const mx=W*.04,dw=W*.92;for(let L=0;L<3;L++){const pts=[];for(let i=0;i<=dw;i+=3){const xf=i/dw,env=Math.pow(Math.sin(xf*Math.PI),.6),h=H*.55*(.04+a)*env*(.55+.45*Math.sin(xf*(5+L*3.2)-ph*(1.3+L*.6)+L*2))*(1-L*.22);pts.push([mx+i,H*.9-h-2])}
+ctx.beginPath();ctx.moveTo(mx,H*.9);pts.forEach(p=>ctx.lineTo(p[0],p[1]));ctx.lineTo(mx+dw,H*.9);ctx.closePath();ctx.globalAlpha=.18+L*.14;ctx.fill();
+ctx.globalAlpha=.4+L*.2;ctx.lineWidth=1.2;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke()}ctx.globalAlpha=1},
+string(){const mx=W*.06,dw=W*.88;[2,1,0].forEach(t=>{const q=ph-t*.12,p=new Path2D();for(let i=0;i<=dw;i+=2){const x=i/dw,y=H/2-H*.38*(.03+a)*Math.sin(x*Math.PI)*(Math.cos(q*2.5)+.5*Math.sin(x*6.2832)*Math.cos(q*4.1+1)+.25*Math.sin(x*9.4248)*Math.cos(q*6+2));i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}ctx.globalAlpha=[1,.3,.15][t];ctx.lineWidth=t?1.2:2;ctx.stroke(p)});
+ctx.globalAlpha=1;[mx,mx+dw].forEach(x=>{ctx.beginPath();ctx.arc(x,H/2,3,0,6.2832);ctx.fill()})},
+pulsar(){const mx=W*.1,dw=W*.8,n=6;for(let j=0;j<n;j++){const by=H*.3+H*.55*j/(n-1),q=ph-j*.35,p=new Path2D();for(let i=0;i<=dw;i+=2){const xf=i/dw,c=Math.pow(Math.sin(xf*Math.PI),2.4),y=by-H*.26*(.03+a)*c*Math.abs(Math.sin(xf*21-q*2.2)*Math.cos(xf*9+q*1.1));i?p.lineTo(mx+i,y):p.moveTo(mx+i,y)}ctx.globalAlpha=.3+.7*j/(n-1);ctx.lineWidth=1.3;ctx.stroke(p)}ctx.globalAlpha=1},
+waves(){const mx=W*.04,dw=W*.92;for(let L=0;L<4;L++){ctx.beginPath();ctx.moveTo(mx,H*.92);for(let i=0;i<=dw;i+=3){const xf=i/dw,env=Math.pow(Math.sin(xf*Math.PI),.5),y=H*.78-H*.42*(.05+a)*env*(.55+.45*Math.sin(xf*(3+L*1.6)*3.1416-ph*(1.2+L*.5)+L*1.7))*(1-L*.15)-L*H*.045;ctx.lineTo(mx+i,y)}ctx.lineTo(mx+dw,H*.92);ctx.closePath();ctx.globalAlpha=.16+L*.1;ctx.fill();ctx.globalAlpha=.45;ctx.lineWidth=1.2;ctx.stroke()}ctx.globalAlpha=1}
+            };
+            
+            return {render(st,color,light,c,w,h,vs,am,phase,isP){
+                ctx=c;colr=color;theme=light?'light':'dark';playing=isP;v=vs;amp=am;ph=phase;a=vs*am;
+                const S=h/100;ctx.save();ctx.scale(S,S);W=w/S;H=100;
+                ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.lineCap='round';ctx.lineJoin='round';
+                col=colr==='orange'?'#ffa400':(light?'#1c1c1e':'#ffffff');
+                gr=colr==='siri'?grad(W*.1,W*.9):null;
+                ctx.fillStyle=ctx.strokeStyle=gr||col;
+                if(draw[st])draw[st]();
+                ctx.restore();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+            }};
+        })();
+        let waveStyle='siri',waveColor='siri';
+        try{waveStyle=localStorage.getItem('audiolibros_diego_wave_style')||'siri';waveColor=localStorage.getItem('audiolibros_diego_wave_color')||'siri';}catch(e){}
+        function setWaveStyle(val){waveStyle=val;try{localStorage.setItem('audiolibros_diego_wave_style',val);}catch(e){}}
+        function setWaveColor(val){waveColor=val;try{localStorage.setItem('audiolibros_diego_wave_color',val);}catch(e){}}
+        const WAVE_STYLE_OPTS=[['siri','Siri (clásica)'],['bars','Barras'],['round','Barras redondas'],['thin','Barras finas'],['line','Línea fina'],['dots','Puntos'],['ring','Anillo'],['fill','Onda rellena'],['neon','Neón con picos'],['ribbon','Cinta de hilos'],['spec','Espectro denso'],['ecg','Latido'],['led','Matriz LED'],['ripple','Ondas concéntricas'],['orb','Orbe respirante'],['particles','Partículas'],['helix','Doble hélice'],['hills','Montañas'],['waves','Olas apiladas'],['string','Cuerda vibrante'],['pulsar','Pulsar'],['none','Sin animación']];
+        const WAVE_COLOR_OPTS=[['siri','Colores Siri'],['auto','Blanco / negro'],['orange','Naranja']];
+        function renderWaveMenus(){
+            [['style',WAVE_STYLE_OPTS,waveStyle],['color',WAVE_COLOR_OPTS,waveColor]].forEach(([k,opts,cur])=>{
+                const list=document.getElementById('wave-'+k+'-list'),l=document.getElementById('wave-'+k+'-label');
+                if(!list)return;
+                list.innerHTML='';
+                opts.forEach(([v,t])=>{
+                    const bt=document.createElement('button');
+                    bt.className='flyout-option w-full text-left text-sm'+(v===cur?' active-opt':'');
+                    bt.innerHTML='<span>'+t+'</span>';
+                    bt.addEventListener('click',()=>{if(k==='style')setWaveStyle(v);else setWaveColor(v);renderWaveMenus();closeAllFlyouts();});
+                    list.appendChild(bt);
+                });
+                if(l)l.textContent=(opts.find(o=>o[0]===cur)||opts[0])[1];
+            });
+        }
+        function positionWaveFlyout(k){
+            renderWaveMenus();
+            const row=document.getElementById('wave-'+k+'-row'),fl=document.getElementById('wave-'+k+'-flyout'),list=document.getElementById('wave-'+k+'-list');
+            if(!row||!fl)return;
+            let sc=row.parentElement;
+            while(sc&&sc!==document.body){const o=getComputedStyle(sc).overflowY;if(o==='auto'||o==='scroll')break;sc=sc.parentElement;}
+            const r=row.getBoundingClientRect(),s=(sc&&sc!==document.body)?sc.getBoundingClientRect():{top:0,bottom:window.innerHeight};
+            const up=(r.top-s.top)>=(s.bottom-r.bottom);
+            fl.style.bottom=up?'100%':'auto';fl.style.top=up?'auto':'100%';
+            fl.style.marginBottom=up?'8px':'0';fl.style.marginTop=up?'0':'8px';
+            const act=list&&list.querySelector('.active-opt');
+            if(act)list.scrollTop=Math.max(0,act.offsetTop-list.clientHeight/2+act.clientHeight/2);
+        }
+
         // --- Análisis de audio real para que la onda reaccione a la voz del relator ---
         // IMPORTANTE: esto ya NO conecta el <audio> que suena (ttsAudioEl) a la Web Audio API.
         // Antes se usaba createMediaElementSource() sobre ese mismo elemento, y eso hacía que
@@ -1641,6 +1783,7 @@
 
         // --- STREAMING_CHUNK: Inicializando el Canvas de la Onda Siri de Alta Fidelidad... ---
         function initWaveCanvas() {
+            renderWaveMenus();
             waveCanvas = document.getElementById('wave-canvas');
             if (!waveCanvas) return;
             waveCtx = waveCanvas.getContext('2d');
@@ -1721,6 +1864,12 @@
                 wavePhase += 0.02;
             }
             
+            const _lightWave = document.body.classList.contains('light-theme');
+            if (waveStyle === 'none') return;
+            if (waveStyle !== 'siri' || waveColor !== 'siri' || _lightWave) {
+                WaveAlt.render(waveStyle, waveColor, _lightWave, waveCtx, w, h, vocalSyllable, currentWaveAmp, wavePhase, isPlaying);
+                return;
+            }
             const time = wavePhase;
             const baseline = h / 2;
 
@@ -1889,6 +2038,8 @@
             });
             setupDropdown('btn-trigger-chapters', 'chapters-flyout', () => renderChaptersFlyoutList());
             setupDropdown('btn-timer', 'timer-flyout');
+            setupDropdown('wave-style-row', 'wave-style-flyout', () => positionWaveFlyout('style'));
+            setupDropdown('wave-color-row', 'wave-color-flyout', () => positionWaveFlyout('color'));
             setupDropdown('btn-list-bookmarks', 'bookmarks-flyout', () => {
                 updateStarButtonState(true);
                 renderBookmarksList();
@@ -2384,7 +2535,7 @@
         }
 
         function closeAllFlyouts(except = null) {
-            const flyouts = ['speed-flyout', 'voice-flyout', 'chapters-flyout', 'timer-flyout', 'bookmarks-flyout'];
+            const flyouts = ['speed-flyout', 'voice-flyout', 'chapters-flyout', 'timer-flyout', 'bookmarks-flyout', 'wave-style-flyout', 'wave-color-flyout'];
             flyouts.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el !== except) {
