@@ -977,6 +977,33 @@
                                         <span class="ios-slider"></span>
                                     </label>
                                 </div>
+                                <div>
+                                    <div class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer" onclick="togglePronPanel()">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                                                <i class="fa-solid fa-spell-check"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Diccionario de pronunciación</span>
+                                        </div>
+                                        <i id="pron-chev" class="fa-solid fa-chevron-down text-xs text-zinc-500" style="transition:transform .2s ease"></i>
+                                    </div>
+                                    <div id="pron-panel" class="hidden px-4 pb-4">
+                                        <p class="text-xs opacity-60 mb-2">Una regla por línea: palabra = cómo se pronuncia. Ej.: Hermione = Jermaione</p>
+                                        <textarea id="pron-text" rows="5" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white outline-none" style="resize:vertical" oninput="savePron(this.value)" placeholder="Hermione = Jermaione"></textarea>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-green-500/10 text-green-400 flex items-center justify-center">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                        </div>
+                                        <span class="font-medium text-white">Retroceder al reanudar</span>
+                                    </div>
+                                    <label class="ios-switch">
+                                        <input type="checkbox" id="rewind-toggle" onchange="setRewind(this.checked)" checked>
+                                        <span class="ios-slider"></span>
+                                    </label>
+                                </div>
                                 <div class="relative">
                                     <div id="wave-style-row" class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer ">
                                         <div class="flex items-center gap-3">
@@ -1176,6 +1203,9 @@
                                     </button>
                                     <button class="timer-opt-btn flyout-option w-full text-[14px]" data-minutes="60">
                                         <span>1 hora</span><i class="fa-solid fa-check check-icon text-orange-500" style="visibility:hidden"></i>
+                                    </button>
+                                    <button class="timer-opt-btn flyout-option w-full text-[14px]" data-minutes="-1">
+                                        <span>Fin del capítulo</span><i class="fa-solid fa-check check-icon text-orange-500" style="visibility:hidden"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1468,6 +1498,8 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             return {render(st,color,light,c,w,h,vs,am,phase,isP){
                 ctx=c;colr=color;theme=light?'light':'dark';playing=isP;v=vs;amp=am;ph=phase;a=vs*am;
                 const S=h/100;ctx.save();ctx.scale(S,S);W=w/S;H=100;
+                const sc=({siri:1,orbG:1,orbB:1,orb:1,ripple:1,ring:1})[st]?1:.85;
+                if(sc<1){ctx.translate(W/2,H/2);ctx.scale(sc,sc);ctx.translate(-W/2,-H/2);a*=.75;}
                 ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.lineCap='round';ctx.lineJoin='round';
                 col=colr==='orange'?'#ffa400':(light?'#1c1c1e':'#ffffff');
                 gr=colr==='siri'?grad(W*.1,W*.9):null;
@@ -1783,7 +1815,8 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         let animationFrameId = null;
 
         let activePitch = 1.0; 
-        let activeSpeedRate = 1.0; 
+        let activeSpeedRate = 1.0;
+        let sleepEndChapter = false, lastPauseAt = 0; 
         let selectedVoiceValue = "online"; 
 
         let timerCountdown = null;
@@ -1851,6 +1884,8 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         // --- STREAMING_CHUNK: Inicializando el Canvas de la Onda Siri de Alta Fidelidad... ---
         function initWaveCanvas() {
             renderWaveMenus();
+            const _rt = document.getElementById('rewind-toggle'); if (_rt) _rt.checked = rewindEnabled();
+            const _pt = document.getElementById('pron-text'); if (_pt) { try { _pt.value = localStorage.getItem(PRON_KEY) || ''; } catch (e) {} }
             waveCanvas = document.getElementById('wave-canvas');
             if (!waveCanvas) return;
             waveCtx = waveCanvas.getContext('2d');
@@ -2141,6 +2176,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             document.querySelectorAll('.speed-opt-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     activeSpeedRate = parseFloat(e.currentTarget.dataset.value);
+                    saveBookVoiceSpeed();
                     document.getElementById('speed-display-value').textContent = activeSpeedRate.toFixed(1) + 'x';
                     document.querySelectorAll('.speed-opt-btn').forEach(b => {
                         b.classList.toggle('active-opt', parseFloat(b.dataset.value) === activeSpeedRate);
@@ -2721,26 +2757,62 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
                     let coverDataUrl = await extractEpubCover(zip, opfDoc, manifestItems, opfFolder);
 
+                    let tocMap = {}, bodyHref = '';
+                    try {
+                        const navItem = opfDoc.querySelector('manifest > item[properties~="nav"]');
+                        const navFile = navItem ? (zip.file(opfFolder + navItem.getAttribute('href')) || zip.file(navItem.getAttribute('href'))) : null;
+                        if (navFile) {
+                            const nd = new DOMParser().parseFromString(await navFile.async('text'), 'text/html');
+                            nd.querySelectorAll('nav a[href]').forEach(a => {
+                                const h = (a.getAttribute('href') || '').split('#')[0].split('/').pop();
+                                const t = a.textContent.replace(/\s+/g, ' ').trim();
+                                if (h && t && !tocMap[h]) tocMap[h] = t;
+                                if ((a.getAttribute('epub:type') || '') === 'bodymatter') bodyHref = h;
+                            });
+                        } else {
+                            const ncxItem = Array.from(opfDoc.querySelectorAll('manifest > item')).find(it => (it.getAttribute('media-type') || '').includes('ncx'));
+                            const ncxFile = ncxItem ? (zip.file(opfFolder + ncxItem.getAttribute('href')) || zip.file(ncxItem.getAttribute('href'))) : null;
+                            if (ncxFile) {
+                                const nd = new DOMParser().parseFromString(await ncxFile.async('text'), 'text/xml');
+                                nd.querySelectorAll('navPoint').forEach(np => {
+                                    const src = (np.querySelector('content')?.getAttribute('src') || '').split('#')[0].split('/').pop();
+                                    const t = (np.querySelector('navLabel > text')?.textContent || '').replace(/\s+/g, ' ').trim();
+                                    if (src && t && !tocMap[src]) tocMap[src] = t;
+                                });
+                            }
+                            const g = opfDoc.querySelector('guide > reference[type="text"]');
+                            if (g) bodyHref = (g.getAttribute('href') || '').split('#')[0].split('/').pop();
+                        }
+                    } catch (err) {}
+
+                    const allCh = [];
                     for (let i = 0; i < spineItems.length; i++) {
                         let idref = spineItems[i].getAttribute("idref");
-                        let fullPath = opfFolder + manifestItems[idref];
-                        let chapFile = zip.file(fullPath) || zip.file(manifestItems[idref]);
+                        let href = manifestItems[idref] || '';
+                        let chapFile = zip.file(opfFolder + href) || zip.file(href);
                         if (chapFile) {
                             let text = new DOMParser().parseFromString(await chapFile.async("text"), "text/html").body.innerText;
                             text = text.replace(/\s+/g, ' ').trim();
                             if (text.length > 50) {
-                                chapters.push({
-                                    title: `Capítulo ${chapters.length + 1}`,
-                                    text: text
-                                });
+                                const base = href.split('/').pop();
+                                const tt = tocMap[base] || '';
+                                const fm = /(^|[\/_\-.])(cover|titlepage|title_page|copyright|colophon|toc|nav|contents|dedicatoria)([\/_\-.\d]|$)/i.test(href) || /^(portada|cubierta|cover|contraportada|derechos|copyright|cr[eé]ditos|dedicatoria|[ií]ndice|tabla de contenidos?|contenidos?|colof[oó]n)$/i.test(tt);
+                                allCh.push({ title: tt, text, base, fm });
                             }
                         }
                     }
+                    let kept = allCh.filter(c => !c.fm);
+                    if (kept.length === 0) kept = allCh;
+                    chapters = kept.map((c, n) => ({ title: c.title || `Capítulo ${n + 1}`, text: c.text }));
+                    const isCh1 = s => /^\s*(cap[ií]tulo|chapter)\s*(1|uno|i|primero)\b|^\s*(1|uno|i|primero)\s*[.:]?\s*$|^\s*(primera parte|parte\s*(1|uno|i|primera))\b|^\s*libro\s*(1|uno|i|primero)\b/i.test(s);
+                    let startIdx = kept.findIndex(c => isCh1(c.title) || isCh1(c.text.slice(0, 40)));
+                    if (startIdx < 0 && bodyHref) startIdx = kept.findIndex(c => c.base === bodyHref);
+                    if (startIdx < 0) startIdx = 0;
 
                     const newBook = {
                         id: Date.now().toString(),
                         title, author, cover: coverDataUrl || "https://placehold.co/400x600/101012/ffffff?text=Epub",
-                        chapters, bookmarks: [], progressChapter: 0, progressSentence: 0, completed: false, favorite: false
+                        chapters, bookmarks: [], progressChapter: startIdx, progressSentence: 0, completed: false, favorite: false
                     };
                     await storageAdapter.save(newBook);
                     migrateAndLoadLibrary();
@@ -2760,16 +2832,35 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                     const typedarray = new Uint8Array(e.target.result);
                     const pdf = await pdfjsLib.getDocument(typedarray).promise;
                     let chapters = [];
-                    let text = "";
+                    const pages = [], freq = {};
+                    const normH = s => s.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim().toLowerCase();
                     for (let i = 1; i <= pdf.numPages; i++) {
-                        let page = await pdf.getPage(i);
-                        let content = await page.getTextContent();
-                        text += content.items.map(it => it.str).join(" ") + " ";
-                        if (i % 5 === 0 || i === pdf.numPages) {
-                            chapters.push({ title: `Páginas ${i - 4}-${i}`, text: text.trim() });
-                            text = "";
-                        }
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        const h = page.view[3] - page.view[1];
+                        const items = content.items.filter(it => it.str && it.str.trim()).map(it => ({ s: it.str, y: (it.transform ? it.transform[5] : 0) - page.view[1] }));
+                        const seen = new Set();
+                        items.filter(it => it.y > h * 0.92 || it.y < h * 0.08).forEach(it => {
+                            const k = normH(it.s);
+                            if (k.length && k.length < 90 && !seen.has(k)) { seen.add(k); freq[k] = (freq[k] || 0) + 1; }
+                        });
+                        pages.push({ items, h });
                     }
+                    const minRep = Math.max(3, Math.round(pdf.numPages * 0.3));
+                    const isNum = s => /^\s*(\d{1,4}|[ivxlcdm]{1,7}|p[aá]gina\s*\d+|page\s*\d+)\s*$/i.test(s);
+                    let text = "", startPage = 1;
+                    pages.forEach((pg, idx) => {
+                        const kept = pg.items.filter(it => {
+                            if (!(it.y > pg.h * 0.92 || it.y < pg.h * 0.08)) return true;
+                            return !(isNum(it.s) || (freq[normH(it.s)] || 0) >= minRep);
+                        });
+                        text += kept.map(it => it.s).join(" ") + " ";
+                        const n = idx + 1;
+                        if (n % 5 === 0 || n === pages.length) {
+                            chapters.push({ title: `Páginas ${startPage}-${n}`, text: text.replace(/\s+/g, ' ').replace(/(\p{L})-\s+(\p{Ll})/gu, '$1$2').trim() });
+                            text = ""; startPage = n + 1;
+                        }
+                    });
                     const newBook = {
                         id: Date.now().toString(),
                         title: file.name.replace('.pdf', ''),
@@ -2995,10 +3086,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
         function loadAudiobookPlayer(index) {
             activeBookIndex = index;
+            lastPauseAt = 0;
             const book = currentBooks[index];
             localStorage.setItem('audiolibros_diego_last_book_id', book.id);
             activeChapterIndex = book.progressChapter || 0;
             currentSentenceIndex = book.progressSentence || 0;
+            applyBookVoiceSpeed(book);
 
             document.getElementById('player-book-title').textContent = book.title;
             document.getElementById('player-book-author').textContent = book.author;
@@ -3104,6 +3197,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 silent.play().catch(() => {});
             }
 
+            autoRewindOnResume();
             speakSentence(currentSentenceIndex);
             startProgressLoop();
             
@@ -3112,6 +3206,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function pauseAudio() {
+            lastPauseAt = Date.now();
             isPlaying = false;
             isAudioBuffering = false;
             document.getElementById('play-icon').className = "fa-solid fa-play text-2xl ml-0.5 keep-white";
@@ -3137,6 +3232,19 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         function speakSentence(index) {
             if (!isPlaying) return;
             if (index >= textSentences.length) {
+                if (sleepEndChapter) {
+                    sleepEndChapter = false;
+                    document.getElementById('timer-label').textContent = "Off";
+                    updateTimerFlyoutCheck(0);
+                    if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
+                        activeChapterIndex++;
+                        currentSentenceIndex = 0;
+                        setupChapterMedia(activeChapterIndex);
+                    }
+                    pauseAudio();
+                    showToast("Apagado automático ejecutado");
+                    return;
+                }
                 if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
                     activeChapterIndex++;
                     setupChapterMedia(activeChapterIndex);
@@ -3196,6 +3304,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function initializePiperVoiceAndSpeak(text) {
+            text = applyPron(text);
             if (!piperLoaded) {
                 piperLoaded = true;
                 showToast("Inicializando Piper Claude Local...", "fa-microchip text-amber-500");
@@ -3217,6 +3326,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function speakSentenceSystem(text, forcedVoice) {
+            text = applyPron(text);
             window.speechSynthesis.cancel();
             activeUtterance = new SpeechSynthesisUtterance(text);
             activeUtterance.rate = activeSpeedRate;
@@ -3258,6 +3368,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         async function fetchEdgeTTSBlob(text, voiceId, signal) {
+            text = applyPron(text);
             if (!EDGE_TTS_SERVER_URL) {
                 throw new Error('Configura la URL del servidor Edge TTS en Ajustes de Voz');
             }
@@ -3432,6 +3543,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function jumpToSentence(idx) {
+            lastPauseAt = 0;
             currentSentenceIndex = idx;
             saveCurrentProgress();
             if (isPlaying) {
@@ -3742,7 +3854,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         function setSleepTimer(minutes) {
             if (timerCountdown) clearInterval(timerCountdown);
             updateTimerFlyoutCheck(minutes);
-
+            sleepEndChapter = (minutes === -1);
+            if (minutes === -1) {
+                document.getElementById('timer-label').textContent = "Cap";
+                showToast("Se detendrá al final del capítulo", "fa-clock text-orange-500");
+                return;
+            }
             if (minutes === 0) {
                 document.getElementById('timer-label').textContent = "Off";
                 return;
@@ -3977,6 +4094,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
         function selectVoice(val, displayLabel) {
             selectedVoiceValue = val;
+            saveBookVoiceSpeed();
             const shortLabel = displayLabel.length > 12 ? displayLabel.substring(0, 10) + '...' : displayLabel;
             document.getElementById('voice-display-value').textContent = shortLabel;
             
@@ -4062,6 +4180,81 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         // --- STREAMING_CHUNK: Creando el disparador unificado de las notificaciones flotantes... ---
+        // ===== Diccionario de pronunciación, retroceso al reanudar y voz/velocidad por libro =====
+        const PRON_KEY = 'audiolibros_diego_pron';
+        let pronRules = null;
+        const ROMAN_RE = /^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/;
+        const ORD = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto', 'sexto', 'séptimo', 'octavo', 'noveno', 'décimo'];
+        const ABBR = [[/\bSr\./g, 'señor'], [/\bSra\./g, 'señora'], [/\bSres\./g, 'señores'], [/\bDra\./g, 'doctora'], [/\bDr\./g, 'doctor'], [/\bUds\./g, 'ustedes'], [/\bUd\./g, 'usted'], [/\bpág\./gi, 'página'], [/\bp\. ?ej\./gi, 'por ejemplo'], [/\betc\./g, 'etcétera'], [/\bEE\. ?UU\./g, 'Estados Unidos'], [/\ba\. ?C\./g, 'antes de Cristo'], [/\bd\. ?C\./g, 'después de Cristo']];
+        function romanToInt(s) { const m = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 }; let t = 0; for (let i = 0; i < s.length; i++) { const v = m[s[i]], n = m[s[i + 1]] || 0; t += v < n ? -v : v; } return t; }
+        function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function compilePron() {
+            let raw = '';
+            try { raw = localStorage.getItem(PRON_KEY) || ''; } catch (e) {}
+            pronRules = raw.split('\n').map(l => l.split('=')).filter(p => p.length >= 2 && p[0].trim() && p[1].trim())
+                .map(p => [new RegExp('(?<![\\p{L}\\p{N}])' + escRe(p[0].trim()) + '(?![\\p{L}\\p{N}])', 'giu'), p.slice(1).join('=').trim()]);
+        }
+        function applyPron(text) {
+            if (pronRules === null) compilePron();
+            let t = text;
+            pronRules.forEach(([re, to]) => { t = t.replace(re, to); });
+            ABBR.forEach(([re, to]) => { t = t.replace(re, to); });
+            t = t.replace(/\b(Cap[ií]tulo|Libro|Parte|Tomo|Acto|Volumen|siglo)\s+([IVXLCDM]{1,8})\b/g, (m, w, r) => ROMAN_RE.test(r) ? w + ' ' + romanToInt(r) : m);
+            t = t.replace(/\b(Juan|P[ií]o|Luis|Felipe|Carlos|Alfonso|Fernando|Enrique|Isabel|Papa|Pedro|Pablo|Benedicto|Le[oó]n|Clemente|Gregorio|Urbano|Alejandro|Ram[sé]s|Napole[oó]n)\s+([IVXLCDM]{1,8})\b/g, (m, w, r) => { if (!ROMAN_RE.test(r)) return m; const n = romanToInt(r); return w + ' ' + (ORD[n] || n); });
+            return t;
+        }
+        function togglePronPanel() {
+            const p = document.getElementById('pron-panel'), c = document.getElementById('pron-chev');
+            if (!p) return;
+            const open = p.classList.contains('hidden');
+            p.classList.toggle('hidden', !open);
+            if (c) c.style.transform = open ? 'rotate(180deg)' : '';
+        }
+        function savePron(v) { try { localStorage.setItem(PRON_KEY, v); } catch (e) {} pronRules = null; clearTtsCache(); }
+        function rewindEnabled() { try { return localStorage.getItem('audiolibros_diego_rewind') !== '0'; } catch (e) { return true; } }
+        function setRewind(v) { try { localStorage.setItem('audiolibros_diego_rewind', v ? '1' : '0'); } catch (e) {} }
+        function autoRewindOnResume() {
+            const t = lastPauseAt; lastPauseAt = 0;
+            if (!t || !rewindEnabled()) return;
+            const gap = (Date.now() - t) / 1000;
+            if (gap < 30) return;
+            const target = gap > 600 ? 12 : 6;
+            let acc = 0, i = currentSentenceIndex;
+            while (i > 0 && acc < target) { i--; acc += (estimatedDurations[i] || 3); }
+            currentSentenceIndex = i;
+        }
+        function saveBookVoiceSpeed() {
+            if (activeBookIndex === null) return;
+            const b = currentBooks[activeBookIndex];
+            if (!b) return;
+            b.voice = selectedVoiceValue;
+            b.speed = activeSpeedRate;
+            storageAdapter.save(b);
+        }
+        function applyBookVoiceSpeed(book) {
+            if (book.speed && book.speed !== activeSpeedRate) {
+                activeSpeedRate = book.speed;
+                const sd = document.getElementById('speed-display-value');
+                if (sd) sd.textContent = activeSpeedRate.toFixed(1) + 'x';
+                document.querySelectorAll('.speed-opt-btn').forEach(b => b.classList.toggle('active-opt', parseFloat(b.dataset.value) === activeSpeedRate));
+            }
+            const v = book.voice;
+            if (v !== undefined && v !== null && v !== selectedVoiceValue && !(typeof v === 'number' && !synthesisVoices[v])) {
+                selectedVoiceValue = v;
+                const btn = Array.from(document.querySelectorAll('.voice-opt-btn')).find(b => b.dataset.value === String(v));
+                const lbl = btn ? (btn.querySelector('span')?.textContent || '').trim() : '';
+                const dv = document.getElementById('voice-display-value');
+                if (lbl && dv) dv.textContent = lbl.length > 12 ? lbl.substring(0, 10) + '...' : lbl;
+                document.querySelectorAll('.voice-opt-btn').forEach(b => {
+                    const m = b.dataset.value === String(v);
+                    const c = b.querySelector('.check-icon');
+                    if (c) c.style.visibility = m ? 'visible' : 'hidden';
+                    b.classList.toggle('active-opt', m);
+                });
+                clearTtsCache();
+            }
+        }
+
         function showToast(msg, icon = "fa-circle-info") {
             const el = document.getElementById('app-toast');
             const iconEl = document.getElementById('app-toast-icon');
