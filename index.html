@@ -1157,6 +1157,11 @@
         @media (prefers-reduced-transparency: reduce) {
             #bottom-navbar { background: var(--glass-bg-darker) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
         }
+
+        /* Barra más abajo para no tocar el botón de play; mini reproductor ajustado */
+        #bottom-navbar { bottom: 6px !important; }
+        #mini-player { bottom: 84px !important; }
+        #view-player { bottom: 72px; }
     </style>
     <style id="player-spotify-layout">
         /* Reproductor estilo Spotify: carátula grande, textos alineados a la izquierda */
@@ -4827,7 +4832,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
         var W = 0, H = 0, tabW = 0, lensH = 0, PAD = 4;
         var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
-        var flash = 0, gx = 0.3, gy = 0.15;
+        var flash = 0, gx = 0.3, gy = 0.15, filterOn = false, lastSc = -1, lastTurb = 0;
         var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         var K = 240, C = reduce ? 40 : 21;
 
@@ -4872,11 +4877,18 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 var kk = 'scale(' + (1 + (s - 1) * w).toFixed(4) + ')';
                 for (var ly = 0; ly < 3; ly++) layerTabs[ly][li].style.transform = kk;
             }
-            var sc = wet > 0 ? wet * (2 + grow * 7 + Math.min(Math.abs(vx) / 220, 6)) : 0;
-            lgDisp.setAttribute('scale', sc.toFixed(2));
-            clip.style.filter = wet > 0 ? 'url(#lg-wet)' : 'none';
-            var tt = performance.now() / 900;
-            lgTurb.setAttribute('baseFrequency', (0.018 + 0.004 * Math.sin(tt)).toFixed(4) + ' ' + (0.045 + 0.008 * Math.cos(tt * 1.3)).toFixed(4));
+            /* El filtro de agua es lo más pesado: solo se activa mientras hay movimiento o presión, y se actualiza con límite */
+            var active = wet > 0 && (grow > 0.03 || Math.abs(vx) > 25);
+            if (active) {
+                var sc = wet * (2 + grow * 7 + Math.min(Math.abs(vx) / 220, 6));
+                var nowT = performance.now();
+                if (Math.abs(sc - lastSc) > 0.4) { lgDisp.setAttribute('scale', sc.toFixed(1)); lastSc = sc; }
+                if (!filterOn) { clip.style.filter = 'url(#lg-wet)'; filterOn = true; }
+                if (nowT - lastTurb > 120) {
+                    var tt = nowT / 900; lastTurb = nowT;
+                    lgTurb.setAttribute('baseFrequency', (0.018 + 0.004 * Math.sin(tt)).toFixed(3) + ' ' + (0.045 + 0.008 * Math.cos(tt * 1.3)).toFixed(3));
+                }
+            } else if (filterOn) { clip.style.filter = 'none'; filterOn = false; lastSc = -1; }
         }
         function step(t) {
             var dt = Math.min((t - last) / 1000 || 0.016, 0.034); last = t;
