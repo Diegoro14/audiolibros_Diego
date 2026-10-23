@@ -12,10 +12,8 @@
 
 import express from "express";
 import cors from "cors";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { EdgeTTS } from "node-edge-tts";
+import crypto from "crypto";
+import WebSocket from "ws";
 
 const app = express();
 
@@ -24,6 +22,86 @@ app.use(cors());
 
 // Aceptar JSON grande (párrafos largos de libros)
 app.use(express.json({ limit: "10mb" }));
+
+
+// ------------------------------------------------------------
+// Cliente Edge TTS propio (protocolo actual de Microsoft, igual
+// al de la librería Python edge-tts 7.x): Sec-MS-GEC-Version "2-",
+// cookie muid y ConnectionId.
+// ------------------------------------------------------------
+const TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+const CHROMIUM = "143.0.3650.75";
+const MAJOR = CHROMIUM.split(".")[0];
+const WSS = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=" + TOKEN;
+
+function secMsGec() {
+  const ticks = BigInt(Math.floor(Date.now() / 1000) + 11644473600) * 10000000n;
+  const rounded = ticks - (ticks % 3000000000n);
+  return crypto.createHash("sha256").update(`${rounded}${TOKEN}`, "ascii").digest("hex").toUpperCase();
+}
+const uuid = () => crypto.randomUUID().replace(/-/g, "");
+const jsDate = () => new Date().toUTCString().replace("GMT", "GMT+0000 (Coordinated Universal Time)");
+const esc = (s) => s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
+
+function edgeSynth({ text, voice, lang, rate, pitch, volume, timeout = 45000 }) {
+  return new Promise((resolve, reject) => {
+    const url = `${WSS}&ConnectionId=${uuid()}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=2-${CHROMIUM}`;
+    const ws = new WebSocket(url, {
+      headers: {
+        Pragma: "no-cache",
+        "Cache-Control": "no-cache",
+        Origin: "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
+        "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${MAJOR}.0.0.0 Safari/537.36 Edg/${MAJOR}.0.0.0`,
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        Cookie: `muid=${crypto.randomBytes(16).toString("hex").toUpperCase()};`
+      },
+      perMessageDeflate: true
+    });
+    const chunks = [];
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { ws.terminate(); } catch (_) {}
+      if (err) return reject(err);
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 100) return reject(new Error("Audio generado vacío o demasiado corto"));
+      resolve(buf);
+    };
+    const timer = setTimeout(() => finish(new Error("Timeout esperando audio de Edge TTS")), timeout);
+
+    ws.on("unexpected-response", (req, res) => finish(new Error("Unexpected server response: " + res.statusCode)));
+    ws.on("error", (e) => finish(e));
+    ws.on("close", () => finish(new Error("Conexión cerrada antes de terminar el audio")));
+
+    ws.on("open", () => {
+      ws.send(
+        `X-Timestamp:${jsDate()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n` +
+        `{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n`
+      );
+      const ssml =
+        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'>` +
+        `<voice name='${voice}'><prosody pitch='${pitch}' rate='${rate}' volume='${volume}'>${esc(text)}</prosody></voice></speak>`;
+      ws.send(
+        `X-RequestId:${uuid()}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${jsDate()}Z\r\nPath:ssml\r\n\r\n${ssml}`
+      );
+    });
+
+    ws.on("message", (data, isBinary) => {
+      if (!isBinary) {
+        const s = data.toString();
+        if (s.includes("Path:turn.end")) finish(null);
+        return;
+      }
+      if (data.length < 2) return;
+      const headLen = data.readUInt16BE(0);
+      const head = data.subarray(2, 2 + headLen).toString();
+      if (head.includes("Path:audio")) chunks.push(data.subarray(2 + headLen));
+    });
+  });
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -46,8 +124,8 @@ app.get("/health", (req, res) => {
   res.json({
     ok: true,
     service: "Edge TTS Server - Audiolibros Diego",
-    version: "2.1.0",
-    engine: "node-edge-tts",
+    version: "2.2.0",
+    engine: "edge-tts-directo",
     timestamp: new Date().toISOString()
   });
 });
@@ -58,9 +136,6 @@ app.get("/health", (req, res) => {
 // Devuelve: audio MP3 directamente
 // ------------------------------------------------------------
 app.post("/api/tts", async (req, res) => {
-  // Crear archivo temporal único para esta request
-  const tmpFile = path.join(os.tmpdir(), `tts_${Date.now()}_${Math.random().toString(36).slice(2)}.mp3`);
-
   try {
     const {
       text,
@@ -82,25 +157,7 @@ app.post("/api/tts", async (req, res) => {
     // Extraer lang del voice (ej: "es-MX-JorgeNeural" → "es-MX")
     const lang = voice.split("-").slice(0, 2).join("-");
 
-    // Crear instancia de Edge TTS
-    const tts = new EdgeTTS({
-      voice: voice,
-      lang: lang,
-      rate: rate,
-      pitch: pitch,
-      volume: volume,
-      timeout: 45000
-    });
-
-    // Sintetizar a archivo temporal
-    await tts.ttsPromise(text, tmpFile);
-
-    // Leer el archivo y enviarlo como MP3
-    const buffer = fs.readFileSync(tmpFile);
-
-    if (buffer.length < 100) {
-      throw new Error("Audio generado vacío o demasiado corto");
-    }
+    const buffer = await edgeSynth({ text, voice, lang, rate, pitch, volume, timeout: 45000 });
 
     res.set("Content-Type", "audio/mpeg");
     res.set("Content-Length", buffer.length);
@@ -115,11 +172,6 @@ app.post("/api/tts", async (req, res) => {
         details: String(err)
       });
     }
-  } finally {
-    // Limpiar archivo temporal
-    try {
-      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
-    } catch (_) {}
   }
 });
 
@@ -136,8 +188,8 @@ app.use((err, req, res, next) => {
 // ------------------------------------------------------------
 app.listen(PORT, "0.0.0.0", () => {
   console.log("=".repeat(60));
-  console.log("  Edge TTS Server - Audiolibros Diego (v2.1.0)");
-  console.log("  Engine: node-edge-tts");
+  console.log("  Edge TTS Server - Audiolibros Diego (v2.2.0)");
+  console.log("  Engine: edge-tts directo");
   console.log("  Escuchando en puerto " + PORT);
   console.log("  Health: http://localhost:" + PORT + "/health");
   console.log("=".repeat(60));
