@@ -1162,6 +1162,23 @@
         #bottom-navbar { bottom: 6px !important; }
         #mini-player { bottom: 84px !important; }
         #view-player { bottom: 72px; }
+
+        /* Rendimiento: la lente no necesita su propio backdrop-filter; modo ligero quita capas costosas */
+        .lg-lens { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+        #bottom-navbar.lg-lite .lg-r, #bottom-navbar.lg-lite .lg-b, #bottom-navbar.lg-lite .lg-glare { display: none !important; }
+        #bottom-navbar.lg-lite .lg-clip { filter: none !important; }
+        #bottom-navbar.lg-lite { -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important; }
+        #bottom-navbar.lg-lite .lg-lens { box-shadow: inset 0 7px 9px -5px var(--lg-sink), inset 0 -6px 8px -5px var(--lg-sink2), inset 0 0 0 1px var(--lg-edge), inset 0 1px 0 rgba(255,255,255,.85) !important; }
+
+        /* Rendimiento con bibliotecas grandes (p. ej. 92 libros): sin sombras difusas ni desenfoques por tarjeta, y solo se pinta lo visible */
+        .book-card {
+            box-shadow: none !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            content-visibility: auto; contain-intrinsic-size: auto 96px;
+        }
+        #books-grid { contain: layout style; }
+        #mini-player { backdrop-filter: blur(14px) saturate(160%) !important; -webkit-backdrop-filter: blur(14px) saturate(160%) !important; }
+        .view-transition { backface-visibility: hidden; }
     </style>
     <style id="player-spotify-layout">
         /* Reproductor estilo Spotify: carátula grande, textos alineados a la izquierda */
@@ -1364,6 +1381,7 @@
                                 <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Dispersión de color</span><output id="lg-dis-out" class="text-zinc-400">1.00×</output></span><input id="lg-dis" class="lg-range" type="range" min="0" max="2.5" step="0.05" value="1"></label>
                                 <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Reflejo de luz</span><output id="lg-glr-out" class="text-zinc-400">1.00×</output></span><input id="lg-glr" class="lg-range" type="range" min="0" max="1.5" step="0.05" value="1"></label>
                                 <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Distorsión de agua</span><output id="lg-wet-out" class="text-zinc-400">1.00×</output></span><input id="lg-wet" class="lg-range" type="range" min="0" max="2.5" step="0.05" value="1"></label>
+                                <div class="flex items-center justify-between gap-3"><div><span class="block text-sm font-medium text-white">Modo ligero</span><span class="block text-xs text-zinc-400">Más fluido en teléfonos lentos (quita capas de efecto)</span></div><label class="ios-switch shrink-0"><input type="checkbox" id="lg-lite"><span class="ios-slider"></span></label></div>
                                 <button type="button" id="lg-reset" class="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold active:scale-95" style="transition: transform 0.2s ease;">Restablecer</button>
                             </div></div></div>
                         </div>
@@ -4832,9 +4850,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
         var W = 0, H = 0, tabW = 0, lensH = 0, PAD = 4;
         var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
-        var flash = 0, gx = 0.3, gy = 0.15, filterOn = false, lastSc = -1, lastTurb = 0;
+        var flash = 0, gx = 0.3, gy = 0.15, filterOn = false, lastSc = -1, lastTurb = 0, locked = false, grab = 0;
         var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         var K = 240, C = reduce ? 40 : 21;
+        var lite = ld('gp-lg-lite', 0) === 1, slow = 0, avg = 16, lastRaw = 0;
+        function applyLite() { bar.classList.toggle('lg-lite', lite); }
+        applyLite();
 
         function xFor(i) { return PAD + i * tabW; }
         function measure() {
@@ -4855,7 +4876,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             var stretch = Math.min(Math.abs(vx) / 2600, 0.28);
             var sx = (1 + grow * 0.14) * (1 + stretch), sy = (1 + grow * 0.24) * (1 - stretch * 0.4);
             lens.style.transform = 'translate3d(' + x + 'px,0,0) scale(' + sx + ',' + sy + ')';
-            bar.style.transform = 'scale(' + (1 + grow * 0.03) + ')';
+            bar.style.transform = lite ? '' : 'scale(' + (1 + grow * 0.03) + ')';
             var ca = dis * (0.3 + grow * 0.5 + Math.min(Math.abs(vx) / 2200, 1.1));
             chR.style.transform = 'translate(' + (-ca) + 'px,' + (-ca * 0.35) + 'px)';
             chB.style.transform = 'translate(' + ca + 'px,' + (ca * 0.35) + 'px)';
@@ -4891,8 +4912,21 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             } else if (filterOn) { clip.style.filter = 'none'; filterOn = false; lastSc = -1; }
         }
         function step(t) {
-            var dt = Math.min((t - last) / 1000 || 0.016, 0.034); last = t;
-            var ax = -K * (x - target) - C * vx; vx += ax * dt; x += vx * dt;
+            var raw = (t - last) || 16;
+            var dt = Math.min(raw / 1000 || 0.016, 0.034); last = t;
+            /* Detección automática: si los cuadros tardan mucho mientras se mueve la gota, se activa el modo ligero */
+            if (!lite && (dragging || Math.abs(vx) > 60) && raw < 200) {
+                avg = avg * 0.9 + raw * 0.1;
+                if (avg > 26 && ++slow > 25) { lite = true; sv('gp-lg-lite', 1); applyLite(); var lt = $('lg-lite'); if (lt) lt.checked = true; }
+            }
+            if (dragging && locked) {
+                /* Arrastre 1:1: la gota queda pegada al dedo (sin resorte); la velocidad solo alimenta el estiramiento y la dispersión */
+                var nx = target, inst = (nx - x) / Math.max(dt, 0.001);
+                vx = vx * 0.6 + inst * 0.4; x = nx;
+            } else {
+                var ax = -K * (x - target) - C * vx; vx += ax * dt; x += vx * dt;
+                if (dragging && Math.abs(x - target) < 8) locked = true;
+            }
             var ag = -300 * (grow - growTarget) - 24 * vg; vg += ag * dt; grow += vg * dt;
             flash *= Math.exp(-dt * 4.5);
             render();
@@ -4921,18 +4955,21 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         bar.addEventListener('pointerdown', function (e) {
             dragging = true;
             try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-            growTarget = 1; flash = 1; target = clampX(localX(e) - tabW / 2);
+            var px0 = localX(e);
+            /* Si tocas dentro de la gota, la agarras desde ese punto (sin saltos); si tocas fuera, viaja hasta el dedo y luego lo sigue 1:1 */
+            if (px0 >= x && px0 <= x + tabW) { grab = px0 - (x + tabW / 2); locked = true; } else { grab = 0; locked = false; }
+            growTarget = 1; flash = 1; target = clampX(px0 - grab - tabW / 2);
             updateGlare(e); kick();
         });
         bar.addEventListener('pointermove', function (e) {
             if (!dragging) return;
-            target = clampX(localX(e) - tabW / 2);
+            target = clampX(localX(e) - grab - tabW / 2);
             updateGlare(e); kick();
         });
         function release(e) {
             if (!dragging) return;
-            dragging = false; growTarget = 0; gx = 0.3; gy = 0.15;
-            var i = indexAt(clampX(localX(e) - tabW / 2) + tabW / 2);
+            dragging = false; locked = false; growTarget = 0; gx = 0.3; gy = 0.15;
+            var i = indexAt(clampX(localX(e) - grab - tabW / 2) + tabW / 2);
             target = xFor(i); current = i; kick();
         }
         bar.addEventListener('pointerup', release);
@@ -4966,6 +5003,11 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             });
         }
         bindSettings();
+        var liteSw = $('lg-lite');
+        if (liteSw) {
+            liteSw.checked = lite;
+            liteSw.addEventListener('change', function () { lite = liteSw.checked; sv('gp-lg-lite', lite ? 1 : 0); slow = 0; avg = 16; applyLite(); render(); kick(); });
+        }
         /* Menú plegable de la tarjeta "Barra de pestañas" */
         (function () {
             var t = $('lg-toggle'), p = $('lg-panel'); if (!t || !p) return;
@@ -5028,7 +5070,6 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             var p = Math.min(Math.max(y, 0) / H, 1);
             setImp('transition', 'none');
             setImp('transform', 'translate3d(0,' + t + 'px,0) scale(' + (1 - p * 0.06) + ')');
-            setImp('opacity', String(1 - p * 0.3));
         }
         sheet.addEventListener('pointerdown', function (e) {
             if (!sheet.classList.contains('player-active') || e.button > 0) return;
@@ -5060,11 +5101,13 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             if (!cancel && (projected > H * 0.3 || v > 700) && dy > 0) {
                 /* cierra: se quitan los estilos inline y la transición CSS continúa desde la posición actual */
                 void sheet.offsetWidth;
+                sheet.classList.remove('player-active');   /* arranca la animación de cierre ya, desde la posición actual */
                 clearInline();
-                if (typeof hideFullPlayer === 'function') hideFullPlayer();
+                /* la lógica de cierre de la app (redibujar listas, etc.) corre después, para no frenar la animación */
+                requestAnimationFrame(function () { setTimeout(function () { if (typeof hideFullPlayer === 'function') hideFullPlayer(); }, 30); });
             } else {
                 setImp('transition', 'transform 0.5s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease');
-                setImp('transform', 'translate3d(0,0,0) scale(1)'); setImp('opacity', '1');
+                setImp('transform', 'translate3d(0,0,0) scale(1)');
                 setTimeout(clearInline, 520);
             }
         }
