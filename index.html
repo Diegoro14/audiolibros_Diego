@@ -1179,6 +1179,12 @@
         #books-grid { contain: layout style; }
         #mini-player { backdrop-filter: blur(14px) saturate(160%) !important; -webkit-backdrop-filter: blur(14px) saturate(160%) !important; }
         .view-transition { backface-visibility: hidden; }
+
+        /* Títulos largos: se ven completos (el del reproductor se ajusta solo; en listas se permiten 2 líneas) */
+        #player-book-title { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+        .book-card h4 { white-space: normal !important; display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 16px !important; line-height: 1.2 !important; }
+        #reading-carousel h5, #favorites-carousel h5, #completed-carousel h5 { white-space: normal !important; display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: clip; line-height: 1.2 !important; }
+        #last-played-title { display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical; white-space: normal !important; font-size: 1.05rem !important; }
     </style>
     <style id="player-spotify-layout">
         /* Reproductor estilo Spotify: carátula grande, textos alineados a la izquierda */
@@ -1837,12 +1843,12 @@
         const ttsAudioEl = document.getElementById('tts-audio-player');
         if (ttsAudioEl) {
             ttsAudioEl.addEventListener('ended', () => {
-                if (isPlaying && typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
+                if (isPlaying && edgePlayingToken === ttsEngineToken && typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
                     speakSentence(currentSentenceIndex + 1);
                 }
             });
             ttsAudioEl.addEventListener('error', () => {
-                if (isPlaying && typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
+                if (isPlaying && edgePlayingToken === ttsEngineToken && typeof selectedVoiceValue === 'string' && selectedVoiceValue.startsWith('edge:')) {
                     speakSentence(currentSentenceIndex + 1);
                 }
             });
@@ -2126,6 +2132,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         const EDGE_PREFETCH_AHEAD = 3;
         let edgeCurrentObjectUrl = null;
         let ttsEngineToken = 0;
+        let edgePlayingToken = -1; // token de la oración cuyo audio Edge está sonando; evita que eventos tardíos avancen dos veces
         let edgeRetryCounts = {};
 
         const EDGE_LATIN_VOICES = [
@@ -3584,12 +3591,20 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function loadAudiobookPlayer(index) {
+            const book = currentBooks[index];
+            const prevBook = activeBookIndex !== null ? currentBooks[activeBookIndex] : null;
+            /* Mismo libro ya cargado: se conserva la posición real (la guardada puede ir atrasada y haría repetir texto) */
+            const sameBook = !!(prevBook && prevBook.id === book.id && textSentences.length > 0);
+            /* Otro libro mientras suena uno: se pausa antes de cambiar, para no mezclar audio y texto */
+            if (isPlaying && prevBook && prevBook.id !== book.id) pauseAudio();
+            if (sameBook) saveCurrentProgress();
             activeBookIndex = index;
             lastPauseAt = 0;
-            const book = currentBooks[index];
             localStorage.setItem('audiolibros_diego_last_book_id', book.id);
-            activeChapterIndex = book.progressChapter || 0;
-            currentSentenceIndex = book.progressSentence || 0;
+            if (!sameBook) {
+                activeChapterIndex = book.progressChapter || 0;
+                currentSentenceIndex = book.progressSentence || 0;
+            }
             applyBookVoiceSpeed(book);
 
             document.getElementById('player-book-title').textContent = book.title;
@@ -3673,10 +3688,11 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function togglePlayPause() {
-            unlockAudio();
+            /* Al PAUSAR no se toca el audio (antes unlockAudio() lo hacía sonar un instante y reabría la sesión de audio); solo se desbloquea al reproducir */
             if (isPlaying) {
                 pauseAudio();
             } else {
+                unlockAudio();
                 playAudio();
             }
         }
@@ -3746,6 +3762,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 }
                 if (activeChapterIndex < currentBooks[activeBookIndex].chapters.length - 1) {
                     activeChapterIndex++;
+                    currentSentenceIndex = 0;
                     setupChapterMedia(activeChapterIndex);
                     speakSentence(0);
                 } else {
@@ -3814,8 +3831,9 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                     if (count >= 100) {
                         clearInterval(interval);
                         showToast("Voz Piper Claude lista (Offline)", "fa-circle-check text-green-400");
+                        const pTok = ttsEngineToken;
                         setTimeout(() => {
-                            if (isPlaying) speakSentenceSystem(text);
+                            if (isPlaying && pTok === ttsEngineToken) speakSentenceSystem(text);
                         }, 1000);
                     }
                 }, 400);
@@ -3839,14 +3857,15 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 if (esVoice) activeUtterance.voice = esVoice;
             }
 
+            const utTok = ttsEngineToken, utIdx = currentSentenceIndex;
             activeUtterance.onstart = () => {
                 markAudioPlaybackStarted();
             };
             activeUtterance.onend = () => {
-                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                if (isPlaying && utTok === ttsEngineToken) speakSentence(utIdx + 1);
             };
             activeUtterance.onerror = () => {
-                if (isPlaying) speakSentence(currentSentenceIndex + 1);
+                if (isPlaying && utTok === ttsEngineToken) speakSentence(utIdx + 1);
             };
             window.speechSynthesis.speak(activeUtterance);
         }
@@ -3863,7 +3882,8 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
 
         function edgeCacheKey(index) {
-            return index + '::' + EDGE_SELECTED_VOICE + '::' + activeSpeedRate + '::' + activePitch;
+            /* La clave incluye el TEXTO: antes era solo el número de oración y se reproducía audio guardado de otro capítulo o libro */
+            return (textSentences[index] || '') + '::' + EDGE_SELECTED_VOICE + '::' + activeSpeedRate + '::' + activePitch;
         }
 
         async function fetchEdgeTTSBlob(text, voiceId, signal) {
@@ -4007,6 +4027,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                     edgeCurrentObjectUrl = null;
                 }
                 edgeCurrentObjectUrl = URL.createObjectURL(blob);
+                edgePlayingToken = myToken;
                 ttsAudioEl.src = edgeCurrentObjectUrl;
                 audioAnalyserReady = false;
                 currentEnvelope = null;
@@ -4046,6 +4067,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             currentSentenceIndex = idx;
             saveCurrentProgress();
             if (isPlaying) {
+                if (ttsAudioEl) ttsAudioEl.pause();
                 speakSentence(idx);
             } else {
                 highlightCurrentSentence();
@@ -4274,9 +4296,10 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 opt.innerHTML = `<span>Capítulo ${idx + 1}</span>`;
                 opt.addEventListener('click', () => {
                     activeChapterIndex = idx;
+                    currentSentenceIndex = 0;
                     setupChapterMedia(idx);
                     closeAllFlyouts();
-                    if (isPlaying) speakSentence(0);
+                    if (isPlaying) { if (ttsAudioEl) ttsAudioEl.pause(); speakSentence(0); }
                 });
                 list.appendChild(opt);
             });
@@ -4659,7 +4682,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             
             // Vincular controles de la pantalla de bloqueo física del iPhone con funciones JS
             navigator.mediaSession.setActionHandler('play', () => {
-                playAudio();
+                if (!isPlaying) playAudio();   // si ya está sonando, un 'play' tardío del sistema no debe reiniciar la oración
             });
             navigator.mediaSession.setActionHandler('pause', () => {
                 pauseAudio();
@@ -5109,6 +5132,28 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
         sheet.addEventListener('pointerup', function (e) { end(e, false); });
         sheet.addEventListener('pointercancel', function (e) { end(e, true); });
+    })();
+    </script>
+    <script>
+    /* Ajusta el tamaño del título en el reproductor para que quepa completo (hasta 3 líneas) */
+    (function () {
+        var el = document.getElementById('player-book-title'), sheet = document.getElementById('view-player');
+        if (!el) return;
+        var MAXL = 3, MAX = 26, MIN = 13, busy = false;
+        function fit() {
+            if (busy) return; busy = true;
+            var size = MAX; el.style.fontSize = size + 'px';
+            var lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.1;
+            var guard = 0;
+            while (guard++ < 30 && size > MIN && el.scrollHeight > lh * MAXL + 2) {
+                size -= 1; el.style.fontSize = size + 'px'; lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.1;
+            }
+            busy = false;
+        }
+        new MutationObserver(fit).observe(el, { childList: true, characterData: true, subtree: true });
+        if (sheet) new MutationObserver(function () { if (sheet.classList.contains('player-active')) setTimeout(fit, 60); }).observe(sheet, { attributes: true, attributeFilter: ['class'] });
+        window.addEventListener('resize', fit);
+        fit();
     })();
     </script>
 </body>
