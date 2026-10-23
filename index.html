@@ -736,6 +736,449 @@
             touch-action: none;
         }
     </style>
+    <style id="apple-design-layer">
+        /* ===== Capa visual Apple Design (solo estilos; no toca la lógica) ===== */
+        :root {
+            --ad-spring: cubic-bezier(0.22, 1, 0.36, 1);
+            --ad-spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
+            --ad-bounce: cubic-bezier(0.34, 1.3, 0.64, 1);
+            --ad-sep: rgba(255, 255, 255, 0.08);
+            --ad-fill: rgba(255, 255, 255, 0.06);
+            --ad-shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.28);
+            --ad-shadow-lg: 0 2px 6px rgba(0,0,0,.3), 0 18px 44px rgba(0,0,0,.45);
+            --ad-hi: inset 0 0.5px 0 rgba(255,255,255,.22);
+        }
+        @supports (transition-timing-function: linear(0, 1)) {
+            :root {
+                --ad-spring: linear(0, 0.2 5%, 0.55 12%, 0.82 20%, 0.96 30%, 1.02 42%, 1.01 56%, 1);
+                --ad-bounce: linear(0, 0.3 6%, 0.7 14%, 0.98 24%, 1.07 34%, 1.03 46%, 0.995 62%, 1);
+            }
+        }
+        body.light-theme {
+            --ad-sep: rgba(60, 60, 67, 0.14);
+            --ad-fill: rgba(120, 120, 128, 0.12);
+            --ad-shadow-sm: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06);
+            --ad-shadow-lg: 0 2px 6px rgba(0,0,0,.06), 0 18px 44px rgba(0,0,0,.14);
+            --ad-hi: inset 0 0.5px 0 rgba(255,255,255,.9);
+        }
+
+        /* Tipografía: fuente del sistema, tracking según tamaño */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+            font-feature-settings: 'kern', 'calt';
+            text-rendering: optimizeLegibility;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1 { font-family: -apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif; letter-spacing: -0.03em !important; line-height: 1.05 !important; font-weight: 700; }
+        h2, h3 { letter-spacing: -0.02em; line-height: 1.18; }
+        h4, h5 { letter-spacing: -0.012em; }
+        .text-\[10px\], .text-\[11px\], .text-xs { letter-spacing: 0.01em; }
+        .uppercase { letter-spacing: 0.06em; }
+
+        /* Materiales translúcidos */
+        #bottom-navbar {
+            background-color: color-mix(in srgb, var(--nav-bg) 72%, transparent) !important;
+            backdrop-filter: blur(24px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+            border-top: 0.5px solid var(--ad-sep) !important;
+            box-shadow: var(--ad-hi);
+        }
+        body.light-theme #bottom-navbar { box-shadow: 0 -0.5px 0 var(--ad-sep); }
+        .nav-tab-btn { letter-spacing: 0.01em; -webkit-tap-highlight-color: transparent; }
+        .nav-tab-btn:active { transform: scale(0.94) translate3d(0,0,0); transition-duration: 0.1s; }
+
+        #mini-player {
+            background-color: color-mix(in srgb, var(--glass-bg-darker) 68%, transparent) !important;
+            backdrop-filter: blur(28px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+            border: 0.5px solid var(--ad-sep) !important;
+            border-radius: 22px !important;
+            box-shadow: var(--ad-shadow-lg), var(--ad-hi) !important;
+        }
+
+        .unified-flyout {
+            background: color-mix(in srgb, rgb(28, 28, 32) 72%, transparent) !important;
+            backdrop-filter: blur(30px) saturate(190%) !important;
+            -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
+            border: 0.5px solid rgba(255,255,255,.16) !important;
+            border-radius: 22px !important;
+            box-shadow: var(--ad-shadow-lg), var(--ad-hi) !important;
+            transition: transform 0.42s var(--ad-bounce), opacity 0.22s ease !important;
+        }
+        body.light-theme .unified-flyout {
+            background: rgba(255,255,255,.74) !important;
+            border: 0.5px solid rgba(0,0,0,.1) !important;
+        }
+        .flyout-option {
+            min-height: 44px;
+            border-radius: 12px;
+            letter-spacing: -0.006em;
+            transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+        }
+        .flyout-option:active { transform: scale(0.97); background-color: var(--ad-fill) !important; }
+        .flyout-option.active-opt { background-color: rgba(255,164,0,.16) !important; }
+
+        /* Tarjetas: superficies sólidas agrupadas, sin bordes duros */
+        #last-played-card {
+            border: 0.5px solid var(--ad-sep) !important;
+            border-radius: 24px !important;
+            box-shadow: var(--ad-shadow-sm), var(--ad-hi);
+            transition: transform 0.35s var(--ad-spring), background-color 0.25s ease !important;
+        }
+        #last-played-card:active { transform: scale(0.985); }
+        #last-played-card img, .book-card img, #reading-carousel img, #favorites-carousel img, #completed-carousel img { border-radius: inherit; }
+        #last-played-progress { border-radius: 9999px; }
+
+        #reading-carousel > div, #favorites-carousel > div, #completed-carousel > div { transition: transform 0.35s var(--ad-spring) !important; }
+        #reading-carousel > div:active, #favorites-carousel > div:active, #completed-carousel > div:active { transform: scale(0.96) !important; }
+        #reading-carousel > div > div:first-child, #favorites-carousel > div > div:first-child, #completed-carousel > div > div:first-child {
+            border: 0.5px solid var(--ad-sep) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,.25), 0 10px 24px rgba(0,0,0,.28);
+        }
+        body.light-theme #reading-carousel > div > div:first-child,
+        body.light-theme #favorites-carousel > div > div:first-child,
+        body.light-theme #completed-carousel > div > div:first-child { box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 20px rgba(0,0,0,.12); }
+
+        .book-card {
+            border: 0.5px solid var(--ad-sep) !important;
+            border-radius: 18px !important;
+            box-shadow: var(--ad-hi);
+            transition: transform 0.3s var(--ad-spring), background 0.25s ease !important;
+        }
+        .book-card:active { transform: scale(0.975) !important; }
+        .book-card .shadow-md { border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+        .book-card button { min-width: 44px; min-height: 44px; }
+
+        #library-search {
+            border-radius: 12px !important;
+            border: 0 !important;
+            background-color: var(--ad-fill) !important;
+            letter-spacing: -0.01em;
+            transition: box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        #library-search:focus { outline: none; box-shadow: 0 0 0 3px rgba(255,164,0,.35); }
+        #drop-zone { border-radius: 22px !important; transition: transform 0.3s var(--ad-spring), background-color 0.2s ease, border-color 0.2s ease; }
+        #drop-zone:active { transform: scale(0.985); }
+
+        /* Ajustes: lista agrupada estilo iOS */
+        #view-settings .bg-zinc-900\/60, #view-settings .bg-zinc-900\/40, #view-settings .bg-zinc-900 {
+            border: 0.5px solid var(--ad-sep) !important;
+            border-radius: 18px !important;
+            box-shadow: var(--ad-hi);
+        }
+        #view-settings .rounded-xl.w-8, #view-settings .rounded-lg.w-8, #view-settings [class*="w-8 h-8"], #view-settings [class*="w-9 h-9"] {
+            border-radius: 8px !important; /* mosaico de ícono tipo Ajustes */
+        }
+        #view-settings .border-b { border-color: var(--ad-sep) !important; }
+
+        /* Interruptor iOS con resorte */
+        .ios-slider { transition: background-color 0.3s ease; }
+        .ios-slider:before {
+            transition: transform 0.4s var(--ad-bounce), width 0.2s ease;
+            box-shadow: 0 0.5px 1px rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.18);
+        }
+        .ios-switch:active .ios-slider:before { width: 33px; }
+        .ios-switch:active input:checked + .ios-slider:before { transform: translate3d(14px,0,0); }
+
+        /* Reproductor */
+        #view-player { transition-timing-function: var(--ad-spring-soft) !important; }
+        #player-cover-img {
+            border-radius: 20px !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 24px 56px rgba(0,0,0,.5) !important;
+        }
+        #wrapper-cover > * { transition: transform 0.5s var(--ad-spring); }
+        #player-book-title { letter-spacing: -0.02em; line-height: 1.15; }
+        #btn-back, #btn-leer-spotify { transition: transform 0.15s ease, background-color 0.2s ease; }
+        #btn-back:active, #btn-leer-spotify:active { transform: scale(0.92); }
+
+        .btn-multimedia-play {
+            transition: transform 0.3s var(--ad-bounce), box-shadow 0.3s ease, background-color 0.2s ease !important;
+        }
+        .btn-multimedia-play:active { transform: scale(0.92) !important; transition-duration: 0.1s !important; }
+        #btn-rewind, #btn-forward, #btn-bookmark, #btn-list-bookmarks {
+            transition: transform 0.18s var(--ad-spring), background-color 0.2s ease, opacity 0.2s ease !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #btn-rewind:active, #btn-forward:active, #btn-bookmark:active, #btn-list-bookmarks:active { transform: scale(0.9) !important; transition-duration: 0.08s !important; }
+        .unified-trigger {
+            border: 0.5px solid var(--ad-sep);
+            background-color: var(--ad-fill);
+            letter-spacing: -0.006em;
+        }
+        .unified-trigger:active { transform: scale(0.95); transition-duration: 0.08s; }
+
+        #progress-container { border-radius: 9999px; }
+        #progress-bar { border-radius: 9999px; }
+        #progress-handle { box-shadow: 0 1px 3px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3); }
+        #lyrics-container { letter-spacing: -0.012em; line-height: 1.45; }
+        #lyrics-container p { transition-timing-function: var(--ad-spring-soft); }
+
+        /* Toast tipo Dynamic Island */
+        #app-toast {
+            background: color-mix(in srgb, rgb(20,20,24) 78%, transparent);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 0.5px solid rgba(255,255,255,.14);
+            box-shadow: var(--ad-shadow-lg);
+            letter-spacing: -0.006em;
+            transition: transform 0.5s var(--ad-bounce), opacity 0.25s ease;
+        }
+        body.light-theme #app-toast { background: rgba(255,255,255,.78); border-color: rgba(0,0,0,.08); }
+
+        /* Alerta de confirmación estilo iOS */
+        #modal-confirm { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        #modal-confirm > div {
+            border-radius: 20px !important;
+            border: 0.5px solid var(--ad-sep) !important;
+            box-shadow: var(--ad-shadow-lg) !important;
+            animation: none !important;
+        }
+        #modal-confirm button { min-height: 44px; border-radius: 12px; letter-spacing: -0.01em; transition: transform 0.12s ease, background-color 0.2s ease; }
+        #modal-confirm button:active { transform: scale(0.97); }
+        #modal-confirm .animate-bounce { animation: none !important; }
+
+        /* Foco accesible */
+        button:focus-visible, [role="button"]:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid rgba(255,164,0,.85); outline-offset: 2px;
+        }
+        button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+        /* Accesibilidad: movimiento reducido (duraciones cortas, no cero: transitionend debe seguir disparándose) */
+        @media (prefers-reduced-motion: reduce) {
+            .btn-multimedia-play, .book-card, #last-played-card, .unified-flyout, #app-toast, .ios-slider:before {
+                transition-duration: 0.12s !important; transition-timing-function: ease !important;
+            }
+            .unified-flyout, #app-toast { transform-origin: center; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            #bottom-navbar, #mini-player, .unified-flyout, #app-toast {
+                backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            }
+            #bottom-navbar, #mini-player { background-color: var(--glass-bg-darker) !important; }
+            .unified-flyout { background: rgb(28,28,32) !important; }
+            body.light-theme .unified-flyout { background: #fff !important; }
+            #app-toast { background: rgb(20,20,24); }
+            body.light-theme #app-toast { background: #fff; }
+        }
+        @media (prefers-contrast: more) {
+            :root { --ad-sep: rgba(255,255,255,.35); }
+            body.light-theme { --ad-sep: rgba(0,0,0,.45); }
+            .text-zinc-500 { color: #c4c4cc !important; }
+            body.light-theme .text-zinc-500 { color: #3a3a3c !important; }
+        }
+
+        /* ===== Refuerzo visual (cambios claramente visibles) ===== */
+        :root { --ad-card: #1c1c1e; --ad-card-2: #2c2c2e; }
+        body.light-theme { --ad-card: #ffffff; --ad-card-2: #f2f2f7; }
+        body { background-image: radial-gradient(120% 60% at 50% -10%, rgba(255,164,0,.10), transparent 60%); background-attachment: fixed; }
+        body.light-theme { background-image: radial-gradient(120% 60% at 50% -10%, rgba(255,164,0,.12), transparent 60%); }
+
+        /* Título grande estilo iOS */
+        #view-listening h1, #view-library h1, #view-settings h1 { font-size: 2.125rem !important; font-weight: 800 !important; letter-spacing: -0.035em !important; }
+
+        /* Encabezados de sección: grandes, sin mayúsculas */
+        #view-listening .ios-scroll span.block.tracking-widest {
+            font-size: 1.3rem !important; font-weight: 700 !important; letter-spacing: -0.022em !important;
+            text-transform: none !important; color: var(--text-color) !important; margin-bottom: .75rem !important;
+        }
+        #view-listening header span.block { letter-spacing: .08em !important; }
+
+        /* Superficies agrupadas sólidas */
+        #last-played-card, .book-card {
+            background: var(--ad-card) !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            border: 0 !important;
+            border-radius: 26px !important;
+            box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 10px 30px rgba(0,0,0,.28) !important;
+        }
+        body.light-theme #last-played-card, body.light-theme .book-card { box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 10px 28px rgba(0,0,0,.08) !important; }
+        #last-played-card { padding: 1.1rem !important; }
+        #last-played-card > div:first-child { border-radius: 16px !important; box-shadow: 0 8px 22px rgba(0,0,0,.4) !important; }
+        #last-played-progress { background: linear-gradient(90deg,#ff9f0a,#ffcc00) !important; }
+
+        #reading-carousel > div > div:first-child, #favorites-carousel > div > div:first-child, #completed-carousel > div > div:first-child {
+            border: 0 !important; border-radius: 18px !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,.3), 0 16px 32px rgba(0,0,0,.35) !important;
+        }
+        #reading-carousel h5, #favorites-carousel h5, #completed-carousel h5 { font-size: .8rem !important; letter-spacing: -0.01em; }
+
+        /* Botón + y play con degradado y brillo */
+        #view-listening header button, #view-library header button {
+            background: linear-gradient(180deg,#ffb020,#ff8a00) !important;
+            box-shadow: 0 6px 16px rgba(255,138,0,.4), inset 0 1px 0 rgba(255,255,255,.4) !important;
+        }
+        .btn-multimedia-play {
+            background: linear-gradient(180deg,#ffb020,#ff8a00) !important;
+            box-shadow: 0 10px 28px rgba(255,138,0,.45), inset 0 1.5px 0 rgba(255,255,255,.45) !important;
+        }
+
+        /* Barra inferior y mini reproductor más claramente de cristal */
+        #bottom-navbar { background-color: color-mix(in srgb, var(--nav-bg) 55%, transparent) !important; }
+        #mini-player { margin-bottom: 4px; }
+
+        /* Ajustes: tarjetas agrupadas */
+        #view-settings .bg-zinc-900\/60, #view-settings .bg-zinc-900\/40, #view-settings .bg-zinc-900 {
+            background: var(--ad-card) !important; border: 0 !important; border-radius: 22px !important;
+        }
+        #view-settings h3, #view-settings h4 { letter-spacing: -0.015em; }
+
+        /* ===== Reproductor estilo Spotify: carátula grande, textos a la izquierda, "Leer" a la derecha ===== */
+        #wrapper-cover {
+            display: grid !important; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto;
+            align-content: stretch; align-items: start; justify-items: stretch;
+            row-gap: 16px; column-gap: 12px; width: 100%; height: 100%;
+        }
+        #wrapper-cover > div:first-child {
+            grid-column: 1 / -1; grid-row: 1; justify-self: center; align-self: stretch;
+            width: auto !important; max-width: 100% !important; margin: 0 !important;
+            height: 100% !important; max-height: 460px; min-height: 0;
+            border-radius: 18px !important;
+        }
+        #wrapper-cover > div:first-child img { height: 100%; width: auto; max-width: 100%; }
+        #view-player > div.flex-1 > .h-6.shrink-0 { height: .5rem; }
+        #wrapper-cover > div:nth-child(2) { grid-column: 1; grid-row: 2; text-align: left !important; max-width: none !important; padding: 0 !important; min-width: 0; }
+        #player-book-title { font-size: 1.65rem !important; font-weight: 800 !important; letter-spacing: -0.03em !important; line-height: 1.1 !important; -webkit-line-clamp: 2 !important; }
+        #player-book-author { font-size: 1.02rem !important; opacity: .7 !important; margin-top: .25rem !important; }
+        #player-book-saga { font-size: 11px !important; letter-spacing: .08em !important; margin-top: .35rem !important; opacity: .85; }
+        #wrapper-cover > #btn-leer-spotify { grid-column: 2; grid-row: 2; margin: 0 !important; align-self: start; height: 36px; padding: 0 16px; }
+
+        /* Menú plegable "Barra de pestañas" */
+        .lg-collapsible { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.4s var(--ad-spring-soft), opacity 0.25s ease; }
+        .lg-collapsible.open { grid-template-rows: 1fr; opacity: 1; }
+        .lg-collapsible-inner { overflow: hidden; min-height: 0; }
+        #lg-chevron { transition: transform 0.35s var(--ad-spring-soft); }
+        #lg-toggle.open #lg-chevron { transform: rotate(180deg); }
+        @media (prefers-reduced-motion: reduce) { .lg-collapsible, #lg-chevron { transition-duration: 0.01s; } }
+
+        /* Confirmar borrado en modo claro: igual que los demás menús desplegables claros */
+        body.light-theme #modal-confirm { background: rgba(0,0,0,.28) !important; }
+        body.light-theme #modal-confirm > div {
+            background: rgba(255,255,255,.88) !important;
+            backdrop-filter: blur(30px) saturate(190%) !important; -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
+            border: 0.5px solid rgba(0,0,0,.12) !important;
+            box-shadow: 0 12px 35px rgba(0,0,0,.14) !important;
+            color: #1c1c1e !important;
+        }
+        body.light-theme #modal-confirm #confirm-title, body.light-theme #modal-confirm #confirm-message { color: #1c1c1e !important; }
+        body.light-theme #btn-confirm-cancel { background-color: rgba(0,0,0,.06) !important; color: #1c1c1e !important; }
+        body.light-theme #btn-confirm-action { background-color: #ff3b30 !important; color: #fff !important; }
+
+        /* Cerrar, Leer y cambiar tema: mismo cristal translúcido original (se adapta al fondo y al tema) */
+        #btn-back, #btn-leer-spotify, #view-player .btn-toggle-theme { border: 1px solid var(--glass-border); }
+
+        /* Secciones plegables de Ajustes (mismo botón) */
+        .sec-chevron { transition: transform 0.35s var(--ad-spring-soft); }
+        .sec-toggle.open .sec-chevron { transform: rotate(180deg); }
+        .lg-collapsible.open.settled > .lg-collapsible-inner { overflow: visible; }
+
+        /* ===== Reproductor como hoja (sheet) estilo Apple: sube desde el mini reproductor, con pestañita y se cierra deslizando ===== */
+        #view-player {
+            transform-origin: 50% 100%;
+            border-radius: 32px 32px 0 0;
+            overflow: hidden;
+            transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease-in-out !important;
+        }
+        #view-player.player-active {
+            transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease !important;
+        }
+        @supports (transition-timing-function: linear(0, 1)) {
+            #view-player.player-active { transition: transform 0.6s linear(0, 0.18 6%, 0.52 14%, 0.78 24%, 0.93 36%, 1.01 50%, 1.005 68%, 1), opacity 0.4s ease !important; }
+        }
+        #view-player::before {
+            content: ""; position: absolute; top: calc(max(env(safe-area-inset-top, 0px), 14px) - 3px); left: 50%; width: 38px; height: 5px; margin-left: -19px;
+            border-radius: 3px; background: rgba(255,255,255,.38); z-index: 70; pointer-events: none;
+        }
+        body.light-theme #view-player::before { background: rgba(0,0,0,.28); }
+        #view-player > header, #wrapper-cover { touch-action: none; }
+        #view-player.ad-dragging { cursor: grabbing; }
+        @media (prefers-reduced-motion: reduce) {
+            #view-player, #view-player.player-active { transition-duration: 0.2s !important; transition-timing-function: ease !important; }
+        }
+    </style>
+    <style id="lg-tabbar-css">
+        /* ───────── Barra inferior · Liquid Glass (iOS 26) ───────── */
+        :root {
+            --lg-tint: #ffa400; --lg-gray: #8e8e93;
+            --lg-glass: rgba(30,30,33,.38); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
+            --lg-sink: rgba(0,0,0,.65); --lg-sink2: rgba(0,0,0,.45); --lg-vig: rgba(0,0,0,.38); --lg-cast: rgba(0,0,0,.4);
+            --lg-blend: screen; --lg-ca-op: 1;
+        }
+        body.light-theme {
+            --lg-glass: rgba(255,255,255,.46); --lg-edge: rgba(0,0,0,.10);
+            --lg-sink: rgba(0,0,0,.16); --lg-sink2: rgba(0,0,0,.10); --lg-vig: rgba(0,0,0,.10); --lg-cast: rgba(0,0,0,.18);
+            --lg-blend: normal; --lg-ca-op: .6;
+        }
+        #bottom-navbar {
+            left: 14px !important; right: 14px !important; width: auto !important;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+            height: 66px !important; padding: 0 !important; display: block !important;
+            overflow: visible !important; border: 0 !important; border-radius: 99px !important;
+            max-width: 28rem; margin: 0 auto;
+            background: var(--lg-glass) !important;
+            -webkit-backdrop-filter: blur(7px) saturate(1.5) !important; backdrop-filter: blur(7px) saturate(1.5) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 .5px var(--lg-edge), 0 10px 30px var(--lg-cast) !important;
+            will-change: transform; touch-action: none; cursor: pointer;
+        }
+        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + 84px) !important; }
+        #nav-active-pill { display: none !important; }
+        .lg-tabs { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: repeat(3, 1fr); padding: 4px; }
+        #bottom-navbar .lg-tabs button, .lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; padding: .375rem 0; font-size: .6875rem; letter-spacing: .02em; border-radius: 2rem; }
+        #bottom-navbar .lg-tabs button { color: var(--lg-gray) !important; font-weight: 500 !important; background: none; flex: initial; }
+        #bottom-navbar .lg-tabs button i, .lg-tab i { font-size: 1.3125rem; height: 1.5rem; line-height: 1.5rem; }
+        #bottom-navbar .lg-tabs button span, .lg-tab span { font-size: .6875rem; }
+        .lg-tab { pointer-events: none; font-weight: 500; }
+        .lg-main .lg-tab { color: var(--lg-ink); }
+        .lg-r .lg-tab { color: #ff2a45; }
+        .lg-b .lg-tab { color: #2a8bff; }
+        .lg-r, .lg-b { mix-blend-mode: var(--lg-blend); opacity: var(--lg-ca-op); }
+        .lg-lens {
+            position: absolute; left: 0; top: 4px; will-change: transform; pointer-events: none;
+            background: radial-gradient(closest-side at 50% 50%, rgba(255,255,255,.03) 55%, var(--lg-vig) 100%);
+            -webkit-backdrop-filter: brightness(.92) saturate(1.4); backdrop-filter: brightness(.92) saturate(1.4);
+            box-shadow: inset 0 7px 9px -5px var(--lg-sink), inset 0 -6px 8px -5px var(--lg-sink2),
+                inset 2px 0 2px -1px rgba(255,90,80,.35), inset -2px 0 2px -1px rgba(80,150,255,.4),
+                inset 0 0 0 1px var(--lg-edge), inset 0 1px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(255,255,255,.35),
+                0 3px 12px var(--lg-cast);
+        }
+        .lg-lens::after { content: ""; position: absolute; left: 24%; right: 24%; top: 1px; height: 3px; border-radius: 3px;
+            background: linear-gradient(90deg, rgba(120,200,255,0), rgba(255,255,255,.95) 30%, rgba(255,255,255,.95) 70%, rgba(255,120,120,0)); filter: blur(.4px); pointer-events: none; }
+        .lg-lens::before { content: ""; position: absolute; left: 30%; right: 30%; bottom: 1px; height: 2px; border-radius: 2px;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55), rgba(255,255,255,0)); pointer-events: none; }
+        .lg-clip { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; isolation: isolate; }
+        .lg-clone { position: absolute; left: 0; top: 0; pointer-events: none; }
+        .lg-glare { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: var(--lg-blend); opacity: 0;
+            background: radial-gradient(circle at var(--gx, 30%) var(--gy, 12%), rgba(255,255,255,.8) 0, rgba(190,225,255,.4) 16%, rgba(255,255,255,0) 52%); }
+        .lg-rim { position: absolute; inset: 0; border-radius: inherit; padding: 1.6px; pointer-events: none; opacity: .9;
+            background: conic-gradient(from var(--ang, -30deg), rgba(255,255,255,0) 0deg, rgba(255,255,255,.95) 26deg, rgba(120,200,255,.5) 48deg, rgba(255,255,255,0) 90deg, rgba(255,255,255,0) 180deg, rgba(255,150,130,.45) 215deg, rgba(255,255,255,.7) 238deg, rgba(255,255,255,0) 285deg);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+        .lg-range { width: 100%; accent-color: var(--lg-tint); margin: 0; height: 1.75rem; }
+        @media (prefers-reduced-transparency: reduce) {
+            #bottom-navbar { background: var(--glass-bg-darker) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+        }
+    </style>
+    <style id="player-spotify-layout">
+        /* Reproductor estilo Spotify: carátula grande, textos alineados a la izquierda */
+        #wrapper-cover { align-items: stretch !important; justify-content: flex-start !important; padding-top: .25rem; }
+        #wrapper-cover > div:first-child {
+            order: 0; flex: 1 1 0 !important; min-height: 0; height: auto !important; width: 100% !important; max-width: 100% !important;
+            margin: 0 0 1.1rem !important; border: 0 !important; border-radius: 0 !important; background: transparent !important;
+            box-shadow: none !important; overflow: visible !important;
+        }
+        #wrapper-cover > div:first-child:hover { transform: none !important; }
+        #player-cover-img {
+            height: 100% !important; width: auto !important; max-width: 100%; max-height: 100%; margin: 0 auto;
+            object-fit: contain; border-radius: 12px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.3) !important;
+        }
+        #wrapper-cover > div.text-center {
+            order: 2; text-align: left !important; max-width: none !important; width: 100%; padding: 0 !important;
+        }
+        #player-book-title { font-size: 1.75rem !important; line-height: 1.1 !important; letter-spacing: -0.03em !important; font-weight: 800 !important; }
+        #player-book-author { font-size: 1.05rem !important; opacity: .72 !important; margin-top: .3rem !important; }
+        #player-book-saga { font-size: .75rem !important; margin-top: .45rem !important; letter-spacing: .08em !important; opacity: .85; }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
     <script type="importmap">
     {
@@ -900,6 +1343,24 @@
                                 <h3 class="font-bold text-white text-lg leading-tight">Audiolibros Diego</h3>
                                 <p class="text-sm text-zinc-400 mt-0.5">Tu biblioteca personal</p>
                             </div>
+                        </div>
+
+                        <!-- BARRA DE PESTAÑAS (Liquid Glass) -->
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between px-1">
+                                <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block">Barra de pestañas</span>
+                                <button type="button" id="lg-toggle" aria-expanded="false" aria-controls="lg-panel" title="Mostrar u ocultar" class="w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95" style="transition: transform 0.2s ease, background-color 0.2s ease;">
+                                    <i id="lg-chevron" class="fa-solid fa-chevron-down text-sm"></i>
+                                </button>
+                            </div>
+                            <div id="lg-panel" class="lg-collapsible"><div class="lg-collapsible-inner"><div class="bg-zinc-900/60 border border-white/5 rounded-2xl p-4 space-y-4">
+                                <p class="text-sm text-zinc-400">Ajusta el efecto de vidrio de la barra inferior. Los cambios se ven al instante.</p>
+                                <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Magnificación de la lupa</span><output id="lg-mag-out" class="text-zinc-400">1.30×</output></span><input id="lg-mag" class="lg-range" type="range" min="1" max="1.8" step="0.01" value="1.3"></label>
+                                <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Dispersión de color</span><output id="lg-dis-out" class="text-zinc-400">1.00×</output></span><input id="lg-dis" class="lg-range" type="range" min="0" max="2.5" step="0.05" value="1"></label>
+                                <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Reflejo de luz</span><output id="lg-glr-out" class="text-zinc-400">1.00×</output></span><input id="lg-glr" class="lg-range" type="range" min="0" max="1.5" step="0.05" value="1"></label>
+                                <label class="block"><span class="flex justify-between text-sm font-medium text-white mb-1"><span>Distorsión de agua</span><output id="lg-wet-out" class="text-zinc-400">1.00×</output></span><input id="lg-wet" class="lg-range" type="range" min="0" max="2.5" step="0.05" value="1"></label>
+                                <button type="button" id="lg-reset" class="w-full py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold active:scale-95" style="transition: transform 0.2s ease;">Restablecer</button>
+                            </div></div></div>
                         </div>
 
                         <!-- GESTIÓN DE BIBLIOTECA -->
@@ -4337,6 +4798,267 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             showToast(`Tamaño de letra: ${Math.round(next * 100)}%`, 'fa-text-height text-orange-500');
             setTimeout(updateNavPillPosition, 150);
         }
+    </script>
+    <script>
+    /* Liquid Glass tab bar (capa visual): sigue a switchTab() y arrastra la gota; no cambia la lógica de la app */
+    (function () {
+        var $ = function (id) { return document.getElementById(id); };
+        var bar = $('bottom-navbar'); if (!bar) return;
+        var btns = Array.prototype.slice.call(bar.querySelectorAll('.nav-tab-btn'));
+        if (!btns.length) return;
+        bar.insertAdjacentHTML('afterbegin', '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lg-wet" x="-8%" y="-12%" width="116%" height="124%" color-interpolation-filters="sRGB"><feTurbulence id="lg-turb" type="fractalNoise" baseFrequency="0.018 0.045" numOctaves="2" seed="7" result="n"/><feDisplacementMap id="lg-disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter></svg>');
+        var base = document.createElement('div'); base.className = 'lg-tabs'; base.id = 'lg-base';
+        btns.forEach(function (b) { base.appendChild(b); });
+        bar.appendChild(base);
+        bar.insertAdjacentHTML('beforeend', '<div class="lg-lens" id="lg-lens"><div class="lg-clip"><div class="lg-clone" id="lg-clone"><div class="lg-tabs lg-r" id="lg-r" aria-hidden="true"></div><div class="lg-tabs lg-b" id="lg-bl" aria-hidden="true"></div><div class="lg-tabs lg-main" id="lg-main" aria-hidden="true"></div></div><div class="lg-glare" id="lg-glare"></div></div><div class="lg-rim" id="lg-rim"></div></div>');
+        var lens = $('lg-lens'), clone = $('lg-clone'), chR = $('lg-r'), chB = $('lg-bl'), main = $('lg-main'), glare = $('lg-glare'), rim = $('lg-rim');
+        var IDS = btns.map(function (b) { return b.id.replace('nav-btn-', ''); });
+        var N = IDS.length;
+        var html = btns.map(function (b) { return '<span class="lg-tab">' + b.innerHTML + '</span>'; }).join('');
+        [chR, chB, main].forEach(function (c) { c.innerHTML = html; });
+        var layerTabs = [chR, chB, main].map(function (c) { return c.querySelectorAll('.lg-tab'); });
+        [base, chR, chB, main].forEach(function (c) { c.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)'; });
+
+        function ld(k, d) { try { var v = parseFloat(localStorage.getItem(k)); return isFinite(v) ? v : d; } catch (e) { return d; } }
+        function sv(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+        var DEF = { mag: 1.3, dis: 1, glr: 1, wet: 1 };
+        var mag = ld('gp-lg-mag', DEF.mag), dis = ld('gp-lg-dis', DEF.dis), glr = ld('gp-lg-glr', DEF.glr), wet = ld('gp-lg-wet', DEF.wet);
+        var clip = lens.querySelector('.lg-clip'), lgDisp = $('lg-disp'), lgTurb = $('lg-turb');
+
+        var W = 0, H = 0, tabW = 0, lensH = 0, PAD = 4;
+        var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
+        var flash = 0, gx = 0.3, gy = 0.15;
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var K = 240, C = reduce ? 40 : 21;
+
+        function xFor(i) { return PAD + i * tabW; }
+        function measure() {
+            W = bar.clientWidth; H = bar.clientHeight;
+            if (!W) return;
+            tabW = (W - PAD * 2) / N; lensH = H - PAD * 2;
+            [base, chR, chB, main].forEach(function (t) { t.style.width = W + 'px'; t.style.height = H + 'px'; });
+            lens.style.width = tabW + 'px'; lens.style.height = lensH + 'px'; lens.style.borderRadius = (lensH / 2) + 'px';
+            clone.style.width = W + 'px'; clone.style.height = H + 'px';
+            if (!dragging) { x = target = xFor(current); }
+        }
+        function localX(e) { var r = bar.getBoundingClientRect(); return (e.clientX - r.left) * (W / (r.width || 1)); }
+        function clampX(px) { return Math.max(PAD, Math.min(W - PAD - tabW, px)); }
+        function indexAt(px) { return Math.max(0, Math.min(N - 1, Math.floor((px - PAD) / tabW))); }
+
+        function render() {
+            if (!W) return;
+            var stretch = Math.min(Math.abs(vx) / 2600, 0.28);
+            var sx = (1 + grow * 0.14) * (1 + stretch), sy = (1 + grow * 0.24) * (1 - stretch * 0.4);
+            lens.style.transform = 'translate3d(' + x + 'px,0,0) scale(' + sx + ',' + sy + ')';
+            bar.style.transform = 'scale(' + (1 + grow * 0.03) + ')';
+            var ca = dis * (0.3 + grow * 0.5 + Math.min(Math.abs(vx) / 2200, 1.1));
+            chR.style.transform = 'translate(' + (-ca) + 'px,' + (-ca * 0.35) + 'px)';
+            chB.style.transform = 'translate(' + ca + 'px,' + (ca * 0.35) + 'px)';
+            glare.style.setProperty('--gx', (gx * 100) + '%'); glare.style.setProperty('--gy', (gy * 100) + '%');
+            glare.style.opacity = String(Math.min(1, glr * (0.12 + grow * 0.5 + flash * 0.8)));
+            rim.style.setProperty('--ang', (-35 + (x / Math.max(W, 1)) * 70) + 'deg');
+            rim.style.opacity = String(Math.min(1, 0.55 + glr * 0.35 + grow * 0.2));
+            var s = mag * (1 + grow * 0.1);
+            clone.style.transformOrigin = (tabW / 2) + 'px ' + (lensH / 2) + 'px';
+            clone.style.transform = 'scale(' + (1 / sx) + ',' + (1 / sy) + ') translate(' + (-x) + 'px,' + (-PAD) + 'px)';
+            var cx = x + tabW / 2, half = tabW * sx / 2;
+            var mk = 'linear-gradient(90deg,#000 0,#000 ' + (cx - half) + 'px,transparent ' + (cx - half * 0.5) + 'px,transparent ' + (cx + half * 0.5) + 'px,#000 ' + (cx + half) + 'px,#000 100%)';
+            base.style.webkitMaskImage = mk; base.style.maskImage = mk;
+            var tk = 'linear-gradient(90deg,transparent 0,transparent ' + (cx - half) + 'px,#000 ' + (cx - half * 0.5) + 'px,#000 ' + (cx + half * 0.5) + 'px,transparent ' + (cx + half) + 'px,transparent 100%)';
+            clone.style.webkitMaskImage = tk; clone.style.maskImage = tk;
+            for (var li = 0; li < N; li++) {
+                var dd = Math.abs(cx - (xFor(li) + tabW / 2)) / tabW;
+                var w = Math.max(0, 1 - dd / 0.85); w = w * w * (3 - 2 * w);
+                var kk = 'scale(' + (1 + (s - 1) * w).toFixed(4) + ')';
+                for (var ly = 0; ly < 3; ly++) layerTabs[ly][li].style.transform = kk;
+            }
+            var sc = wet > 0 ? wet * (2 + grow * 7 + Math.min(Math.abs(vx) / 220, 6)) : 0;
+            lgDisp.setAttribute('scale', sc.toFixed(2));
+            clip.style.filter = wet > 0 ? 'url(#lg-wet)' : 'none';
+            var tt = performance.now() / 900;
+            lgTurb.setAttribute('baseFrequency', (0.018 + 0.004 * Math.sin(tt)).toFixed(4) + ' ' + (0.045 + 0.008 * Math.cos(tt * 1.3)).toFixed(4));
+        }
+        function step(t) {
+            var dt = Math.min((t - last) / 1000 || 0.016, 0.034); last = t;
+            var ax = -K * (x - target) - C * vx; vx += ax * dt; x += vx * dt;
+            var ag = -300 * (grow - growTarget) - 24 * vg; vg += ag * dt; grow += vg * dt;
+            flash *= Math.exp(-dt * 4.5);
+            render();
+            var still = Math.abs(vx) < 0.5 && Math.abs(x - target) < 0.1 && Math.abs(vg) < 0.01 && Math.abs(grow - growTarget) < 0.002 && flash < 0.01;
+            if (still && !dragging) { x = target; grow = growTarget; vx = 0; vg = 0; render(); raf = 0; return; }
+            raf = requestAnimationFrame(step);
+        }
+        function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } }
+
+        window.lgSetTab = function (name) {
+            var i = IDS.indexOf(name); if (i < 0) return;
+            current = i; if (!dragging) { target = xFor(i); kick(); }
+        };
+        /* La gota sigue a la pestaña que activa la app (clic, gesto, deslizar o cerrar el reproductor) */
+        if (typeof window.switchTab === 'function') {
+            var origSwitch = window.switchTab;
+            window.switchTab = function (name) { var r = origSwitch.apply(this, arguments); window.lgSetTab(name); return r; };
+        }
+
+        function updateGlare(e) {
+            var r = bar.getBoundingClientRect();
+            var px = localX(e), py = (e.clientY - r.top) * (H / (r.height || 1));
+            gx = Math.max(0.05, Math.min(0.95, (px - x) / tabW));
+            gy = Math.max(0.05, Math.min(0.6, (py - PAD) / lensH));
+        }
+        bar.addEventListener('pointerdown', function (e) {
+            dragging = true;
+            try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+            growTarget = 1; flash = 1; target = clampX(localX(e) - tabW / 2);
+            updateGlare(e); kick();
+        });
+        bar.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            target = clampX(localX(e) - tabW / 2);
+            updateGlare(e); kick();
+        });
+        function release(e) {
+            if (!dragging) return;
+            dragging = false; growTarget = 0; gx = 0.3; gy = 0.15;
+            var i = indexAt(clampX(localX(e) - tabW / 2) + tabW / 2);
+            target = xFor(i); current = i; kick();
+        }
+        bar.addEventListener('pointerup', release);
+        bar.addEventListener('pointercancel', release);
+
+        measure(); render();
+        if (window.ResizeObserver) new ResizeObserver(function () { measure(); render(); }).observe(bar);
+        window.addEventListener('resize', function () { measure(); render(); });
+        /* Si la app arranca en otra pestaña distinta de la primera */
+        try { if (typeof currentActiveTab === 'string') window.lgSetTab(currentActiveTab); } catch (e) {}
+        setTimeout(function () { measure(); render(); }, 300);
+
+        function bindSettings() {
+            var defs = [['mag', 'gp-lg-mag'], ['dis', 'gp-lg-dis'], ['glr', 'gp-lg-glr'], ['wet', 'gp-lg-wet']];
+            function cur(k) { return k === 'mag' ? mag : k === 'dis' ? dis : k === 'glr' ? glr : wet; }
+            function put(k, v) { if (k === 'mag') mag = v; else if (k === 'dis') dis = v; else if (k === 'glr') glr = v; else wet = v; }
+            function show(k) { var el = $('lg-' + k), o = $('lg-' + k + '-out'); if (el) el.value = cur(k); if (o) o.textContent = cur(k).toFixed(2) + '×'; }
+            defs.forEach(function (d) {
+                var k = d[0], el = $('lg-' + k); if (!el) return;
+                show(k);
+                el.addEventListener('input', function (e) {
+                    put(k, parseFloat(e.target.value)); sv(d[1], cur(k)); show(k);
+                    if (k === 'glr') flash = 1;
+                    render(); kick();
+                });
+            });
+            var rs = $('lg-reset');
+            if (rs) rs.addEventListener('click', function () {
+                defs.forEach(function (d) { put(d[0], DEF[d[0]]); sv(d[1], DEF[d[0]]); show(d[0]); });
+                flash = 1; render(); kick();
+            });
+        }
+        bindSettings();
+        /* Menú plegable de la tarjeta "Barra de pestañas" */
+        (function () {
+            var t = $('lg-toggle'), p = $('lg-panel'); if (!t || !p) return;
+            function setOpen(o, save) {
+                p.classList.toggle('open', o); t.classList.toggle('open', o); t.setAttribute('aria-expanded', String(o));
+                if (save) { try { localStorage.setItem('gp-lg-open', o ? '1' : '0'); } catch (e) {} }
+            }
+            var saved = false; try { saved = localStorage.getItem('gp-lg-open') === '1'; } catch (e) {}
+            setOpen(saved, false);
+            t.addEventListener('click', function () { setOpen(!p.classList.contains('open'), true); });
+        })();
+    })();
+    </script>
+    <script>
+    /* Secciones plegables en Ajustes: Gestión de Biblioteca y Preferencias (mismo botón que "Barra de pestañas") */
+    (function () {
+        var settings = document.getElementById('view-settings'); if (!settings) return;
+        var spans = Array.prototype.slice.call(settings.querySelectorAll('span.tracking-widest.block'));
+        function make(label, key) {
+            var sp = spans.filter(function (e) { return e.textContent.trim().toLowerCase() === label; })[0];
+            if (!sp) return;
+            var content = sp.nextElementSibling, host = sp.parentNode;
+            if (!content || host.querySelector('.sec-toggle')) return;
+            var row = document.createElement('div'); row.className = 'flex items-center justify-between px-1';
+            host.insertBefore(row, sp); row.appendChild(sp); sp.classList.remove('px-1');
+            var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sec-toggle w-10 h-10 rounded-full flex items-center justify-center liquid-glass hover:bg-white/20 active:scale-95';
+            btn.style.transition = 'transform 0.2s ease, background-color 0.2s ease'; btn.title = 'Mostrar u ocultar';
+            btn.innerHTML = '<i class="sec-chevron fa-solid fa-chevron-down text-sm"></i>';
+            row.appendChild(btn);
+            var col = document.createElement('div'); col.className = 'lg-collapsible';
+            var inner = document.createElement('div'); inner.className = 'lg-collapsible-inner';
+            host.insertBefore(col, content); col.appendChild(inner); inner.appendChild(content);
+            var timer = 0;
+            function setOpen(o, save, instant) {
+                clearTimeout(timer); col.classList.remove('settled');
+                col.classList.toggle('open', o); btn.classList.toggle('open', o); btn.setAttribute('aria-expanded', String(o));
+                if (o) { if (instant) col.classList.add('settled'); else timer = setTimeout(function () { col.classList.add('settled'); }, 450); }
+                if (save) { try { localStorage.setItem(key, o ? '1' : '0'); } catch (e) {} }
+            }
+            var open = true; try { var v = localStorage.getItem(key); if (v !== null) open = v === '1'; } catch (e) {}
+            setOpen(open, false, true);
+            btn.addEventListener('click', function () { setOpen(!col.classList.contains('open'), true, false); });
+        }
+        make('gestión de biblioteca', 'gp-sec-biblioteca');
+        make('preferencias', 'gp-sec-preferencias');
+    })();
+    </script>
+    <script>
+    /* Deslizar hacia abajo para cerrar el reproductor (arrastre 1:1, velocidad y rebote en el borde). Usa hideFullPlayer() de la app. */
+    (function () {
+        var sheet = document.getElementById('view-player'); if (!sheet) return;
+        var zone = '#view-player > header, #wrapper-cover';
+        var sx = 0, sy = 0, dy = 0, down = false, drag = false, hist = [], pid = null;
+        function rubber(o, d) { var c = 0.55; return (o * d * c) / (d + c * Math.abs(o)); }
+        function setImp(p, v) { sheet.style.setProperty(p, v, 'important'); }
+        function clearInline() { sheet.style.removeProperty('transform'); sheet.style.removeProperty('transition'); sheet.style.removeProperty('opacity'); }
+        function apply(y) {
+            var H = sheet.clientHeight || 800;
+            var t = y >= 0 ? y : -rubber(-y, H);
+            var p = Math.min(Math.max(y, 0) / H, 1);
+            setImp('transition', 'none');
+            setImp('transform', 'translate3d(0,' + t + 'px,0) scale(' + (1 - p * 0.06) + ')');
+            setImp('opacity', String(1 - p * 0.3));
+        }
+        sheet.addEventListener('pointerdown', function (e) {
+            if (!sheet.classList.contains('player-active') || e.button > 0) return;
+            if (!e.target.closest(zone)) return;
+            if (e.target.closest('button, a, input, select, textarea, #progress-container, .unified-flyout, canvas')) return;
+            down = true; drag = false; sx = e.clientX; sy = e.clientY; dy = 0; pid = e.pointerId; hist = [{ y: e.clientY, t: performance.now() }];
+        });
+        sheet.addEventListener('pointermove', function (e) {
+            if (!down || e.pointerId !== pid) return;
+            var mx = e.clientX - sx, my = e.clientY - sy;
+            if (!drag) {
+                if (Math.abs(my) < 6 && Math.abs(mx) < 6) return;
+                if (Math.abs(mx) > Math.abs(my)) { down = false; return; }
+                drag = true; sheet.classList.add('ad-dragging');
+                try { sheet.setPointerCapture(pid); } catch (err) {}
+            }
+            dy = my; hist.push({ y: e.clientY, t: performance.now() }); if (hist.length > 6) hist.shift();
+            apply(dy);
+        });
+        function end(e, cancel) {
+            if (!down || (e && e.pointerId !== pid)) return;
+            down = false;
+            if (!drag) return;
+            drag = false; sheet.classList.remove('ad-dragging');
+            try { sheet.releasePointerCapture(pid); } catch (err) {}
+            var H = sheet.clientHeight || 800, v = 0;
+            if (hist.length > 1) { var a = hist[0], b = hist[hist.length - 1]; v = (b.y - a.y) / Math.max((b.t - a.t) / 1000, 0.001); }
+            var projected = dy + (v / 1000) * 0.998 / (1 - 0.998) * 0.12;
+            if (!cancel && (projected > H * 0.3 || v > 700) && dy > 0) {
+                /* cierra: se quitan los estilos inline y la transición CSS continúa desde la posición actual */
+                void sheet.offsetWidth;
+                clearInline();
+                if (typeof hideFullPlayer === 'function') hideFullPlayer();
+            } else {
+                setImp('transition', 'transform 0.5s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease');
+                setImp('transform', 'translate3d(0,0,0) scale(1)'); setImp('opacity', '1');
+                setTimeout(clearInline, 520);
+            }
+        }
+        sheet.addEventListener('pointerup', function (e) { end(e, false); });
+        sheet.addEventListener('pointercancel', function (e) { end(e, true); });
+    })();
     </script>
 </body>
 </html>
