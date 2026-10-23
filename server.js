@@ -30,12 +30,14 @@ app.use(express.json({ limit: "10mb" }));
 // cookie muid y ConnectionId.
 // ------------------------------------------------------------
 const TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
-const CHROMIUM = "143.0.3650.75";
-const MAJOR = CHROMIUM.split(".")[0];
+// Versiones de Chromium a probar (la primera que Microsoft acepte se recuerda)
+const VERSIONS = (process.env.EDGE_VERSIONS || "143.0.3650.75,146.0.3856.59,148.0.3967.54,141.0.3537.71").split(",");
+let versionIdx = 0;
+let clockSkew = 0; // segundos de diferencia con el reloj de Microsoft
 const WSS = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=" + TOKEN;
 
 function secMsGec() {
-  const ticks = BigInt(Math.floor(Date.now() / 1000) + 11644473600) * 10000000n;
+  const ticks = BigInt(Math.floor(Date.now() / 1000 + clockSkew) + 11644473600) * 10000000n;
   const rounded = ticks - (ticks % 3000000000n);
   return crypto.createHash("sha256").update(`${rounded}${TOKEN}`, "ascii").digest("hex").toUpperCase();
 }
@@ -43,7 +45,13 @@ const uuid = () => crypto.randomUUID().replace(/-/g, "");
 const jsDate = () => new Date().toUTCString().replace("GMT", "GMT+0000 (Coordinated Universal Time)");
 const esc = (s) => s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
 
-function edgeSynth({ text, voice, lang, rate, pitch, volume, timeout = 45000 }) {
+function edgeSynth(opts) {
+  return edgeSynthOnce(opts, VERSIONS[versionIdx]);
+}
+
+function edgeSynthOnce({ text, voice, lang, rate, pitch, volume, timeout = 45000 }, CHROMIUM, attempt = 0) {
+  const MAJOR = CHROMIUM.split(".")[0];
+  const retry = () => edgeSynthOnce({ text, voice, lang, rate, pitch, volume, timeout }, VERSIONS[versionIdx], attempt + 1);
   return new Promise((resolve, reject) => {
     const url = `${WSS}&ConnectionId=${uuid()}&Sec-MS-GEC=${secMsGec()}&Sec-MS-GEC-Version=2-${CHROMIUM}`;
     const ws = new WebSocket(url, {
@@ -72,7 +80,24 @@ function edgeSynth({ text, voice, lang, rate, pitch, volume, timeout = 45000 }) 
     };
     const timer = setTimeout(() => finish(new Error("Timeout esperando audio de Edge TTS")), timeout);
 
-    ws.on("unexpected-response", (req, res) => finish(new Error("Unexpected server response: " + res.statusCode)));
+    ws.on("unexpected-response", (req, res) => {
+      const code = res.statusCode;
+      const dateHdr = res.headers["date"];
+      console.error(`Edge respondió ${code} (Chromium ${CHROMIUM}) date=${dateHdr}`);
+      res.resume();
+      if (code === 403 && attempt < VERSIONS.length + 1) {
+        if (attempt === 0 && dateHdr) {
+          const skew = Math.round((Date.parse(dateHdr) - Date.now()) / 1000);
+          if (Math.abs(skew) > 2) clockSkew = skew; // corregir reloj y reintentar
+          else versionIdx = (versionIdx + 1) % VERSIONS.length;
+        } else {
+          versionIdx = (versionIdx + 1) % VERSIONS.length;
+        }
+        if (!done) { done = true; clearTimeout(timer); try { ws.terminate(); } catch (_) {} return retry().then(resolve, reject); }
+        return;
+      }
+      finish(new Error("Unexpected server response: " + code));
+    });
     ws.on("error", (e) => finish(e));
     ws.on("close", () => finish(new Error("Conexión cerrada antes de terminar el audio")));
 
