@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import edge_tts
 
 app = FastAPI()
@@ -13,35 +12,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class TTSRequest(BaseModel):
-    text: str
-    voice: str = "es-MX-JorgeNeural"
-    rate: str = "+0%"
-    pitch: str = "+0Hz"
-    volume: str = "+0%"
-
 @app.get("/")
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "Edge TTS Python", "engine": "official-edge-tts"}
+    return {"ok": True, "service": "Edge TTS Python"}
 
 @app.post("/api/tts")
-async def generate_tts(req: TTSRequest):
-    if not req.text or not req.text.strip():
+async def generate_tts(payload: dict):
+    text = payload.get("text", "")
+    if not text or not text.strip():
         raise HTTPException(status_code=400, detail="Texto vacío")
+    
+    voice = payload.get("voice", "es-MX-JorgeNeural")
+    rate = payload.get("rate", "+0%")
+    pitch = payload.get("pitch", "+0Hz")
+    volume = payload.get("volume", "+0%")
+    
     try:
-        communicate = edge_tts.Communicate(
-            text=req.text,
-            voice=req.voice,
-            rate=req.rate,
-            pitch=req.pitch,
-            volume=req.volume
-        )
+        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, volume=volume)
         audio_bytes = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 audio_bytes.extend(chunk["data"])
-
+                
         return Response(content=bytes(audio_bytes), media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
