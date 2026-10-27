@@ -1097,78 +1097,98 @@
         }
     </style>
     <style id="lg-tabbar-css">
-        /* ───────── Barra inferior · Liquid Glass (iOS 26) ───────── */
+        /* ───────── Barra inferior · Liquid Glass (iOS 26) · v2 ───────── */
         :root {
-            --lg-tint: #ffa400; --lg-gray: #8e8e93;
-            --lg-glass: rgba(30,30,33,.38); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
-            --lg-sink: rgba(0,0,0,.65); --lg-sink2: rgba(0,0,0,.45); --lg-vig: rgba(0,0,0,.38); --lg-cast: rgba(0,0,0,.4);
-            --lg-blend: screen; --lg-ca-op: 1;
+            --lg-tint: #ffa400;
+            --lg-glass: rgba(90,90,94,.55); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
+            --lg-sink: rgba(0,0,0,.4); --lg-sink2: rgba(0,0,0,.28); --lg-vig: rgba(0,0,0,.16); --lg-cast: rgba(0,0,0,.4);
+            --lg-blend: screen; --lg-ca-op: 1; --lg-line: rgba(0,0,0,.6);
+            --lg-flat: rgba(0,0,0,.5); --lg-fg: #ffffff;
         }
         body.light-theme {
-            --lg-glass: rgba(255,255,255,.46); --lg-edge: rgba(0,0,0,.10);
-            --lg-sink: rgba(0,0,0,.16); --lg-sink2: rgba(0,0,0,.10); --lg-vig: rgba(0,0,0,.10); --lg-cast: rgba(0,0,0,.18);
-            --lg-blend: normal; --lg-ca-op: .6;
+            --lg-glass: rgba(255,255,255,.78); --lg-edge: rgba(0,0,0,.10);
+            --lg-sink: rgba(0,0,0,.10); --lg-sink2: rgba(0,0,0,.06); --lg-vig: rgba(0,0,0,.05); --lg-cast: rgba(0,0,0,.18);
+            --lg-blend: normal; --lg-ca-op: .6; --lg-line: rgba(0,0,0,.35);
+            --lg-flat: rgba(0,0,0,.09); --lg-fg: #0b0b0f;
         }
+
+        /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
         #bottom-navbar {
-            left: 14px !important; right: 14px !important; width: auto !important;
-            bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
-            height: 66px !important; padding: 0 !important; display: block !important;
-            overflow: visible !important; border: 0 !important; border-radius: 99px !important;
-            max-width: 28rem; margin: 0 auto;
-            background: var(--lg-glass) !important;
-            -webkit-backdrop-filter: blur(7px) saturate(1.5) !important; backdrop-filter: blur(7px) saturate(1.5) !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 .5px var(--lg-edge), 0 10px 30px var(--lg-cast) !important;
-            will-change: transform; touch-action: none; cursor: pointer;
+            left: 0 !important; right: 0 !important; bottom: 6px !important; width: auto !important; height: auto !important;
+            padding: 0 14px !important; display: block !important; overflow: visible !important;
+            border: 0 !important; border-radius: 0 !important;
+            background: transparent !important; box-shadow: none !important;
+            -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+            pointer-events: none;
         }
-        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + 84px) !important; }
-        #nav-active-pill { display: none !important; }
+        #mini-player { bottom: 84px !important; }
+        #view-player { bottom: 72px; }
+
+        .lg-bar {
+            position: relative; pointer-events: auto; max-width: 28rem; margin: 0 auto; height: 4.125rem; border-radius: 99px;
+            will-change: transform; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer;
+        }
+        /* El vidrio de la barra va en su propia capa para poder contraerse solo donde pasa la burbuja */
+        .lg-bg, .lg-cast, .lg-edge { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+        .lg-bg { background: var(--lg-glass); -webkit-backdrop-filter: blur(7px) saturate(1.5); backdrop-filter: blur(7px) saturate(1.5); }
+        .lg-cast { box-shadow: 0 10px 30px var(--lg-cast); }
+        .lg-edge { width: 100%; height: 100%; overflow: visible; }
+        .lg-edge polygon { fill: none; stroke: var(--lg-edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
         .lg-tabs { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: repeat(3, 1fr); padding: 4px; }
-        #bottom-navbar .lg-tabs button, .lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; padding: .375rem 0; font-size: .6875rem; letter-spacing: .02em; border-radius: 2rem; }
-        #bottom-navbar .lg-tabs button { color: var(--lg-gray) !important; font-weight: 500 !important; background: none; flex: initial; }
+        .lg-tab { color: var(--lg-fg); }
+        #bottom-navbar .lg-tabs button, .lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; padding: .375rem 0; font-size: .6875rem; font-weight: 500; letter-spacing: .02em; border-radius: 2rem; }
+        #bottom-navbar .lg-tabs button { color: var(--lg-fg) !important; font-weight: 500 !important; background: none; border: 0; cursor: pointer; flex: initial; transition: transform 120ms ease-out; }
+        #bottom-navbar .lg-tabs button:active { transform: none !important; }
         #bottom-navbar .lg-tabs button i, .lg-tab i { font-size: 1.3125rem; height: 1.5rem; line-height: 1.5rem; }
         #bottom-navbar .lg-tabs button span, .lg-tab span { font-size: .6875rem; }
-        .lg-tab { pointer-events: none; font-weight: 500; }
+        .lg-tab { pointer-events: none; }
         .lg-main .lg-tab { color: var(--lg-ink); }
         .lg-r .lg-tab { color: #ff2a45; }
         .lg-b .lg-tab { color: #2a8bff; }
-        .lg-r, .lg-b { mix-blend-mode: var(--lg-blend); opacity: var(--lg-ca-op); }
+        .lg-r, .lg-b { mix-blend-mode: var(--lg-blend); opacity: var(--lg-ca-op); transition: opacity .22s ease; }
         .lg-lens {
-            position: absolute; left: 0; top: 4px; will-change: transform; pointer-events: none;
+            position: absolute; left: 0; top: 4px; will-change: transform; pointer-events: none; transition: box-shadow .22s ease, background-color .22s ease;
             background: radial-gradient(closest-side at 50% 50%, rgba(255,255,255,.03) 55%, var(--lg-vig) 100%);
-            -webkit-backdrop-filter: brightness(.92) saturate(1.4); backdrop-filter: brightness(.92) saturate(1.4);
-            box-shadow: inset 0 7px 9px -5px var(--lg-sink), inset 0 -6px 8px -5px var(--lg-sink2),
-                inset 2px 0 2px -1px rgba(255,90,80,.35), inset -2px 0 2px -1px rgba(80,150,255,.4),
-                inset 0 0 0 1px var(--lg-edge), inset 0 1px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(255,255,255,.35),
+            box-shadow:
+                inset 0 6px 9px -5px var(--lg-sink),
+                inset 0 -6px 8px -5px var(--lg-sink2),
+                inset 2px 0 2px -1px rgba(255,90,80,.16),
+                inset -2px 0 2px -1px rgba(80,150,255,.2),
+                inset 0 0 0 1px rgba(255,255,255,.05),
+                inset 0 1px 0 rgba(255,255,255,.12),
+                inset 0 -1px 0 rgba(255,255,255,.06),
+                0 0 0 .5px var(--lg-line),
                 0 3px 12px var(--lg-cast);
         }
-        .lg-lens::after { content: ""; position: absolute; left: 24%; right: 24%; top: 1px; height: 3px; border-radius: 3px;
-            background: linear-gradient(90deg, rgba(120,200,255,0), rgba(255,255,255,.95) 30%, rgba(255,255,255,.95) 70%, rgba(255,120,120,0)); filter: blur(.4px); pointer-events: none; }
+        .lg-lens::after { content: ""; position: absolute; left: 26%; right: 26%; top: 1px; height: 2px; border-radius: 2px; opacity: .22;
+            background: linear-gradient(90deg, rgba(120,200,255,0), rgba(255,255,255,.95) 30%, rgba(255,255,255,.95) 70%, rgba(255,120,120,0)); filter: blur(.6px); pointer-events: none; }
         .lg-lens::before { content: ""; position: absolute; left: 30%; right: 30%; bottom: 1px; height: 2px; border-radius: 2px;
-            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55), rgba(255,255,255,0)); pointer-events: none; }
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.3), rgba(255,255,255,0)); pointer-events: none; }
+        /* Reposo (como iOS): cápsula plana, más oscura que la barra; al tocar se vuelve burbuja de cristal */
+        .lg-lens.lg-flat { background: var(--lg-flat); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+        .lg-lens.lg-flat::before, .lg-lens.lg-flat::after { display: none; }
+        .lg-lens.lg-flat .lg-r, .lg-lens.lg-flat .lg-b { opacity: 0; }
+        .lg-lens.lg-flat .lg-glare, .lg-lens.lg-flat .lg-rim { opacity: 0 !important; }
         .lg-clip { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; isolation: isolate; }
         .lg-clone { position: absolute; left: 0; top: 0; pointer-events: none; }
         .lg-glare { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: var(--lg-blend); opacity: 0;
             background: radial-gradient(circle at var(--gx, 30%) var(--gy, 12%), rgba(255,255,255,.8) 0, rgba(190,225,255,.4) 16%, rgba(255,255,255,0) 52%); }
-        .lg-rim { position: absolute; inset: 0; border-radius: inherit; padding: 1.6px; pointer-events: none; opacity: .9;
-            background: conic-gradient(from var(--ang, -30deg), rgba(255,255,255,0) 0deg, rgba(255,255,255,.95) 26deg, rgba(120,200,255,.5) 48deg, rgba(255,255,255,0) 90deg, rgba(255,255,255,0) 180deg, rgba(255,150,130,.45) 215deg, rgba(255,255,255,.7) 238deg, rgba(255,255,255,0) 285deg);
+        .lg-rim { position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; opacity: .8; filter: blur(.4px);
+            /* Iridiscencia solo en las tapas de arriba y abajo (como en iOS); los costados quedan con el borde fino */
+            background: conic-gradient(from calc(var(--ang, -30deg) * .25),
+                rgba(110,230,170,0) 318deg, rgba(110,230,170,.4) 336deg, rgba(95,170,255,.48) 353deg, rgba(175,120,255,.42) 8deg, rgba(255,110,140,.3) 24deg, rgba(255,110,140,0) 42deg,
+                rgba(255,110,140,0) 138deg, rgba(255,110,140,.28) 155deg, rgba(175,120,255,.38) 174deg, rgba(95,170,255,.42) 191deg, rgba(110,230,170,.36) 208deg, rgba(110,230,170,0) 226deg);
             -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
             mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
         .lg-range { width: 100%; accent-color: var(--lg-tint); margin: 0; height: 1.75rem; }
-        @media (prefers-reduced-transparency: reduce) {
-            #bottom-navbar { background: var(--glass-bg-darker) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-        }
-
-        /* Barra más abajo para no tocar el botón de play; mini reproductor ajustado */
-        #bottom-navbar { bottom: 6px !important; }
-        #mini-player { bottom: 84px !important; }
-        #view-player { bottom: 72px; }
+        @media (prefers-reduced-transparency: reduce) { .lg-bg { background: var(--glass-bg-darker); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
         /* Rendimiento: la lente no necesita su propio backdrop-filter; modo ligero quita capas costosas */
         .lg-lens { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-        #bottom-navbar.lg-lite .lg-r, #bottom-navbar.lg-lite .lg-b, #bottom-navbar.lg-lite .lg-glare { display: none !important; }
-        #bottom-navbar.lg-lite .lg-clip { filter: none !important; }
-        #bottom-navbar.lg-lite { -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important; }
-        #bottom-navbar.lg-lite .lg-lens { box-shadow: inset 0 7px 9px -5px var(--lg-sink), inset 0 -6px 8px -5px var(--lg-sink2), inset 0 0 0 1px var(--lg-edge), inset 0 1px 0 rgba(255,255,255,.85) !important; }
+        .lg-bar.lg-lite .lg-r, .lg-bar.lg-lite .lg-b, .lg-bar.lg-lite .lg-glare { display: none !important; }
+        .lg-bar.lg-lite .lg-clip { filter: none !important; }
+        .lg-bar.lg-lite .lg-bg { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+        .lg-bar.lg-lite .lg-lens:not(.lg-flat) { box-shadow: inset 0 7px 9px -5px var(--lg-sink), inset 0 -6px 8px -5px var(--lg-sink2), inset 0 0 0 1px rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 .5px var(--lg-line) !important; }
 
         /* Rendimiento con bibliotecas grandes (p. ej. 92 libros): sin sombras difusas ni desenfoques por tarjeta, y solo se pinta lo visible */
         .book-card {
@@ -1761,22 +1781,44 @@
                     </div>
                 </div>
 
-                <!-- BARRA DE NAVEGACIÓN DE PESTAÑAS INFERIOR -->
-                <nav id="bottom-navbar" class="absolute bottom-0 left-0 right-0 h-[76px] py-2.5 px-6 flex justify-between items-center z-50 overflow-hidden">
-                    <div id="nav-active-pill" class="active-pill"></div>
-
-                    <button id="nav-btn-listening" class="nav-tab-btn flex flex-col items-center gap-1 text-orange-500 font-bold flex-1">
-                        <i class="fa-solid fa-headphones text-lg"></i>
-                        <span class="text-[10px]">Escuchando</span>
-                    </button>
-                    <button id="nav-btn-library" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1">
-                        <i class="fa-solid fa-book-open text-lg"></i>
-                        <span class="text-[10px]">Biblioteca</span>
-                    </button>
-                    <button id="nav-btn-settings" class="nav-tab-btn flex flex-col items-center gap-1 text-zinc-500 font-medium flex-1">
-                        <i class="fa-solid fa-gear text-lg"></i>
-                        <span class="text-[10px]">Ajustes</span>
-                    </button>
+                <!-- BARRA DE NAVEGACIÓN DE PESTAÑAS INFERIOR (Liquid Glass v2) -->
+                <nav id="bottom-navbar" class="absolute bottom-0 left-0 right-0 z-50" aria-label="Navegación principal">
+                    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+                        <filter id="lg-wet" x="-8%" y="-12%" width="116%" height="124%" color-interpolation-filters="sRGB">
+                            <feTurbulence id="lg-turb" type="fractalNoise" baseFrequency="0.018 0.045" numOctaves="2" seed="7" result="n"/>
+                            <feDisplacementMap id="lg-disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/>
+                        </filter>
+                    </svg>
+                    <div class="lg-bar" id="lg-bar">
+                        <div class="lg-cast"></div>
+                        <div class="lg-bg" id="lg-bg"></div>
+                        <svg class="lg-edge" id="lg-edge" aria-hidden="true"><polygon id="lg-edge-p" points=""/></svg>
+                        <div class="lg-tabs" id="lg-base">
+                            <button id="nav-btn-listening" class="nav-tab-btn">
+                                <i class="fa-solid fa-headphones"></i>
+                                <span>Escuchando</span>
+                            </button>
+                            <button id="nav-btn-library" class="nav-tab-btn">
+                                <i class="fa-solid fa-book-open"></i>
+                                <span>Biblioteca</span>
+                            </button>
+                            <button id="nav-btn-settings" class="nav-tab-btn">
+                                <i class="fa-solid fa-gear"></i>
+                                <span>Ajustes</span>
+                            </button>
+                        </div>
+                        <div class="lg-lens lg-flat" id="lg-lens">
+                            <div class="lg-clip">
+                                <div class="lg-clone" id="lg-clone">
+                                    <div class="lg-tabs lg-r" id="lg-r" aria-hidden="true"></div>
+                                    <div class="lg-tabs lg-b" id="lg-bl" aria-hidden="true"></div>
+                                    <div class="lg-tabs lg-main" id="lg-main" aria-hidden="true"></div>
+                                </div>
+                                <div class="lg-glare" id="lg-glare"></div>
+                            </div>
+                            <div class="lg-rim" id="lg-rim"></div>
+                        </div>
+                    </div>
                 </nav>
 
             </div>
@@ -2944,6 +2986,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             });
 
             currentActiveTab = tabName;
+            if (window.lgSetTab) window.lgSetTab(tabName);
             updateNavPillPosition();
 
             // Caso sin animación: llamada para re-mostrar la misma pestaña
@@ -4846,153 +4889,191 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
     </script>
     <script>
-    /* Liquid Glass tab bar (capa visual): sigue a switchTab() y arrastra la gota; no cambia la lógica de la app */
+    /* Liquid Glass tab bar v2: cápsula plana en reposo, burbuja de cristal al tocar. Usa switchTab()/hideFullPlayer() de la app. */
     (function () {
         var $ = function (id) { return document.getElementById(id); };
-        var bar = $('bottom-navbar'); if (!bar) return;
-        var btns = Array.prototype.slice.call(bar.querySelectorAll('.nav-tab-btn'));
-        if (!btns.length) return;
-        bar.insertAdjacentHTML('afterbegin', '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lg-wet" x="-8%" y="-12%" width="116%" height="124%" color-interpolation-filters="sRGB"><feTurbulence id="lg-turb" type="fractalNoise" baseFrequency="0.018 0.045" numOctaves="2" seed="7" result="n"/><feDisplacementMap id="lg-disp" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/></filter></svg>');
-        var base = document.createElement('div'); base.className = 'lg-tabs'; base.id = 'lg-base';
-        btns.forEach(function (b) { base.appendChild(b); });
-        bar.appendChild(base);
-        bar.insertAdjacentHTML('beforeend', '<div class="lg-lens" id="lg-lens"><div class="lg-clip"><div class="lg-clone" id="lg-clone"><div class="lg-tabs lg-r" id="lg-r" aria-hidden="true"></div><div class="lg-tabs lg-b" id="lg-bl" aria-hidden="true"></div><div class="lg-tabs lg-main" id="lg-main" aria-hidden="true"></div></div><div class="lg-glare" id="lg-glare"></div></div><div class="lg-rim" id="lg-rim"></div></div>');
-        var lens = $('lg-lens'), clone = $('lg-clone'), chR = $('lg-r'), chB = $('lg-bl'), main = $('lg-main'), glare = $('lg-glare'), rim = $('lg-rim');
-        var IDS = btns.map(function (b) { return b.id.replace('nav-btn-', ''); });
+        var bar = $('lg-bar'); if (!bar) return;
+        var bg = $('lg-bg'), edgeP = $('lg-edge-p'), lastShape = '';
+        var base = $('lg-base'), lens = $('lg-lens'), clone = $('lg-clone');
+        var chR = $('lg-r'), chB = $('lg-bl'), main = $('lg-main'), glare = $('lg-glare'), rim = $('lg-rim');
+        var btns = base.querySelectorAll('button');
+        var IDS = Array.prototype.map.call(btns, function (b) { return b.id.replace('nav-btn-', ''); });
         var N = IDS.length;
-        var html = btns.map(function (b) { return '<span class="lg-tab">' + b.innerHTML + '</span>'; }).join('');
+        var html = Array.prototype.map.call(btns, function (b) { return '<span class="lg-tab">' + b.innerHTML + '</span>'; }).join('');
         [chR, chB, main].forEach(function (c) { c.innerHTML = html; });
         var layerTabs = [chR, chB, main].map(function (c) { return c.querySelectorAll('.lg-tab'); });
         [base, chR, chB, main].forEach(function (c) { c.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)'; });
 
         function ld(k, d) { try { var v = parseFloat(localStorage.getItem(k)); return isFinite(v) ? v : d; } catch (e) { return d; } }
         function sv(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
-        var DEF = { mag: 1.25, dis: 1.25, glr: 0.1, wet: 0.2 };
+        var DEF = { mag: 1.3, dis: 1, glr: 1, wet: 1 };
         var mag = ld('gp-lg-mag', DEF.mag), dis = ld('gp-lg-dis', DEF.dis), glr = ld('gp-lg-glr', DEF.glr), wet = ld('gp-lg-wet', DEF.wet);
         var clip = lens.querySelector('.lg-clip'), lgDisp = $('lg-disp'), lgTurb = $('lg-turb');
-
-        var W = 0, H = 0, tabW = 0, lensH = 0, PAD = 4;
-        var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
-        var flash = 0, gx = 0.3, gy = 0.15, filterOn = false, lastSc = -1, lastTurb = 0, locked = false, grab = 0;
-        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var K = 240, C = reduce ? 40 : 21;
-        var lite = ld('gp-lg-lite', 0) === 1, slow = 0, avg = 16, lastRaw = 0;
+        var lite = ld('gp-lg-lite', 0) === 1;
         function applyLite() { bar.classList.toggle('lg-lite', lite); }
         applyLite();
 
-        function xFor(i) { return PAD + i * tabW; }
+        var W = 0, H = 0, tabW = 0, LW = 0, lensH = 0, PAD = 4, LENS_MAX = 78;
+        var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
+        var flash = 0, gx = 0.3, gy = 0.15, wetApplied = null, lastTurb = 0, lastPx = 0, downAt = 0, lastMoveAt = 0;
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var K = 240, C = reduce ? 40 : 21;
+
+        function xFor(i) { return PAD + i * tabW + (tabW - LW) / 2; }
         function measure() {
             W = bar.clientWidth; H = bar.clientHeight;
             if (!W) return;
-            tabW = (W - PAD * 2) / N; lensH = H - PAD * 2;
+            tabW = (W - PAD * 2) / N; LW = Math.min(tabW, LENS_MAX); lensH = H - PAD * 2;
             [base, chR, chB, main].forEach(function (t) { t.style.width = W + 'px'; t.style.height = H + 'px'; });
-            lens.style.width = tabW + 'px'; lens.style.height = lensH + 'px'; lens.style.borderRadius = (lensH / 2) + 'px';
+            lens.style.width = LW + 'px'; lens.style.height = lensH + 'px'; lens.style.borderRadius = (lensH / 2) + 'px';
             clone.style.width = W + 'px'; clone.style.height = H + 'px';
             if (!dragging) { x = target = xFor(current); }
         }
         function localX(e) { var r = bar.getBoundingClientRect(); return (e.clientX - r.left) * (W / (r.width || 1)); }
-        function clampX(px) { return Math.max(PAD, Math.min(W - PAD - tabW, px)); }
+        function clampX(px) { return Math.max(xFor(0), Math.min(xFor(N - 1), px)); }
         function indexAt(px) { return Math.max(0, Math.min(N - 1, Math.floor((px - PAD) / tabW))); }
 
+        /* El vidrio de la barra se contrae (arriba y abajo) solo en el tramo por donde pasa la burbuja */
+        function shapeBar() {
+            if (!W || !H) return;
+            var pinch = lite ? 0 : Math.max(0, Math.min(1.1, grow)) * H * 0.09;
+            var cx = x + LW / 2, lh = LW * (1 + grow * 0.24) / 2, flatH = lh * 0.42, TR = Math.max(8, lh * 0.3), R = H / 2, k, th, px, h, dd, b, o;
+            /* Muestras finas en las puntas (semicírculos) y cada ~6 px en el tramo recto */
+            var xs = [];
+            for (k = 0; k <= 16; k++) { th = (Math.PI / 2) * k / 16; xs.push(R - R * Math.cos(th)); }
+            for (px = R + 3; px < W - R - 1; px += 3) xs.push(px);
+            for (k = 0; k <= 16; k++) { th = (Math.PI / 2) * k / 16; xs.push(W - R + R * Math.sin(th)); }
+            var P = [], Q = [];
+            xs.forEach(function (X) {
+                h = X < R ? Math.sqrt(Math.max(0, R * R - (R - X) * (R - X))) : X > W - R ? Math.sqrt(Math.max(0, R * R - (X - (W - R)) * (X - (W - R)))) : R;
+                dd = Math.abs(X - cx); b = dd <= flatH ? 1 : dd < flatH + TR ? 0.5 * (1 + Math.cos(Math.PI * (dd - flatH) / TR)) : 0;
+                o = pinch * b * (h / R);
+                P.push([X, R - h + o]); Q.push([X, R + h - o]);
+            });
+            var all = P.concat(Q.reverse());
+            var key = all.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+            if (key === lastShape) return;
+            lastShape = key;
+            var cp = 'polygon(' + all.map(function (q) { return q[0].toFixed(1) + 'px ' + q[1].toFixed(1) + 'px'; }).join(',') + ')';
+            bg.style.clipPath = cp; bg.style.webkitClipPath = cp;
+            edgeP.setAttribute('points', key);
+        }
         function render() {
             if (!W) return;
             var stretch = Math.min(Math.abs(vx) / 2600, 0.28);
-            var sx = (1 + grow * 0.14) * (1 + stretch), sy = (1 + grow * 0.24) * (1 - stretch * 0.4);
+            var sx = (1 + grow * 0.24) * (1 + stretch), sy = (1 + grow * 0.23) * (1 - stretch * 0.4);
             lens.style.transform = 'translate3d(' + x + 'px,0,0) scale(' + sx + ',' + sy + ')';
-            bar.style.transform = lite ? '' : 'scale(' + (1 + grow * 0.03) + ')';
+            bar.style.transform = lite ? '' : 'scale(' + (1 + grow * 0.04) + ')';
+            shapeBar();
             var ca = dis * (0.3 + grow * 0.5 + Math.min(Math.abs(vx) / 2200, 1.1));
             chR.style.transform = 'translate(' + (-ca) + 'px,' + (-ca * 0.35) + 'px)';
             chB.style.transform = 'translate(' + ca + 'px,' + (ca * 0.35) + 'px)';
             glare.style.setProperty('--gx', (gx * 100) + '%'); glare.style.setProperty('--gy', (gy * 100) + '%');
             glare.style.opacity = String(Math.min(1, glr * (0.12 + grow * 0.5 + flash * 0.8)));
             rim.style.setProperty('--ang', (-35 + (x / Math.max(W, 1)) * 70) + 'deg');
-            rim.style.opacity = String(Math.min(1, 0.55 + glr * 0.35 + grow * 0.2));
-            var s = mag * (1 + grow * 0.1);
-            clone.style.transformOrigin = (tabW / 2) + 'px ' + (lensH / 2) + 'px';
+            rim.style.opacity = String(Math.min(0.85, 0.4 + glr * 0.15 + grow * 0.25));
+            /* Lupa solo con dedo: en reposo el ícono está a 1x */
+            var gm = Math.max(0, Math.min(1, grow * 1.4)); var s = (1 + (mag - 1) * gm) * (1 + grow * 0.1);
+            clone.style.transformOrigin = (LW / 2) + 'px ' + (lensH / 2) + 'px';
             clone.style.transform = 'scale(' + (1 / sx) + ',' + (1 / sy) + ') translate(' + (-x) + 'px,' + (-PAD) + 'px)';
-            var cx = x + tabW / 2, half = tabW * sx / 2;
+            /* Los íconos base se desvanecen solo bajo la gota, con borde suave: el color de la lente los "pinta" de a poco */
+            var cx = x + LW / 2, half = LW * sx / 2;
             var mk = 'linear-gradient(90deg,#000 0,#000 ' + (cx - half) + 'px,transparent ' + (cx - half * 0.5) + 'px,transparent ' + (cx + half * 0.5) + 'px,#000 ' + (cx + half) + 'px,#000 100%)';
             base.style.webkitMaskImage = mk; base.style.maskImage = mk;
             var tk = 'linear-gradient(90deg,transparent 0,transparent ' + (cx - half) + 'px,#000 ' + (cx - half * 0.5) + 'px,#000 ' + (cx + half * 0.5) + 'px,transparent ' + (cx + half) + 'px,transparent 100%)';
             clone.style.webkitMaskImage = tk; clone.style.maskImage = tk;
+            /* Lupa: cada ícono crece sobre su propio centro según cuánto lo cubre la gota */
             for (var li = 0; li < N; li++) {
-                var dd = Math.abs(cx - (xFor(li) + tabW / 2)) / tabW;
+                var dd = Math.abs(cx - (xFor(li) + LW / 2)) / tabW;
                 var w = Math.max(0, 1 - dd / 0.85); w = w * w * (3 - 2 * w);
                 var kk = 'scale(' + (1 + (s - 1) * w).toFixed(4) + ')';
                 for (var ly = 0; ly < 3; ly++) layerTabs[ly][li].style.transform = kk;
             }
-            /* El filtro de agua es lo más pesado: solo se activa mientras hay movimiento o presión, y se actualiza con límite */
-            var active = wet > 0 && (grow > 0.03 || Math.abs(vx) > 25);
-            if (active) {
-                var sc = wet * (2 + grow * 7 + Math.min(Math.abs(vx) / 220, 6));
-                var nowT = performance.now();
-                if (Math.abs(sc - lastSc) > 0.4) { lgDisp.setAttribute('scale', sc.toFixed(1)); lastSc = sc; }
-                if (!filterOn) { clip.style.filter = 'url(#lg-wet)'; filterOn = true; }
-                if (nowT - lastTurb > 120) {
-                    var tt = nowT / 900; lastTurb = nowT;
-                    lgTurb.setAttribute('baseFrequency', (0.018 + 0.004 * Math.sin(tt)).toFixed(3) + ' ' + (0.045 + 0.008 * Math.cos(tt * 1.3)).toFixed(3));
-                }
-            } else if (filterOn) { clip.style.filter = 'none'; filterOn = false; lastSc = -1; }
+            /* Distorsión de agua: el filtro solo está puesto mientras hay movimiento (y nunca en modo ligero) */
+            var sc = (wet > 0 && !lite) ? wet * (2 + grow * 7 + Math.min(Math.abs(vx) / 220, 6)) : 0;
+            lgDisp.setAttribute('scale', sc.toFixed(2));
+            var wetOn = sc > 0.35;
+            if (wetOn !== wetApplied) { wetApplied = wetOn; clip.style.filter = wetOn ? 'url(#lg-wet)' : 'none'; }
+            var nowT = performance.now();
+            if (wetOn && nowT - lastTurb > 90) {
+                lastTurb = nowT; var tt = nowT / 900;
+                lgTurb.setAttribute('baseFrequency', (0.018 + 0.004 * Math.sin(tt)).toFixed(4) + ' ' + (0.045 + 0.008 * Math.cos(tt * 1.3)).toFixed(4));
+            }
         }
         function step(t) {
-            var raw = (t - last) || 16;
-            var dt = Math.min(raw / 1000 || 0.016, 0.034); last = t;
-
-            if (dragging && locked) {
-                /* Arrastre 1:1: la gota queda pegada al dedo (sin resorte); la velocidad solo alimenta el estiramiento y la dispersión */
-                var nx = target, inst = (nx - x) / Math.max(dt, 0.001);
-                vx = vx * 0.6 + inst * 0.4; x = nx;
-            } else {
-                var ax = -K * (x - target) - C * vx; vx += ax * dt; x += vx * dt;
-                if (dragging && Math.abs(x - target) < 8) locked = true;
-            }
+            var dt = Math.min((t - last) / 1000 || 0.016, 0.034); last = t;
+            var ax = -K * (x - target) - C * vx; vx += ax * dt; x += vx * dt;
             var ag = -300 * (grow - growTarget) - 24 * vg; vg += ag * dt; grow += vg * dt;
             flash *= Math.exp(-dt * 4.5);
-            render();
+            try { render(); } catch (err) { /* un error de dibujo no debe congelar la barra */ }
             var still = Math.abs(vx) < 0.5 && Math.abs(x - target) < 0.1 && Math.abs(vg) < 0.01 && Math.abs(grow - growTarget) < 0.002 && flash < 0.01;
             if (still && !dragging) { x = target; grow = growTarget; vx = 0; vg = 0; render(); raf = 0; return; }
             raf = requestAnimationFrame(step);
         }
         function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } }
 
+        /* switchTab() llama a esto para que la gota siga a la pestaña activa */
         window.lgSetTab = function (name) {
             var i = IDS.indexOf(name); if (i < 0) return;
             current = i; if (!dragging) { target = xFor(i); kick(); }
         };
-        /* La gota sigue a la pestaña que activa la app (clic, gesto, deslizar o cerrar el reproductor) */
-        if (typeof window.switchTab === 'function') {
-            var origSwitch = window.switchTab;
-            window.switchTab = function (name) { var r = origSwitch.apply(this, arguments); window.lgSetTab(name); return r; };
-        }
 
         function updateGlare(e) {
             var r = bar.getBoundingClientRect();
             var px = localX(e), py = (e.clientY - r.top) * (H / (r.height || 1));
-            gx = Math.max(0.05, Math.min(0.95, (px - x) / tabW));
+            gx = Math.max(0.05, Math.min(0.95, (px - x) / LW));
             gy = Math.max(0.05, Math.min(0.6, (py - PAD) / lensH));
         }
         bar.addEventListener('pointerdown', function (e) {
             dragging = true;
+            if (raf) { cancelAnimationFrame(raf); raf = 0; }
             try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-            var px0 = localX(e);
-            /* Si tocas dentro de la gota, la agarras desde ese punto (sin saltos); si tocas fuera, viaja hasta el dedo y luego lo sigue 1:1 */
-            if (px0 >= x && px0 <= x + tabW) { grab = px0 - (x + tabW / 2); locked = true; } else { grab = 0; locked = false; }
-            growTarget = 1; flash = 1; target = clampX(px0 - grab - tabW / 2);
+            lens.classList.remove('lg-flat');
+            lastPx = localX(e); downAt = Date.now(); lastMoveAt = downAt;
+            growTarget = 1; flash = 1; target = clampX(lastPx - LW / 2);
             updateGlare(e); kick();
         });
         bar.addEventListener('pointermove', function (e) {
             if (!dragging) return;
-            target = clampX(localX(e) - grab - tabW / 2);
+            lastPx = localX(e); lastMoveAt = Date.now();
+            target = clampX(lastPx - LW / 2);
             updateGlare(e); kick();
         });
         function release(e) {
             if (!dragging) return;
-            dragging = false; locked = false; growTarget = 0; gx = 0.3; gy = 0.15;
-            var i = indexAt(clampX(localX(e) - grab - tabW / 2) + tabW / 2);
-            target = xFor(i); current = i; kick();
+            dragging = false; growTarget = 0; gx = 0.3; gy = 0.15;
+            lens.classList.add('lg-flat');
+            var onBar = e && (e.type === 'pointerup' || e.type === 'pointercancel') && e.target && bar.contains(e.target);
+            var i = indexAt(clampX((onBar ? localX(e) : lastPx) - LW / 2) + LW / 2);
+            target = xFor(i);
+            var changed = i !== current;
+            current = i; kick();
+            /* El contenido pesado se dibuja después de que la gota ya arrancó, para no trabar la animación.
+               Si el reproductor está abierto, también se cierra (aunque toques la pestaña que ya estaba activa). */
+            var pv = $('view-player');
+            var playerOpen = !!(pv && pv.classList.contains('player-active'));
+            if ((changed || playerOpen) && typeof switchTab === 'function') {
+                requestAnimationFrame(function () {
+                    setTimeout(function () {
+                        if (current !== i) return;
+                        if (typeof hideFullPlayer === 'function') hideFullPlayer();
+                        switchTab(IDS[i]);
+                    }, 90);
+                });
+            }
         }
         bar.addEventListener('pointerup', release);
         bar.addEventListener('pointercancel', release);
+        /* Si iOS pierde el "soltar" (por ejemplo al empezar un scroll), la gota quedaba agarrada: se suelta igual */
+        bar.addEventListener('lostpointercapture', release);
+        document.addEventListener('pointerup', release);
+        document.addEventListener('pointercancel', release);
+        document.addEventListener('touchend', release, { passive: true });
+        document.addEventListener('touchcancel', release, { passive: true });
+        window.addEventListener('blur', release);
+        document.addEventListener('visibilitychange', function () { if (document.hidden) release(); });
+        /* Red de seguridad: si sigue agarrada sin que el dedo se mueva por más de 2 s, se suelta */
+        setInterval(function () { if (dragging && Date.now() - downAt > 2000 && Date.now() - lastMoveAt > 2000) release(); }, 500);
 
         measure(); render();
         if (window.ResizeObserver) new ResizeObserver(function () { measure(); render(); }).observe(bar);
@@ -5001,6 +5082,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         try { if (typeof currentActiveTab === 'string') window.lgSetTab(currentActiveTab); } catch (e) {}
         setTimeout(function () { measure(); render(); }, 300);
 
+        /* Controles en la pantalla de Ajustes */
         function bindSettings() {
             var defs = [['mag', 'gp-lg-mag'], ['dis', 'gp-lg-dis'], ['glr', 'gp-lg-glr'], ['wet', 'gp-lg-wet']];
             function cur(k) { return k === 'mag' ? mag : k === 'dis' ? dis : k === 'glr' ? glr : wet; }
@@ -5025,7 +5107,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         var liteSw = $('lg-lite');
         if (liteSw) {
             liteSw.checked = lite;
-            liteSw.addEventListener('change', function () { lite = liteSw.checked; sv('gp-lg-lite', lite ? 1 : 0); slow = 0; avg = 16; applyLite(); render(); kick(); });
+            liteSw.addEventListener('change', function () { lite = liteSw.checked; sv('gp-lg-lite', lite ? 1 : 0); applyLite(); lastShape = ''; render(); kick(); });
         }
         /* Menú plegable de la tarjeta "Barra de pestañas" */
         (function () {
