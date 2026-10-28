@@ -1100,13 +1100,13 @@
         /* ───────── Barra inferior · Liquid Glass (iOS 26) · v2 ───────── */
         :root {
             --lg-tint: #ffa400;
-            --lg-glass: rgba(90,90,94,.55); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
+            --lg-glass: rgba(40,40,44,.26); --lg-blur: 2px; --lg-txt-shadow: rgba(0,0,0,.45); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
             --lg-sink: rgba(0,0,0,.4); --lg-sink2: rgba(0,0,0,.28); --lg-vig: rgba(0,0,0,.16); --lg-cast: rgba(0,0,0,.4);
             --lg-blend: screen; --lg-ca-op: 1; --lg-line: rgba(0,0,0,.6);
             --lg-flat: rgba(0,0,0,.5); --lg-fg: #ffffff;
         }
         body.light-theme {
-            --lg-glass: rgba(255,255,255,.78); --lg-edge: rgba(0,0,0,.10);
+            --lg-glass: rgba(255,255,255,.34); --lg-txt-shadow: rgba(0,0,0,.2); --lg-edge: rgba(0,0,0,.10);
             --lg-sink: rgba(0,0,0,.10); --lg-sink2: rgba(0,0,0,.06); --lg-vig: rgba(0,0,0,.05); --lg-cast: rgba(0,0,0,.18);
             --lg-blend: normal; --lg-ca-op: .6; --lg-line: rgba(0,0,0,.35);
             --lg-flat: rgba(0,0,0,.09); --lg-fg: #0b0b0f;
@@ -1114,15 +1114,32 @@
 
         /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
         #bottom-navbar {
-            left: 0 !important; right: 0 !important; bottom: 6px !important; width: auto !important; height: auto !important;
+            left: 0 !important; right: 0 !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important; width: auto !important; height: auto !important;
             padding: 0 14px !important; display: block !important; overflow: visible !important;
             border: 0 !important; border-radius: 0 !important;
             background: transparent !important; box-shadow: none !important;
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: 84px !important; }
-        #view-player { bottom: 72px; }
+        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + 84px) !important; }
+        /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
+           el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
+           (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
+        #view-player {
+            height: auto !important;
+            bottom: 0 !important;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px + 4.125rem + 4px) !important;
+            border-radius: 32px 32px 0 0 !important;
+        }
+        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-bottom: 1.25rem !important; }
+
+        /* Pantalla completa en el iPhone: sin franja abajo (el contenedor se fija a los 4 bordes, incluida el área segura) */
+        html, body { background-color: var(--bg-color); }
+        @media (max-width: 768px) {
+            #app-workspace { position: fixed !important; inset: 0 !important; padding: 0 !important; }
+            #device-wrapper { width: 100% !important; height: 100% !important; }
+            #app-phone-container { position: fixed !important; inset: 0 !important; width: 100% !important; height: auto !important; }
+        }
 
         .lg-bar {
             position: relative; pointer-events: auto; max-width: 28rem; margin: 0 auto; height: 4.125rem; border-radius: 99px;
@@ -1130,7 +1147,9 @@
         }
         /* El vidrio de la barra va en su propia capa para poder contraerse solo donde pasa la burbuja */
         .lg-bg, .lg-cast, .lg-edge { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
-        .lg-bg { background: var(--lg-glass); -webkit-backdrop-filter: blur(7px) saturate(1.5); backdrop-filter: blur(7px) saturate(1.5); }
+        .lg-bg { background: var(--lg-glass); -webkit-backdrop-filter: blur(var(--lg-blur, 2px)) saturate(1.6); backdrop-filter: blur(var(--lg-blur, 2px)) saturate(1.6); }
+        /* Transparencia estilo iOS 26 / WhatsApp: se ve el contenido por detrás, con poco desenfoque */
+        .tabbar .lg-tabs, .lg-bar .lg-tabs { text-shadow: 0 0 6px var(--lg-txt-shadow); }
         .lg-cast { box-shadow: 0 10px 30px var(--lg-cast); }
         .lg-edge { width: 100%; height: 100%; overflow: visible; }
         .lg-edge polygon { fill: none; stroke: var(--lg-edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
