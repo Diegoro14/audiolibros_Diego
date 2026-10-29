@@ -3199,13 +3199,13 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 const img = document.getElementById('player-cover-img');
                 if (!viewPlayer || !viewPlayer.classList.contains('player-active') ||
                     !img || !img.complete || !img.naturalWidth) {
-                    document.body.style.removeProperty('--stripe-rgb');
+                    (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color'));
                     return;
                 }
                 /* Modo claro: el degradado SIEMPRE es el del tema (lo garantiza también CSS);
                    sin tinte de portada no puede aparecer una franja oscura */
                 if (document.body.classList.contains('light-theme')) {
-                    document.body.style.removeProperty('--stripe-rgb');
+                    (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color'));
                     return;
                 }
                 const c = document.createElement('canvas'); c.width = 8; c.height = 8;
@@ -3217,7 +3217,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 for (let i = 0; i < d.length; i += 4) {
                     if (d[i + 3] > 40) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; n++; }
                 }
-                if (!n) { document.body.style.removeProperty('--stripe-rgb'); return; }
+                if (!n) { (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color')); return; }
                 r /= n; gr /= n; b /= n;
                 const light = document.body.classList.contains('light-theme');
                 // Aproxima los filtros del blur de fondo: claro = brightness(1.35) saturate(1.2); oscuro = brightness(0.35) saturate(1.8)
@@ -3226,9 +3226,11 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 gr = Math.max(0, Math.min(255, (mean + (gr - mean) * sat) * bri));
                 b = Math.max(0, Math.min(255, (mean + (b - mean) * sat) * bri));
                 document.body.style.setProperty('--stripe-rgb', `${r | 0}, ${gr | 0}, ${b | 0}`);
+                /* el canvas (html) bajo el viewport debe ser exactamente el color destino del degradado */
+                document.documentElement.style.setProperty('background-color', `rgb(${r | 0}, ${gr | 0}, ${b | 0})`, 'important');
             } catch (e) {
                 /* Portada remota sin CORS u otro fallo: se usa el color del tema */
-                try { document.body.style.removeProperty('--stripe-rgb'); } catch (e2) {}
+                try { (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color')); } catch (e2) {}
             }
         }
         (function () {
@@ -3259,7 +3261,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         function hideFullPlayer() {
             const viewPlayer = document.getElementById('view-player');
             viewPlayer.classList.remove('player-active');
-            document.body.style.removeProperty('--stripe-rgb');
+            (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color'));
             
             setTimeout(() => {
                 if (!viewPlayer.classList.contains('player-active')) {
