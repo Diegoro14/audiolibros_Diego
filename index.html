@@ -1574,6 +1574,11 @@ f();addEventListener('resize',f);addEventListener('orientationchange',function()
                                     <div id="pron-panel" class="hidden px-4 pb-4">
                                         <p class="text-xs opacity-60 mb-2">Una regla por línea: palabra = cómo se pronuncia. Ej.: Hermione = Jermaione</p>
                                         <textarea id="pron-text" rows="5" class="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white outline-none" style="resize:vertical" oninput="savePron(this.value)" placeholder="Hermione = Jermaione"></textarea>
+                                        <button onclick="document.getElementById('pron-file-input').click()" class="w-full mt-2 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(255,149,0,0.25)]" style="transition: transform 0.2s ease, background-color 0.2s ease">
+                                            <i class="fa-solid fa-file-arrow-up"></i>
+                                            Cargar archivo .txt
+                                        </button>
+                                        <input type="file" id="pron-file-input" accept=".txt,text/plain" class="hidden" onchange="loadPronFile(this)">
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between p-4 hover:bg-white/5 ">
@@ -4899,6 +4904,23 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             if (c) c.style.transform = open ? 'rotate(180deg)' : '';
         }
         function savePron(v) { try { localStorage.setItem(PRON_KEY, v); } catch (e) {} pronRules = null; clearTtsCache(); }
+        function loadPronFile(input) {
+            const f = input.files && input.files[0];
+            if (!f) return;
+            const rd = new FileReader();
+            rd.onload = () => {
+                // Quita BOM (Bloc de notas de Windows) y unifica saltos CRLF/CR -> LF
+                const txt = String(rd.result || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+                const ta = document.getElementById('pron-text');
+                if (ta) ta.value = txt;
+                savePron(txt);
+                const n = txt.split('\n').filter(l => { const p = l.split('='); return p.length >= 2 && p[0].trim() && p[1].trim(); }).length;
+                showToast('Diccionario cargado: ' + n + (n === 1 ? ' regla' : ' reglas'), 'fa-file-circle-check');
+                try { input.value = ''; } catch (e) {}
+            };
+            rd.onerror = () => showToast('No se pudo leer el archivo', 'fa-circle-exclamation');
+            rd.readAsText(f, 'utf-8');
+        }
         function rewindEnabled() { try { return localStorage.getItem('audiolibros_diego_rewind') !== '0'; } catch (e) { return true; } }
         function setRewind(v) { try { localStorage.setItem('audiolibros_diego_rewind', v ? '1' : '0'); } catch (e) {} }
         function autoRewindOnResume() {
