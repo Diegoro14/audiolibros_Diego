@@ -1140,9 +1140,8 @@
         @media (max-width: 768px) {
             #app-workspace { position: fixed !important; inset: 0 !important; padding: 0 !important; }
             #device-wrapper { width: 100% !important; height: 100% !important; }
-            #app-phone-container { position: fixed !important; inset: 0 !important; width: 100% !important; height: auto !important; min-height: 100vh !important; will-change: auto !important; transition: none !important; background: var(--bg-color); }
-            #view-player { min-height: 100vh; }
-            #player-bg-blur { bottom: -60px !important; }
+            #app-phone-container { position: fixed !important; inset: 0 0 calc(-1 * var(--vgap, 0px)) 0 !important; width: 100% !important; height: auto !important; will-change: auto !important; transition: none !important; background: var(--bg-color); }
+                        #player-bg-blur { bottom: -60px !important; }
         }
 
         .lg-bar {
@@ -1260,6 +1259,13 @@
         }
     }
     </script>
+<script>
+/* iPhone (app instalada): si el viewport de layout queda más corto que la pantalla, extiende el contenedor hasta el borde real */
+(function(){function f(){var g=0;try{var st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+if(st&&innerWidth<=768&&innerHeight>innerWidth){g=Math.max(0,Math.min(120,Math.round(screen.height-innerHeight)));}}catch(e){}
+document.documentElement.style.setProperty('--vgap',g+'px');}
+f();addEventListener('resize',f);addEventListener('orientationchange',function(){setTimeout(f,300)});addEventListener('pageshow',f);})();
+</script>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
 
