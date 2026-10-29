@@ -1113,24 +1113,24 @@
         }
 
         /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
-        /* Anclajes: la barra baja 14px respecto al inset seguro pero JAMÁS toca el borde (mínimo 10px) */
+        /* Anclajes: la barra baja 24px respecto al inset seguro pero JAMÁS toca el borde (mínimo 9px) */
         #lg-anchor { display: none; }
         #bottom-navbar {
-            left: 0 !important; right: 0 !important; bottom: max(env(safe-area-inset-bottom, 0px) - 14px, 10px) !important; width: auto !important; height: auto !important;
+            left: 0 !important; right: 0 !important; bottom: max(env(safe-area-inset-bottom, 0px) - 24px, 9px) !important; width: auto !important; height: auto !important;
             padding: 0 14px !important; display: block !important; overflow: visible !important;
             border: 0 !important; border-radius: 0 !important;
             background: transparent !important; box-shadow: none !important;
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: calc(max(env(safe-area-inset-bottom, 0px) - 14px, 10px) + 4.125rem + 8px) !important; }
+        #mini-player { bottom: calc(max(env(safe-area-inset-bottom, 0px) - 24px, 9px) + 4.125rem + 8px) !important; }
         /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
            el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
            (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
         #view-player {
             height: auto !important;
             bottom: 0 !important;
-            padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - 14px, 10px) + 4.125rem + 4px) !important;
+            padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - 24px, 9px) + 4.125rem + 4px) !important;
             border-radius: 32px 32px 0 0 !important;
         }
         #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-top: 1rem !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
