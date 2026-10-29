@@ -1193,11 +1193,11 @@
         .lg-edge polygon { fill: none; stroke: var(--lg-edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
         .lg-tabs { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: repeat(3, 1fr); padding: 4px; }
         .lg-tab { color: var(--lg-fg); }
-        #bottom-navbar .lg-tabs button, .lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; padding: .375rem 0; font-size: .6875rem; font-weight: 500; letter-spacing: .02em; border-radius: 2rem; }
+        #bottom-navbar .lg-tabs button, .lg-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .125rem; padding: .375rem 0; font-size: .625rem; font-weight: 500; letter-spacing: .01em; border-radius: 2rem; }
         #bottom-navbar .lg-tabs button { color: var(--lg-fg) !important; font-weight: 500 !important; background: none; border: 0; cursor: pointer; flex: initial; transition: transform 120ms ease-out; }
         #bottom-navbar .lg-tabs button:active { transform: none !important; }
         #bottom-navbar .lg-tabs button i, .lg-tab i { font-size: 1.3125rem; height: 1.5rem; line-height: 1.5rem; }
-        #bottom-navbar .lg-tabs button span, .lg-tab span { font-size: .6875rem; }
+        #bottom-navbar .lg-tabs button span, .lg-tab span { font-size: .625rem; }
         .lg-tab { pointer-events: none; }
         .lg-main .lg-tab { color: var(--lg-ink); }
         .lg-r .lg-tab { color: #ff2a45; }
@@ -2793,6 +2793,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
             document.getElementById('mini-player').addEventListener('click', (e) => {
                 if (e.target.closest('#mini-player-play') || e.target.closest('#mini-player-prev')) return;
+                /* Si aún no hay un libro cargado en el reproductor (solo está el "último reproducido"), cárgalo primero */
+                if (activeBookIndex === null) {
+                    const lastId = localStorage.getItem('audiolibros_diego_last_book_id');
+                    const li = currentBooks.findIndex(b => b.id === lastId);
+                    if (li >= 0) { loadAudiobookPlayer(li); return; }
+                }
                 showFullPlayer();
             });
 
@@ -3229,6 +3235,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                 document.body.style.setProperty('--stripe-rgb', `${r | 0}, ${gr | 0}, ${b | 0}`);
                 /* el canvas (html) bajo el viewport debe ser exactamente el color destino del degradado */
                 document.documentElement.style.setProperty('background-color', `rgb(${r | 0}, ${gr | 0}, ${b | 0})`, 'important');
+                void document.documentElement.offsetHeight; /* fuerza el repintado del canvas */
             } catch (e) {
                 /* Portada remota sin CORS u otro fallo: se usa el color del tema */
                 try { (document.body.style.removeProperty('--stripe-rgb'), document.documentElement.style.removeProperty('background-color')); } catch (e2) {}
@@ -5029,6 +5036,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                y la carga de la portada pueden tardar un frame en asentarse */
             try { requestAnimationFrame(function () { try { updateStripeColor(); } catch (e) {} }); } catch (e) {}
             setTimeout(function () { try { if (typeof updateStripeColor === 'function') updateStripeColor(); } catch (e) {} }, 150);
+            [400, 900].forEach(function (t) { setTimeout(function () { try { updateStripeColor(); } catch (e) {} }, t); });
             setTimeout(updateNavPillPosition, 150);
         }
 
@@ -5072,7 +5080,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         function applyLite() { bar.classList.toggle('lg-lite', lite); }
         applyLite();
 
-        var W = 0, H = 0, tabW = 0, LW = 0, lensH = 0, PAD = 4, LENS_MAX = 78;
+        var W = 0, H = 0, tabW = 0, LW = 0, lensH = 0, PAD = 4, LENS_MAX = 88;
         var current = 0, x = 0, vx = 0, target = 0, grow = 0, vg = 0, growTarget = 0, dragging = false, raf = 0, last = 0;
         var flash = 0, gx = 0.3, gy = 0.15, wetApplied = null, lastTurb = 0, lastPx = 0, downAt = 0, lastMoveAt = 0;
         var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
