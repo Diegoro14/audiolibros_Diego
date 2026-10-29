@@ -1176,7 +1176,7 @@
         }
 
         .lg-bar {
-            position: relative; pointer-events: auto; max-width: 28rem; margin: 0 auto; height: 4.125rem; border-radius: 99px;
+            position: relative; pointer-events: auto; max-width: 17.5rem; margin: 0 auto; height: 4.125rem; border-radius: 99px;
             will-change: transform; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer;
         }
         /* El vidrio de la barra va en su propia capa para poder contraerse solo donde pasa la burbuja */
@@ -5038,7 +5038,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         }
     </script>
     <script>
-    /* Liquid Glass tab bar v2: cápsula plana en reposo, burbuja de cristal al tocar. Usa switchTab()/hideFullPlayer() de la app. */
+    /* Liquid Glass tab bar v3: cápsula plana en reposo, burbuja de cristal angosta al tocar. Usa switchTab()/hideFullPlayer() de la app. */
     (function () {
         var $ = function (id) { return document.getElementById(id); };
         var bar = $('lg-bar'); if (!bar) return;
