@@ -1130,10 +1130,11 @@
         #view-player {
             height: auto !important;
             bottom: 0 !important;
-            padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - 24px, 9px) + 4.125rem + 4px) !important;
+            padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - 24px, 9px) + 4.125rem + max(env(safe-area-inset-bottom, 0px) - 24px, 9px)) !important;
             border-radius: 32px 32px 0 0 !important;
         }
-        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-top: 1rem !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
+        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-top: 1rem !important; padding-bottom: 1rem !important; margin-left: 14px !important; margin-right: 14px !important; }
+        #view-player .safe-padding-bottom { padding-bottom: 0 !important; }
         /* Carátula: SIEMPRE llena su fila del grid (altura 100% definida) para que la imagen
            nunca desborde sobre el título; el tamaño real lo da el espacio libre de la pantalla.
            Doble ID + align-self:stretch para ganarle a align-items:start del layout Spotify */
