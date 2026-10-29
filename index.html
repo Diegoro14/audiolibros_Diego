@@ -553,9 +553,8 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
-            content-visibility: auto;
-            contain-intrinsic-size: auto 500px;
-            contain: layout style;
+            /* content-visibility:auto en un contenedor con scroll hace que iOS recalcule el alto estimado (500px) al desplazarse
+               y la lista "rebota" al llegar al final; se quita. */
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -1118,7 +1117,9 @@
         /* Anclajes: la barra baja 24px respecto al inset seguro pero JAMÁS toca el borde (mínimo 9px) */
         #lg-anchor { display: none; }
         /* Separación de la barra respecto al borde: libera la línea negra del home de iOS (que se usa para deslizar entre apps) */
-        :root { --bar-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 10px), 24px); }
+        :root { --bar-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 2px), 32px); }
+        /* Modo claro: el riel de las barras de progreso (blanco al 10%) no se veía sobre fondo claro */
+        body.light-theme .h-1\.5.w-full.bg-white\/10 { background-color: rgba(0,0,0,.13) !important; }
         /* El espacio extra que sube el reproductor se le quita al hueco sobre la carátula, para no achicarla */
         #view-player .h-6.shrink-0 { height: 10px !important; }
         #bottom-navbar {
@@ -1129,7 +1130,8 @@
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: calc(var(--bar-bottom) + 4.125rem + 8px) !important; }
+        /* El mini reproductor ya no se usa: el control vive en la tarjeta "Último reproducido" */
+        #mini-player { display: none !important; }
         /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
            el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
            (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
@@ -1182,7 +1184,9 @@
                barra del home; la franja la cubre el degradado #stripe-fade + el canvas del body */
             #app-phone-container { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; will-change: auto !important; transition: none !important; background: transparent !important; }
             #player-bg-blur { bottom: -60px !important; }
-            #view-listening, #view-library, #view-settings { padding-bottom: 8rem !important; }
+            /* deja pasar el último elemento por encima de la barra y del mini reproductor */
+            #view-listening, #view-library, #view-settings { padding-bottom: 0 !important; }
+            #view-listening > .ios-scroll, #view-library > .ios-scroll, #view-settings > .ios-scroll { padding-bottom: calc(var(--bar-bottom) + 4.125rem + 2rem) !important; }
         }
 
         .lg-bar {
@@ -1362,15 +1366,18 @@ document.addEventListener('focusout',function(e){var t=e.target;if(t&&/^(INPUT|T
                         <!-- Último Reproducido -->
                         <div>
                             <span class="text-[11px] font-extrabold text-orange-500 tracking-widest uppercase block mb-3">Último Reproducido</span>
-                            <div id="last-played-card" class="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 flex gap-4 cursor-pointer hover:bg-zinc-900/80" style="transition: background-color 0.2s ease;">
+                            <div id="last-played-card" class="relative p-4 rounded-2xl bg-zinc-900/60 border border-white/5 flex gap-4 cursor-pointer hover:bg-zinc-900/80" style="transition: background-color 0.2s ease;">
                                 <div class="w-20 h-28 shrink-0 rounded-xl overflow-hidden shadow-lg bg-zinc-950 flex items-center justify-center relative">
                                     <img id="last-played-cover" src="https://placehold.co/400x600/101012/ffffff?text=Diego" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600/1e1e1e/a0a0a0?text=Audiolibro'">
                                 </div>
                                 <div class="flex-1 flex flex-col justify-between py-1">
-                                    <div>
+                                    <div class="pr-14">
                                         <h3 id="last-played-title" class="font-bold text-lg text-white line-clamp-1 leading-tight">Ningún audiolibro</h3>
                                         <p id="last-played-author" class="text-sm text-zinc-400 mt-1 line-clamp-1">Importa un archivo para comenzar</p>
                                     </div>
+                                    <button id="last-played-play" type="button" aria-label="Reproducir / pausar" class="absolute right-4 top-4 w-11 h-11 flex items-center justify-center text-white bg-orange-500 rounded-full shadow active:scale-90" style="transition: transform .15s ease;">
+                                        <i id="last-played-play-icon" class="fa-solid fa-play text-sm pl-0.5"></i>
+                                    </button>
                                     <div class="space-y-1.5">
                                         <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                                             <div id="last-played-progress" class="h-full bg-orange-500 w-0 rounded-full" style="transition: width 0.3s ease;"></div>
@@ -2794,6 +2801,27 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
 
             document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
             document.getElementById('mini-player-play').addEventListener('click', togglePlayPause);
+            /* Botón de play/pausa del "Último reproducido" (reemplaza al mini reproductor) */
+            (function () {
+                const btn = document.getElementById('last-played-play');
+                const ico = document.getElementById('last-played-play-icon');
+                const src = document.getElementById('mini-player-play-icon');
+                if (!btn || !ico || !src) return;
+                const sync = () => { ico.className = src.className.replace('text-xs', 'text-sm') + ' keep-white'; };
+                new MutationObserver(sync).observe(src, { attributes: true, attributeFilter: ['class'] });
+                sync();
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (activeBookIndex === null) {
+                        const lastId = localStorage.getItem('audiolibros_diego_last_book_id');
+                        const li = currentBooks.findIndex(b => b.id === lastId);
+                        if (li < 0) return;
+                        loadAudiobookPlayer(li);   /* abre el reproductor con el libro cargado; ahí se da play */
+                        return;
+                    }
+                    togglePlayPause();
+                });
+            })();
             document.getElementById('btn-rewind').addEventListener('click', () => skipSeconds(-15));
             document.getElementById('btn-forward').addEventListener('click', () => skipSeconds(15));
             document.getElementById('btn-back').addEventListener('click', hideFullPlayer);
