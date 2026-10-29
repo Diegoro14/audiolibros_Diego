@@ -1097,7 +1097,7 @@
         }
     </style>
     <style id="lg-tabbar-css">
-        /* ───────── Barra inferior · Liquid Glass (iOS 26) · v2 ───────── */
+        /* ───────── Barra inferior · Liquid Glass (iOS 26) · v3 ───────── */
         :root {
             --lg-tint: #ffa400;
             --lg-glass: rgba(40,40,44,.26); --lg-blur: 2px; --lg-txt-shadow: rgba(0,0,0,.45); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
@@ -1109,36 +1109,39 @@
             --lg-glass: rgba(255,255,255,.34); --lg-txt-shadow: rgba(0,0,0,.2); --lg-edge: rgba(0,0,0,.10);
             --lg-sink: rgba(0,0,0,.10); --lg-sink2: rgba(0,0,0,.06); --lg-vig: rgba(0,0,0,.05); --lg-cast: rgba(0,0,0,.18);
             --lg-blend: normal; --lg-ca-op: .6; --lg-line: rgba(0,0,0,.35);
-            --lg-flat: rgba(0,0,0,.09); --lg-fg: #0b0b0f;
+            --lg-flat: rgba(0,0,0,.09); --lg-fg: #0b0b0f; --lg-ink: #c25a00;
         }
 
         /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
         #bottom-navbar {
-            left: 0 !important; right: 0 !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important; width: auto !important; height: auto !important;
+            left: 0 !important; right: 0 !important; bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem) !important; width: auto !important; height: auto !important;
             padding: 0 14px !important; display: block !important; overflow: visible !important;
             border: 0 !important; border-radius: 0 !important;
             background: transparent !important; box-shadow: none !important;
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + 84px) !important; }
+        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 8px) !important; }
         /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
            el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
            (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
         #view-player {
             height: auto !important;
             bottom: 0 !important;
-            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px + 4.125rem + 4px) !important;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 4px) !important;
             border-radius: 32px 32px 0 0 !important;
         }
-        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-bottom: 1.25rem !important; }
+        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
+        /* Carátula más grande (la barra bajó, el reproductor también) */
+        #wrapper-cover > div.relative { height: min(37dvh, 370px) !important; max-width: 86% !important; }
 
         /* Pantalla completa en el iPhone: sin franja abajo (el contenedor se fija a los 4 bordes, incluida el área segura) */
         html, body { background-color: var(--bg-color); }
         @media (max-width: 768px) {
             #app-workspace { position: fixed !important; inset: 0 !important; padding: 0 !important; }
             #device-wrapper { width: 100% !important; height: 100% !important; }
-            #app-phone-container { position: fixed !important; inset: 0 !important; width: 100% !important; height: auto !important; }
+            #app-phone-container { position: fixed !important; inset: 0 0 calc(-1 * var(--vgap, 0px)) 0 !important; width: 100% !important; height: auto !important; will-change: auto !important; transition: none !important; background: var(--bg-color); }
+                        #player-bg-blur { bottom: -60px !important; }
         }
 
         .lg-bar {
@@ -1256,6 +1259,65 @@
         }
     }
     </script>
+<script>
+/* iPhone (app instalada): si el viewport de layout queda más corto que la pantalla, extiende el contenedor hasta el borde real */
+(function(){function f(){var g=0;try{var st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+if(st&&innerWidth<=768&&innerHeight>innerWidth){g=Math.max(0,Math.min(120,Math.round(screen.height-innerHeight)));}}catch(e){}
+document.documentElement.style.setProperty('--vgap',g+'px');}
+f();addEventListener('resize',f);addEventListener('orientationchange',function(){setTimeout(f,300)});addEventListener('pageshow',f);})();
+</script>
+<style id="fix-franja-inferior">
+        /* ═══════════════════════════════════════════════════════════════════
+           FIX "franja inferior" + "degradado no llega al final"
+           Réplica del patrón de index_ok.html:
+           · el fondo cubre SIEMPRE el 100% del viewport (raíz + capa fija)
+           · el contenido scrollea hasta el borde y pasa por detrás de la
+             barra flotante, desvaneciéndose bajo el vidrio (estilo iOS)
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* 1) Red de seguridad en la raíz: jamás puede asomar un color ajeno
+              a la app (franja blanca en claro / negra en oscuro) */
+        html, body { background-color: var(--bg-color) !important; }
+
+        /* 2) El degradado decorativo pasa a vivir DENTRO del contenedor de la
+              app (antes estaba en <body>, tapado por el contenedor opaco).
+              Cubre todo el marco, incluida la zona bajo la barra. */
+        #app-phone-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                radial-gradient(120% 60% at 50% -10%, rgba(255,164,0,.14), transparent 62%),
+                radial-gradient(60vw 60vw at -12% 18%, rgba(191,90,242,.10), transparent 60%),
+                radial-gradient(75vw 75vw at 112% 104%, rgba(255,138,0,.12), transparent 60%);
+        }
+        body.light-theme #app-phone-container::before {
+            background-image:
+                radial-gradient(120% 60% at 50% -10%, rgba(255,164,0,.16), transparent 62%),
+                radial-gradient(60vw 60vw at -12% 18%, rgba(191,90,242,.07), transparent 60%),
+                radial-gradient(75vw 75vw at 112% 104%, rgba(255,138,0,.10), transparent 60%);
+        }
+
+        /* 3) Las vistas dejan de cortar el contenido 128px antes del borde:
+              el scroll llega hasta el fondo y el contenido "pasa abajo de la
+              barra de navegación" (igual que index_ok) */
+        #view-listening, #view-library, #view-settings { padding-bottom: 0 !important; }
+        #view-listening > .ios-scroll,
+        #view-library > .ios-scroll,
+        #view-settings > .ios-scroll {
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem) !important;
+        }
+
+        /* 4) Desvanecido del contenido justo bajo el vidrio de la barra */
+        #view-listening > .ios-scroll,
+        #view-library > .ios-scroll,
+        #view-settings > .ios-scroll {
+            -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 84px), rgba(0,0,0,.45) calc(100% - 44px), rgba(0,0,0,.18) 100%);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 84px), rgba(0,0,0,.45) calc(100% - 44px), rgba(0,0,0,.18) 100%);
+        }
+    </style>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
 
