@@ -1187,7 +1187,8 @@
         .lg-bg { background: var(--lg-glass); -webkit-backdrop-filter: blur(var(--lg-blur, 2px)) saturate(1.6); backdrop-filter: blur(var(--lg-blur, 2px)) saturate(1.6); }
         /* Transparencia estilo iOS 26 / WhatsApp: se ve el contenido por detrás, con poco desenfoque */
         .tabbar .lg-tabs, .lg-bar .lg-tabs { text-shadow: 0 0 6px var(--lg-txt-shadow); }
-        .lg-cast { box-shadow: 0 10px 30px var(--lg-cast); }
+        /* La sombra no debe llegar al borde del viewport (iOS la recorta y se ve una línea): corta y pegada a la barra */
+        .lg-cast { box-shadow: 0 2px 9px var(--lg-cast); }
         .lg-edge { width: 100%; height: 100%; overflow: visible; }
         .lg-edge polygon { fill: none; stroke: var(--lg-edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
         .lg-tabs { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: repeat(3, 1fr); padding: 4px; }
