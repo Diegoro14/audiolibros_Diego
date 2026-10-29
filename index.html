@@ -1036,7 +1036,7 @@
             border-radius: 18px !important;
         }
         #wrapper-cover > div:first-child img { height: 100%; width: auto; max-width: 100%; }
-        #view-player > div.flex-1 > .h-6.shrink-0 { height: .5rem; }
+        #view-player > div.flex-1 > .h-6.shrink-0 { height: .25rem; }
         #wrapper-cover > div:nth-child(2) { grid-column: 1; grid-row: 2; text-align: left !important; max-width: none !important; padding: 0 !important; min-width: 0; }
         #player-book-title { font-size: 1.65rem !important; font-weight: 800 !important; letter-spacing: -0.03em !important; line-height: 1.1 !important; -webkit-line-clamp: 2 !important; }
         #player-book-author { font-size: 1.02rem !important; opacity: .7 !important; margin-top: .25rem !important; }
@@ -1113,28 +1113,35 @@
         }
 
         /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
+        /* Anclajes: la barra baja 14px respecto al inset seguro pero JAMÁS toca el borde (mínimo 10px) */
+        #lg-anchor { display: none; }
         #bottom-navbar {
-            left: 0 !important; right: 0 !important; bottom: env(safe-area-inset-bottom, 0px) !important; width: auto !important; height: auto !important;
+            left: 0 !important; right: 0 !important; bottom: max(env(safe-area-inset-bottom, 0px) - 14px, 10px) !important; width: auto !important; height: auto !important;
             padding: 0 14px !important; display: block !important; overflow: visible !important;
             border: 0 !important; border-radius: 0 !important;
             background: transparent !important; box-shadow: none !important;
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + 4.125rem + 8px) !important; }
+        #mini-player { bottom: calc(max(env(safe-area-inset-bottom, 0px) - 14px, 10px) + 4.125rem + 8px) !important; }
         /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
            el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
            (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
         #view-player {
             height: auto !important;
             bottom: 0 !important;
-            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.125rem + 4px) !important;
+            padding-bottom: calc(max(env(safe-area-inset-bottom, 0px) - 14px, 10px) + 4.125rem + 4px) !important;
             border-radius: 32px 32px 0 0 !important;
         }
-        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
-        /* Carátula: tamaño equivalente al de la versión anterior (~271pt en iPhone grande).
-           Doble ID para ganarle a "player-spotify-layout" (height:auto) sin depender del orden del cascade */
-        #view-player #wrapper-cover > div.relative { height: min(31dvh, 300px) !important; max-width: 86% !important; }
+        #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-top: 1rem !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
+        /* Carátula: SIEMPRE llena su fila del grid (altura 100% definida) para que la imagen
+           nunca desborde sobre el título; el tamaño real lo da el espacio libre de la pantalla.
+           Doble ID + align-self:stretch para ganarle a align-items:start del layout Spotify */
+        #view-player #wrapper-cover > div.relative {
+            height: 100% !important; max-width: 100% !important;
+            align-self: stretch !important; min-height: 0 !important;
+            justify-self: center !important;
+        }
 
         /* ===== Franja inferior (iOS 26 PWA): el canvas del body SÍ pinta la zona bajo el viewport,
            los elementos fixed NO (iOS los recorta). Solución: un degradado dentro de la app que
@@ -1148,6 +1155,13 @@
             background: linear-gradient(to bottom, rgba(var(--stripe-rgb), 0), rgb(var(--stripe-rgb)) 80%);
         }
         #player-stripe-fade { position: absolute; }
+        /* Blindaje de tema: en MODO CLARO el degradado SIEMPRE converge al color del tema,
+           sin importar el --stripe-rgb inline que haya dejado JS (evita la franja oscura
+           al alternar claro/oscuro con portadas de fondo negro, p. ej. Star Wars) */
+        body.light-theme #stripe-fade,
+        body.light-theme #player-stripe-fade {
+            background: linear-gradient(to bottom, rgba(242,242,247,0), #f2f2f7 80%) !important;
+        }
 
         /* Pantalla completa en el iPhone */
         html, body { background-color: var(--bg-color); }
@@ -3176,6 +3190,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                     document.body.style.removeProperty('--stripe-rgb');
                     return;
                 }
+                /* Modo claro: el degradado SIEMPRE es el del tema (lo garantiza también CSS);
+                   sin tinte de portada no puede aparecer una franja oscura */
+                if (document.body.classList.contains('light-theme')) {
+                    document.body.style.removeProperty('--stripe-rgb');
+                    return;
+                }
                 const c = document.createElement('canvas'); c.width = 8; c.height = 8;
                 const g = c.getContext('2d');
                 // Franja baja de la portada: el blur de fondo muestra esa zona ampliada tras la barra
@@ -4973,7 +4993,10 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             });
 
             showToast(isLight ? "Modo Claro" : "Modo Oscuro");
-            if (typeof updateStripeColor === 'function') updateStripeColor();
+            /* Re-sincroniza el degradado inferior en varios ticks: el estado del reproductor
+               y la carga de la portada pueden tardar un frame en asentarse */
+            try { requestAnimationFrame(function () { try { updateStripeColor(); } catch (e) {} }); } catch (e) {}
+            setTimeout(function () { try { if (typeof updateStripeColor === 'function') updateStripeColor(); } catch (e) {} }, 150);
             setTimeout(updateNavPillPosition, 150);
         }
 
