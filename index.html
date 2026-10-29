@@ -575,11 +575,12 @@
             }
             #device-wrapper {
                 width: 100% !important;
-                height: 100% !important;
+                height: 100dvh !important;
                 gap: 0 !important;
             }
             #app-phone-container {
                 width: 100% !important;
+                height: 100dvh !important;
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
@@ -588,7 +589,7 @@
                 padding-top: max(50px, env(safe-area-inset-top)) !important;
             }
             .safe-padding-bottom {
-                padding-bottom: max(34px, env(safe-area-inset-bottom)) !important;
+                padding-bottom: calc(max(34px, env(safe-area-inset-bottom, 0px)) + var(--vgap, 0px)) !important;
             }
         }
 
@@ -1099,55 +1100,50 @@
         /* ───────── Barra inferior · Liquid Glass (iOS 26) · v3 ───────── */
         :root {
             --lg-tint: #ffa400;
-            --lg-glass: rgba(28,28,32,.55); --lg-blur: 6px; --lg-txt-shadow: rgba(0,0,0,.45); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
+            --lg-glass: rgba(40,40,44,.26); --lg-blur: 2px; --lg-txt-shadow: rgba(0,0,0,.45); --lg-ink: var(--lg-tint); --lg-edge: rgba(255,255,255,.14);
             --lg-sink: rgba(0,0,0,.4); --lg-sink2: rgba(0,0,0,.28); --lg-vig: rgba(0,0,0,.16); --lg-cast: rgba(0,0,0,.4);
             --lg-blend: screen; --lg-ca-op: 1; --lg-line: rgba(0,0,0,.6);
             --lg-flat: rgba(0,0,0,.5); --lg-fg: #ffffff;
         }
         body.light-theme {
-            --lg-glass: rgba(255,255,255,.62); --lg-txt-shadow: rgba(0,0,0,.2); --lg-edge: rgba(0,0,0,.10);
-            --lg-sink: rgba(0,0,0,.10); --lg-sink2: rgba(0,0,0,.06); --lg-vig: rgba(0,0,0,.05); --lg-cast: rgba(0,0,0,.18);
+            --lg-glass: rgba(255,255,255,.62); --lg-txt-shadow: rgba(0,0,0,.2); --lg-edge: rgba(0,0,0,.15);
+            --lg-sink: rgba(0,0,0,.10); --lg-sink2: rgba(0,0,0,.06); --lg-vig: rgba(0,0,0,.05); --lg-cast: rgba(0,0,0,.24);
             --lg-blend: normal; --lg-ca-op: .6; --lg-line: rgba(0,0,0,.35);
             --lg-flat: rgba(0,0,0,.09); --lg-fg: #0b0b0f; --lg-ink: #c25a00;
         }
 
         /* Contenedor transparente: solo posiciona la barra (el vidrio vive en .lg-bg) */
         #bottom-navbar {
-            left: 0 !important; right: 0 !important; bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem) !important; width: auto !important; height: auto !important;
+            left: 0 !important; right: 0 !important; bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + var(--vgap, 0px)) !important; width: auto !important; height: auto !important;
             padding: 0 14px !important; display: block !important; overflow: visible !important;
             border: 0 !important; border-radius: 0 !important;
             background: transparent !important; box-shadow: none !important;
             -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
             pointer-events: none;
         }
-        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 8px) !important; }
+        #mini-player { bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 8px + var(--vgap, 0px)) !important; }
         /* Reproductor: la hoja (y el degradado de la portada) llega hasta el fondo de la pantalla, por detrás de la barra;
            el contenido (la caja de controles) termina ~1 mm (4px) encima de la barra.
            (h-full de Tailwind ganaba sobre "bottom": se usa padding-bottom en vez de acortar la hoja) */
         #view-player {
             height: auto !important;
             bottom: 0 !important;
-            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 4px) !important;
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem + 4.125rem + 4px + var(--vgap, 0px)) !important;
             border-radius: 32px 32px 0 0 !important;
         }
         #view-player .liquid-glass-dark.mb-10 { margin-bottom: 0 !important; padding-bottom: 1.25rem !important; margin-left: 14px !important; margin-right: 14px !important; }
         /* Carátula más grande (la barra bajó, el reproductor también) */
         #wrapper-cover > div.relative { height: min(37dvh, 370px) !important; max-width: 86% !important; }
 
-        /* Pantalla completa en el iPhone: sin franja abajo (el contenedor se fija a los 4 bordes, incluida el área segura).
-           Se usan longhands top/right/bottom/left (no "inset") y height:auto para máxima compatibilidad con iOS:
-           el estirado lo hacen top:0 + bottom negativo, nunca unidades dvh que algunos modos de iOS miden mal. */
-        html { background-color: #050508; }
-        html.light-theme { background-color: #f2f2f7; }
-        body { background-color: var(--bg-color); }
+        /* Pantalla completa en el iPhone: sin franja abajo (el contenedor se fija a los 4 bordes, incluida el área segura) */
+        html, body { background-color: var(--bg-color); }
         @media (max-width: 768px) {
-            #app-workspace { position: fixed !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important; padding: 0 !important; }
+            #app-workspace { position: fixed !important; inset: 0 !important; padding: 0 !important; }
             #device-wrapper { width: 100% !important; height: 100% !important; }
-            #app-phone-container { position: fixed !important; top: 0 !important; right: 0 !important; bottom: calc(-1 * var(--vgap, 0px)) !important; left: 0 !important; width: 100% !important; height: auto !important; will-change: auto !important; transition: none !important; background: transparent !important; }
-            /* El fondo líquido debe verse a través de la app y cubrir TODO el alto físico (incluida la zona bajo la barra):
-               se eleva por encima del fondo del body y se le da altura completa por JS (screen.height). */
-            #app-bg-blobs { z-index: 0 !important; pointer-events: none !important; }
-            #player-bg-blur { bottom: -60px !important; }
+            #app-phone-container { position: fixed !important; inset: 0 0 calc(-1 * var(--vgap, 0px)) 0 !important; width: 100% !important; height: auto !important; will-change: auto !important; transition: none !important; background: var(--bg-color); }
+                        #player-bg-blur { bottom: -60px !important; }
+            /* Las vistas crecen con el contenedor: misma holgura visual sobre la barra */
+            #view-listening, #view-library, #view-settings { padding-bottom: calc(8rem + var(--vgap, 0px)) !important; }
         }
 
         .lg-bar {
@@ -1266,14 +1262,20 @@
     }
     </script>
 <script>
-/* iPhone (app instalada): si el viewport de layout queda más corto que la pantalla, extiende el contenedor hasta el borde real.
-   Además fija la altura de la capa de fondo al alto físico real (screen.height) para que el degradado
-   llegue siempre hasta el borde inferior, incluso en los modos donde iOS reduce el viewport (PWA/barra de estado). */
-(function(){function f(){var g=0;try{var st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+/* iPhone (app instalada): si el viewport de layout queda más corto que la pantalla física,
+   extiende el contenedor hasta el borde real vía --vgap (px) y compensa los anclajes.
+   iOS 26 standalone: 100dvh excluye la zona inferior de ~47pt (barra Liquid Glass del home)
+   y, en 26.1+, screen.height y env(safe-area-inset-bottom) también reportan 0/879,
+   por lo que el hueco no es medible: se usa el valor medido en dispositivo (47px). */
+(function(){function f(){var g=0;try{
+var st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
 if(st&&innerWidth<=768&&innerHeight>innerWidth){g=Math.max(0,Math.min(120,Math.round(screen.height-innerHeight)));}
-var bl=document.getElementById('app-bg-blobs');
-if(bl&&innerWidth<=768&&innerHeight>innerWidth){bl.style.height=Math.max(screen.height,innerHeight)+'px';}
-else if(bl){bl.style.height='';}}catch(e){}
+var envB=0;try{var t=document.createElement('div');
+t.style.cssText='position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)';
+document.documentElement.appendChild(t);envB=parseFloat(getComputedStyle(t).paddingBottom)||0;t.remove();}catch(e){}
+var m=navigator.userAgent.match(/OS (\d+)_/);var ios26=!!(st&&m&&parseInt(m[1],10)>=26);
+if(ios26&&g===0&&envB===0&&innerWidth<=768&&innerHeight>innerWidth&&innerHeight<=940){g=47;}
+}catch(e){}
 document.documentElement.style.setProperty('--vgap',g+'px');}
 f();addEventListener('resize',f);addEventListener('orientationchange',function(){setTimeout(f,300)});addEventListener('pageshow',f);})();
 </script>
@@ -1281,7 +1283,7 @@ f();addEventListener('resize',f);addEventListener('orientationchange',function()
 <body class="h-full overflow-hidden select-none flex flex-col">
 
     <!-- Fondo líquido abstracto autogestionado -->
-    <div id="app-bg-blobs" class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-transparent">
         <div class="absolute top-[-20%] left-[-30%] w-[80vw] h-[80vw] rounded-full bg-purple-600/20 blur-[60px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translate3d(0,0,0); will-change: opacity;"></div>
         <div class="absolute bottom-[-10%] right-[-20%] w-[70vw] h-[70vw] rounded-full bg-orange-600/15 blur-[70px] transition-opacity duration-700" style="opacity: var(--blob-op); transform: translate3d(0,0,0); will-change: opacity;"></div>
     </div>
@@ -2839,10 +2841,7 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
                     wrapper.className = "flex items-center justify-center w-full h-full p-0";
                     phoneContainer.classList.remove('phone-frame');
                     phoneContainer.style.width = '100%';
-                    /* La altura la controla la hoja de estilos (top:0 + bottom negativo + height:auto):
-                       fijarla aquí a 100dvh hacía que el contenedor quedara más corto que la pantalla
-                       en iPhone (franja blanca/negra abajo). Se limpia cualquier valor inline. */
-                    phoneContainer.style.height = '';
+                    phoneContainer.style.height = '100dvh';
                     phoneContainer.style.borderRadius = '0';
                     phoneContainer.style.border = 'none';
                 }
@@ -4886,14 +4885,12 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
             
             if (savedTheme === 'light') {
                 document.body.classList.add('light-theme');
-                document.documentElement.classList.add('light-theme');
                 if (toggle) toggle.checked = false;
                 document.querySelectorAll('.theme-icon').forEach(icon => {
                     icon.className = "fa-solid fa-sun theme-icon";
                 });
             } else {
                 document.body.classList.remove('light-theme');
-                document.documentElement.classList.remove('light-theme');
                 if (toggle) toggle.checked = true;
                 document.querySelectorAll('.theme-icon').forEach(icon => {
                     icon.className = "fa-solid fa-moon theme-icon";
@@ -4905,10 +4902,6 @@ half(){const mx=W*.06,dw=W*.88;ctx.beginPath();ctx.moveTo(mx,H/2);for(let i=0;i<
         function toggleTheme() {
             document.body.classList.toggle('light-theme');
             const isLight = document.body.classList.contains('light-theme');
-            /* El color del lienzo (html) también debe cambiar de tema: es lo que se ve en las
-               zonas que ningún elemento cubre (área segura inferior). Sin esto, en modo claro
-               el lienzo seguía oscuro (franja negra) y en modo oscuro claro (franja blanca). */
-            document.documentElement.classList.toggle('light-theme', isLight);
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
             
             const toggle = document.getElementById('dark-mode-toggle');
