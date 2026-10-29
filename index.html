@@ -2,7 +2,7 @@
 <html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Audiolibros Diego - Creador de Audiolibros</title>
     
     <!-- Meta etiquetas para App en iPhone (PWA) -->
@@ -1097,6 +1097,8 @@
         }
     </style>
     <style id="lg-tabbar-css">
+        /* iOS hace zoom al enfocar campos con letra < 16px: se fuerza 16px para evitarlo */
+        input[type=text], input[type=search], input:not([type]), textarea, select { font-size: 16px !important; }
         /* ───────── Barra inferior · Liquid Glass (iOS 26) · v3 ───────── */
         :root {
             --lg-tint: #ffa400;
@@ -1308,6 +1310,10 @@ if(ios26&&g===0&&envB===0&&innerWidth<=768&&innerHeight>innerWidth&&innerHeight<
 }catch(e){}
 document.documentElement.style.setProperty('--vgap',g+'px');}
 f();addEventListener('resize',f);addEventListener('orientationchange',function(){setTimeout(f,300)});addEventListener('pageshow',f);})();
+</script>
+<script>
+/* Al salir de un campo, deshace cualquier zoom/desplazamiento residual de iOS */
+document.addEventListener('focusout',function(e){var t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)){setTimeout(function(){window.scrollTo(0,0);document.documentElement.scrollLeft=0;document.body.scrollLeft=0;},120);}});
 </script>
 </head>
 <body class="h-full overflow-hidden select-none flex flex-col">
